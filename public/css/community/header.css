@@ -1,0 +1,305 @@
+/* =============================================================
+   HEADER.CSS — Fixed Header, Logo, Search, Nav, User Menu
+============================================================= */
+
+.comm-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    height: var(--header-h);
+    background: var(--iccr-midnight);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.comm-header__inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 100%;
+    padding: 0 20px 0 0;
+}
+
+/* --- Logo zone — same width as sidebar --- */
+.comm-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    padding: 0 18px;
+    height: 100%;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+}
+
+.comm-logo__img {
+    height: 34px;
+    width: auto;
+    object-fit: contain;
+}
+
+.comm-logo__fallback {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.comm-logo__abbr {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--iccr-gold);
+    letter-spacing: 1px;
+}
+
+.comm-logo__full {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-on-dark-2);
+    letter-spacing: 0.3px;
+}
+
+/* --- Search --- */
+.comm-search {
+    flex: 1;
+    max-width: 420px;
+    position: relative;
+}
+
+.comm-search__icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-on-dark-2);
+    pointer-events: none;
+}
+
+.comm-search__input {
+    width: 100%;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--r-xl);
+    padding: 0 16px 0 38px;
+    font-size: 13.5px;
+    color: #fff;
+    outline: none;
+    transition:
+        background 0.2s var(--ease),
+        border-color 0.2s var(--ease);
+    font-family: inherit;
+}
+
+.comm-search__input::placeholder {
+    color: rgba(255, 255, 255, 0.42);
+}
+
+.comm-search__input:focus {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* --- Right nav --- */
+.comm-header__right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.comm-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.75);
+    position: relative;
+    transition:
+        background 0.18s var(--ease),
+        color 0.18s var(--ease);
+}
+
+.comm-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.comm-icon-btn--badge .badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    background: var(--iccr-saffron);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    border: 2px solid var(--iccr-midnight);
+}
+
+/* --- User menu --- */
+.comm-user-menu {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 12px 5px 6px;
+    border-radius: var(--r-xl);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.18s var(--ease);
+    margin-left: 6px;
+}
+
+.comm-user-menu:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.comm-user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.comm-user-label {
+    font-size: 10.5px;
+    color: var(--text-on-dark-2);
+    font-weight: 400;
+}
+
+.comm-user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.comm-user-caret {
+    color: rgba(255, 255, 255, 0.5);
+    transition: transform 0.2s var(--ease);
+    flex-shrink: 0;
+}
+
+.comm-user-menu:hover .comm-user-caret {
+    transform: rotate(180deg);
+}
+
+/* --- Dropdown --- */
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 0px);
+    right: 0;
+    width: 200px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition:
+        opacity 0.18s var(--ease),
+        transform 0.18s var(--ease);
+    z-index: 300;
+}
+
+.comm-user-menu:hover .user-dropdown,
+.comm-user-menu.open .user-dropdown {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--r-sm);
+    font-size: 13.5px;
+    color: var(--text-primary);
+    transition: background 0.15s var(--ease);
+}
+
+.dropdown-item:hover {
+    background: var(--bg-input);
+}
+
+.dropdown-item--danger {
+    color: #c0392b;
+}
+.dropdown-item--danger:hover {
+    background: #fff5f5;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 4px 0;
+}
+
+/* --- Hamburger (mobile) --- */
+.comm-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.comm-hamburger span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 2px;
+    transition: 0.25s var(--ease);
+}
+
+/* =============================================================
+   RESPONSIVE
+============================================================= */
+@media (max-width: 768px) {
+    .comm-hamburger {
+        display: flex;
+        margin-left: 4px;
+    }
+
+    .comm-user-info {
+        display: none;
+    }
+
+    .comm-user-caret {
+        display: none;
+    }
+
+    .comm-logo {
+        width: auto;
+        min-width: unset;
+        padding: 0 16px;
+    }
+
+    .comm-search {
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .comm-search {
+        display: none;
+    }
+}

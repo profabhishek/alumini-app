@@ -1,0 +1,675 @@
+/* =====================================================
+   PROFILE PAGE
+===================================================== */
+
+.profile-page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 0 60px;
+}
+
+/* ── Alerts ─────────────────────────────────────────── */
+
+.profile-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 24px;
+}
+
+.profile-alert--success {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.profile-alert--error {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+/* ── Header Card ────────────────────────────────────── */
+
+.profile-header-card {
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+    margin-bottom: 24px;
+}
+
+.profile-cover {
+    height: 140px;
+    background: linear-gradient(135deg, #1a2340 0%, #e8640c 100%);
+}
+
+.profile-header-body {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    padding: 0 32px 28px;
+    flex-wrap: wrap;
+}
+
+/* ── Avatar ─────────────────────────────────────────── */
+
+.profile-avatar-wrap {
+    position: relative;
+    margin-top: -52px;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.profile-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-initials {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a2340, #e8640c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.profile-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+
+.profile-avatar-wrap:hover .profile-avatar-overlay {
+    opacity: 1;
+}
+
+/* ── Header Info ────────────────────────────────────── */
+
+.profile-header-info {
+    padding-top: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-header-name {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111;
+    margin: 0 0 4px;
+}
+
+.profile-header-meta {
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 12px;
+}
+
+.profile-header-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.profile-tag {
+    background: #f4f4f4;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: #444;
+    font-weight: 500;
+}
+
+/* ── Tabs ───────────────────────────────────────────── */
+
+.profile-tabs {
+    display: flex;
+    gap: 6px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 6px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+}
+
+.profile-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: #777;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.profile-tab:hover {
+    background: #f5f5f5;
+    color: #111;
+}
+
+.profile-tab.active {
+    background: #1a2340;
+    color: #fff;
+}
+
+/* ── Tab Panels ─────────────────────────────────────── */
+
+.profile-tab-panel {
+    display: none;
+    background: #fff;
+    border-radius: 24px;
+    padding: 36px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+}
+
+.profile-tab-panel.active {
+    display: block;
+}
+
+/* ── Form Sections ──────────────────────────────────── */
+
+.profile-form-section {
+    margin-bottom: 36px;
+}
+
+.profile-form-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.profile-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.profile-section-desc {
+    font-size: 14px;
+    color: #888;
+    margin: -12px 0 20px;
+}
+
+/* ── Grid ───────────────────────────────────────────── */
+
+.profile-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.profile-form-grid--narrow {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+}
+
+/* ── Form Groups ────────────────────────────────────── */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group--full {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.req {
+    color: #e8640c;
+}
+
+.form-input {
+    height: 48px;
+    border: 2px solid #ececec;
+    border-radius: 12px;
+    padding: 0 16px;
+    font-size: 14px;
+    color: #111;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+    background: #fff;
+}
+
+.form-input:focus {
+    border-color: #1a2340;
+}
+
+.form-input.is-error {
+    border-color: #dc2626;
+}
+
+.form-input--disabled {
+    background: #f9f9f9;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.form-textarea {
+    height: auto;
+    padding: 14px 16px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.form-error {
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.form-hint-inline {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 400;
+}
+
+.form-char-count {
+    font-size: 12px;
+    color: #aaa;
+    text-align: right;
+}
+
+/* ── Privacy Toggles ────────────────────────────────── */
+
+.privacy-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.privacy-toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f9f9f9;
+    border-radius: 16px;
+    padding: 18px 22px;
+    gap: 20px;
+}
+
+.privacy-toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.privacy-toggle-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+}
+
+.privacy-toggle-desc {
+    font-size: 13px;
+    color: #888;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #ddd;
+    border-radius: 999px;
+    transition: 0.3s;
+}
+
+.toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #e8640c;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(24px);
+}
+
+/* ── Password Fields ────────────────────────────────── */
+
+.input-password-wrap {
+    position: relative;
+}
+
+.input-password-wrap .form-input {
+    padding-right: 48px;
+}
+
+.toggle-pass {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-pass:hover {
+    color: #444;
+}
+
+/* Password Strength */
+.password-strength {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.strength-bar {
+    flex: 1;
+    height: 4px;
+    background: #eee;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.strength-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    transition:
+        width 0.3s,
+        background 0.3s;
+    width: 0%;
+}
+
+.strength-label {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 50px;
+}
+
+/* ── Save Button ────────────────────────────────────── */
+
+.profile-form-actions {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #f0f0f0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-save {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: #1a2340;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+.btn-save:hover {
+    background: #e8640c;
+    transform: translateY(-2px);
+}
+
+/* ── Crop Modal ─────────────────────────────────────── */
+
+.crop-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.crop-modal.open {
+    display: flex;
+}
+
+.crop-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.crop-modal__box {
+    position: relative;
+    background: #fff;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 520px;
+    margin: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+}
+
+.crop-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 28px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.crop-modal__header h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.crop-modal__close {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: #f0f0f0;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #444;
+    transition: 0.2s;
+}
+
+.crop-modal__close:hover {
+    background: #e0e0e0;
+}
+
+.crop-modal__body {
+    padding: 28px;
+}
+
+.crop-upload-zone {
+    border: 2px dashed #ddd;
+    border-radius: 16px;
+    padding: 48px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #aaa;
+}
+
+.crop-upload-zone:hover,
+.crop-upload-zone.drag-over {
+    border-color: #e8640c;
+    background: #fff8f4;
+    color: #e8640c;
+}
+
+.crop-upload-zone p {
+    font-size: 15px;
+    font-weight: 600;
+    color: #444;
+    margin: 0;
+}
+
+.crop-upload-zone span {
+    font-size: 13px;
+}
+
+.crop-canvas-wrap {
+    max-height: 360px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.crop-canvas-wrap img {
+    display: block;
+    max-width: 100%;
+}
+
+.crop-modal__footer {
+    padding: 20px 28px;
+    border-top: 2px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.btn-crop-cancel {
+    background: #f0f0f0;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #444;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-crop-cancel:hover {
+    background: #e4e4e4;
+}
+
+.btn-crop-save {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #e8640c;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-crop-save:hover {
+    background: #d45a0a;
+    transform: translateY(-1px);
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .profile-tab-panel {
+        padding: 24px 18px;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-header-body {
+        padding: 0 20px 24px;
+        gap: 16px;
+    }
+
+    .profile-tabs {
+        flex-direction: column;
+    }
+
+    .profile-header-name {
+        font-size: 20px;
+    }
+
+    .crop-modal__box {
+        margin: 12px;
+    }
+}

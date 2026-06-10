@@ -1,0 +1,367 @@
+.alumni-page {
+    background: var(--light2);
+    min-height: 100vh;
+    padding: 40px 80px 50px;
+}
+
+.alumni-hero {
+    padding: 0px 0px 45px;
+    text-align: center;
+    position: relative;
+}
+
+.alumni-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at top right,
+        rgba(0, 0, 0, 0.04),
+        transparent 45%
+    );
+    pointer-events: none;
+}
+
+.alumni-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 24px;
+}
+
+.alumni-title {
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.05;
+    color: #111;
+    margin: 0;
+}
+
+.alumni-subtitle {
+    max-width: 720px;
+    margin: 24px auto 0;
+    font-size: 18px;
+    line-height: 1.8;
+    color: #666;
+}
+
+.alumni-toolbar {
+    margin-bottom: 60px;
+}
+
+.toolbar-form {
+    max-width: 900px;
+    margin: auto;
+    display: flex;
+    gap: 16px;
+}
+
+.search-box {
+    flex: 1;
+}
+
+.search-box input {
+    width: 100%;
+    height: 40px;
+    border: none;
+    outline: none;
+    border-radius: 20px;
+    background: #fff;
+    padding: 0 24px;
+    font-size: 15px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.05);
+    border: 1px solid grey;
+}
+
+.search-box input:focus {
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
+}
+
+.search-btn {
+    height: 40px;
+    border: none;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 0 35px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    background: #111;
+    transition: 0.3s;
+}
+
+.search-btn:hover {
+    transform: translateY(-2px);
+}
+
+.alumni-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 35px;
+}
+
+.alumni-card {
+    background: #fff;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    transition: 0.4s;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
+}
+
+.alumni-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+}
+
+.card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* =====================================================
+   IMAGE
+===================================================== */
+
+.alumni-image-wrap {
+    position: relative;
+    overflow: hidden;
+    height: 360px;
+}
+
+.alumni-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: 0.6s;
+}
+
+.alumni-card:hover .alumni-image {
+    transform: scale(1.05);
+}
+
+.alumni-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ece7df, #d9d1c5);
+}
+
+.alumni-placeholder span {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    font-weight: 800;
+    color: #444;
+}
+
+/* =====================================================
+   CONTENT
+===================================================== */
+
+.alumni-content {
+    padding: 28px;
+}
+
+.alumni-name {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.alumni-department {
+    margin-top: 10px;
+    color: #666;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.alumni-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.alumni-meta span {
+    color: #777;
+    font-size: 14px;
+}
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+.empty-state {
+    text-align: center;
+    padding: 100px 20px;
+}
+
+.empty-state h3 {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.empty-state p {
+    color: #666;
+}
+
+/* =====================================================
+   PAGINATION
+===================================================== */
+
+.pagination-section {
+    margin-top: 70px;
+}
+
+.pagination {
+    justify-content: center;
+    gap: 12px;
+}
+
+.pagination .page-item {
+    list-style: none;
+}
+
+.pagination .page-link {
+    min-width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: #111;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+}
+
+.pagination .active .page-link {
+    background: #111;
+    color: #fff;
+}
+
+.pagination .page-link:hover {
+    transform: translateY(-2px);
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 992px) {
+    .alumni-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .alumni-image-wrap {
+        height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .toolbar-form {
+        flex-direction: column;
+    }
+
+    .search-btn {
+        width: 100%;
+    }
+
+    .alumni-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .alumni-title {
+        font-size: 42px;
+    }
+
+    .alumni-image-wrap {
+        height: 280px;
+    }
+
+    .alumni-content {
+        padding: 22px;
+    }
+}
+.pagination-demo {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 60px;
+}
+
+.page-btn {
+    border: none;
+    background: #fff;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.page-btn.active {
+    background: #111;
+    color: #fff;
+}
+
+.filter-box select {
+    height: 40px;
+    border: 1px solid grey;
+    outline: none;
+    border-radius: 20px;
+    background: #fff;
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #111;
+    cursor: pointer;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.05);
+    appearance: none;
+    -webkit-appearance: none;
+    min-width: 180px;
+}
+
+.filter-box select:focus {
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
+}
+
+.reset-btn {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid grey;
+    color: #111;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: 0.3s;
+}
+
+.reset-btn:hover {
+    background: #f5f5f5;
+    transform: translateY(-2px);
+}

@@ -1,0 +1,319 @@
+/* ==========================================
+   NOTICE PAGE
+========================================== */
+
+.notice-page {
+    background: var(--light2);
+    min-height: 100vh;
+    padding: 40px 80px 50px;
+}
+
+/* ==========================================
+   HERO
+========================================== */
+
+.notice-hero {
+    padding: 0 0 50px;
+    text-align: center;
+}
+
+.notice-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    background: #fff;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.notice-title {
+    font-size: clamp(42px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: #111;
+    margin-bottom: 15px;
+}
+
+.notice-subtitle {
+    max-width: 700px;
+    margin: auto;
+    color: #666;
+    font-size: 18px;
+    line-height: 1.8;
+}
+
+/* ==========================================
+   SEARCH
+========================================== */
+
+.notice-toolbar {
+    margin-bottom: 50px;
+}
+
+.notice-search-form {
+    max-width: 700px;
+    margin: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.notice-search-form input {
+    flex: 1;
+    height: 60px;
+    border: none;
+    outline: none;
+    border-radius: 18px;
+    background: #fff;
+    padding: 0 20px;
+    font-size: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.notice-search-form button {
+    border: none;
+    background: #111;
+    color: #fff;
+    padding: 0 30px;
+    border-radius: 18px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.notice-search-form button:hover {
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   NOTICE GRID
+========================================== */
+
+.notice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 30px;
+}
+
+/* ==========================================
+   NOTICE CARD
+========================================== */
+
+.notice-card {
+    background: #fff;
+    border-radius: 26px;
+    padding: 30px;
+    transition: 0.35s;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.notice-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: #ff6b00;
+}
+
+.notice-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+}
+
+.notice-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.notice-date {
+    font-size: 14px;
+    color: #888;
+    font-weight: 600;
+}
+
+.notice-tag {
+    background: #fff4eb;
+    color: #ff6b00;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.notice-heading {
+    font-size: 30px;
+    line-height: 1.3;
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 18px;
+}
+
+.notice-description {
+    color: #666;
+    line-height: 1.9;
+    font-size: 15px;
+    margin-bottom: 25px;
+}
+
+.notice-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.notice-link {
+    text-decoration: none;
+    font-weight: 700;
+    color: #111;
+    transition: 0.3s;
+}
+
+.notice-link:hover {
+    color: #ff6b00;
+}
+
+/* ==========================================
+   ANNOUNCEMENT STRIP
+========================================== */
+
+.announcement-section {
+    margin-top: 70px;
+}
+
+.announcement-card {
+    background: #111;
+    color: #fff;
+    border-radius: 30px;
+    padding: 45px 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+}
+
+.announcement-card h3 {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.announcement-card p {
+    color: #d4d4d4;
+    line-height: 1.8;
+}
+
+.announcement-btn {
+    text-decoration: none;
+    background: #fff;
+    color: #111;
+    font-weight: 700;
+    padding: 14px 24px;
+    border-radius: 14px;
+    white-space: nowrap;
+    transition: 0.3s;
+}
+
+.announcement-btn:hover {
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   PAGINATION
+========================================== */
+
+.notice-pagination {
+    margin-top: 70px;
+}
+
+.pagination-demo {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pagination-demo button {
+    border: none;
+    min-width: 50px;
+    height: 50px;
+    background: #fff;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+}
+
+.pagination-demo button.active {
+    background: #111;
+    color: #fff;
+}
+
+/* ==========================================
+   REVEAL EFFECT
+========================================== */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
+}
+
+.reveal.show {
+    opacity: 1;
+    transform: none;
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media (max-width: 992px) {
+    .notice-page {
+        padding: 30px;
+    }
+
+    .notice-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .announcement-card {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .notice-page {
+        padding: 20px;
+    }
+
+    .notice-search-form {
+        flex-direction: column;
+    }
+
+    .notice-search-form button {
+        height: 60px;
+    }
+
+    .notice-heading {
+        font-size: 24px;
+    }
+
+    .announcement-card {
+        padding: 35px 25px;
+    }
+
+    .announcement-card h3 {
+        font-size: 24px;
+    }
+}

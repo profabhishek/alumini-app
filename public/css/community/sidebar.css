@@ -1,0 +1,209 @@
+/* =============================================================
+   SIDEBAR.CSS — Left Sidebar, Nav Items, Footer, Mobile Overlay
+============================================================= */
+
+.comm-sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    width: var(--sidebar-w);
+    height: calc(100vh - var(--header-h));
+    background: var(--iccr-midnight-2);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 100;
+    scrollbar-width: none;
+}
+
+.comm-sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+/* --- Nav --- */
+.sidebar-nav {
+    flex: 1;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-nav__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: var(--r-md);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background 0.18s var(--ease),
+        color 0.18s var(--ease);
+    position: relative;
+    white-space: nowrap;
+}
+
+.sidebar-nav__item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.sidebar-nav__item.active {
+    background: var(--iccr-saffron);
+    color: #fff;
+}
+
+.sidebar-nav__item.active .nav-icon {
+    color: #fff;
+}
+
+.nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+    width: 20px;
+}
+
+.nav-label {
+    flex: 1;
+}
+
+.nav-chevron {
+    color: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+    transition: transform 0.2s var(--ease);
+}
+
+.sidebar-nav__item--expandable:hover .nav-chevron {
+    transform: rotate(90deg);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Sidebar footer --- */
+.sidebar-footer {
+    padding: 16px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-version {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.28);
+    letter-spacing: 0.3px;
+}
+
+.sidebar-logout {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 9px 12px;
+    border-radius: var(--r-md);
+    transition:
+        background 0.18s var(--ease),
+        color 0.18s var(--ease);
+}
+
+.sidebar-logout:hover {
+    background: rgba(232, 100, 12, 0.15);
+    color: var(--iccr-saffron);
+}
+
+/* --- Mobile overlay --- */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.25s var(--ease);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+}
+
+/* =============================================================
+   RESPONSIVE
+============================================================= */
+@media (max-width: 768px) {
+    .comm-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.28s var(--ease);
+        z-index: 150;
+    }
+
+    .comm-sidebar.open {
+        transform: translateX(0);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .sidebar-overlay {
+        display: block;
+    }
+}
+/* Expandable children */
+.sidebar-children {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-children.open {
+    max-height: 300px;
+}
+
+/* Child items */
+.sidebar-child {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 46px;
+    font-size: 13px;
+    color: var(--color-text-secondary, #9d9a9a);
+    text-decoration: none;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+.sidebar-child:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--color-text-primary, #ffffff);
+}
+.sidebar-child.active {
+    color: var(--color-text-primary, #ffd7d7);
+}
+
+/* Dot indicator */
+.sidebar-child-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.sidebar-child:hover .sidebar-child-dot,
+.sidebar-child.active .sidebar-child-dot {
+    background: #b85a30;
+}
+
+/* Chevron rotation */
+.nav-chevron {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-chevron.open {
+    transform: rotate(90deg);
+}

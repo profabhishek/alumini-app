@@ -1,0 +1,712 @@
+@extends('layouts.community')
+@section('hideRightSidebar', true)
+@section('title', 'Create Event')
+
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/community/events/create.css') }}">
+@endpush
+
+@section('content')
+
+<div class="event-page">
+
+    {{-- Header --}}
+    <div class="event-page-header">
+        <div>
+            <span class="page-badge">ICCR Events</span>
+            <h1>Create Event</h1>
+            <p>
+                Organize alumni reunions, conferences, cultural programs,
+                workshops and networking events across the global ICCR community.
+            </p>
+        </div>
+
+        <div class="header-actions">
+            <button type="submit" form="eventForm" class="btn-primary">
+                Publish Event
+            </button>
+        </div>
+    </div>
+
+    <form id="eventForm" action="{{ route('events.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+
+        <div class="event-layout">
+
+            {{-- Left Content --}}
+            <div class="event-main">
+
+                {{-- Event Details --}}
+                <div class="card event-card">
+                    <div class="card-header">
+                        <h3>Event Details</h3>
+                        <p>Basic information about your event.</p>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="title">Event Title *</label>
+                                <input
+                                    type="text"
+                                    id="title"
+                                    name="title"
+                                    placeholder="India–Africa Cultural Dialogue 2026"
+                                    maxlength="255"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="category">Category *</label>
+                                <select id="category" name="category" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Conference">Conference</option>
+                                    <option value="Seminar">Seminar</option>
+                                    <option value="Cultural Program">Cultural Program</option>
+                                    <option value="Workshop">Workshop</option>
+                                    <option value="Networking Event">Networking Event</option>
+                                    <option value="Alumni Meet">Alumni Meet</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="event_mode">Event Mode *</label>
+                                <select id="event_mode" name="event_mode" required>
+                                    <option value="">Select Event Mode</option>
+                                    <option value="Physical">Physical</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="location">Venue / Location *</label>
+                                <input
+                                    type="text"
+                                    id="location"
+                                    name="location"
+                                    placeholder="ICCR Headquarters, New Delhi"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="start_date">Start Date *</label>
+                                <input type="date" id="start_date" name="start_date" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="end_date">End Date</label>
+                                <input type="date" id="end_date" name="end_date">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="start_time">Start Time *</label>
+                                <input type="time" id="start_time" name="start_time" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="end_time">End Time</label>
+                                <input type="time" id="end_time" name="end_time">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Description --}}
+                <div class="card event-card">
+                    <div class="card-header">
+                        <h3>Event Description</h3>
+                        <p>Tell attendees what this event is about.</p>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="description">Description *</label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                rows="8"
+                                placeholder="Write event details, agenda, speakers and key highlights..."
+                                required
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Registration --}}
+                <div class="card event-card">
+                    <div class="card-header">
+                        <h3>Registration & Tickets</h3>
+                        <p>Manage participation settings.</p>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="event_type">Event Type</label>
+                                <select id="event_type" name="event_type">
+                                    <option value="Free">Free</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="total_seats">Total Seats</label>
+                                <input type="number" id="total_seats" name="total_seats" placeholder="200" min="1">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registration_deadline">Registration Deadline</label>
+                                <input type="date" id="registration_deadline" name="registration_deadline">
+                            </div>
+
+                            {{-- <div class="form-group">
+                                <label for="ticket_price">Ticket Price</label>
+                                <input type="number" id="ticket_price" name="ticket_price" placeholder="0" min="0" step="0.01">
+                            </div> --}}
+
+                            <div class="form-group">
+                                <label for="registration_required">Registration Required</label>
+                                <select id="registration_required" name="registration_required">
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Media --}}
+                <div class="card event-card">
+                    <div class="card-header">
+                        <h3>Event Banner</h3>
+                        <p>Upload a cover image for your event.</p>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="upload-box">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+
+                            <h4>Upload Event Banner</h4>
+                            <p>PNG, JPG or WEBP up to 5MB</p>
+
+                            <input type="file" id="banner_image" name="banner_image" accept="image/png,image/jpeg,image/webp">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Right Preview --}}
+            <div class="event-sidebar">
+                <div class="card preview-card">
+                    <div class="preview-image" id="previewImage">
+                        <span id="previewImageText">Event Banner Preview</span>
+                    </div>
+
+                    <div class="preview-body">
+                        <span class="preview-tag" id="previewCategory">Conference</span>
+
+                        <h3 id="previewTitle">
+                            Event Title Preview
+                        </h3>
+
+                        <ul class="preview-meta">
+                            <li id="previewDate">📅 Select Date</li>
+                            <li id="previewTime">🕒 Select Time</li>
+                            <li id="previewLocation">📍 Event Location</li>
+                            <li id="previewMode">⚪ Physical</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@endsection
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* ==========================
+       Elements
+    ========================== */
+
+    const form = document.getElementById('eventForm');
+
+    const titleInput = document.getElementById('title');
+    const categoryInput = document.getElementById('category');
+    const locationInput = document.getElementById('location');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+    const eventModeInput = document.getElementById('event_mode');
+    const eventTypeInput = document.getElementById('event_type');
+    const totalSeatsInput = document.getElementById('total_seats');
+    const registrationDeadlineInput = document.getElementById('registration_deadline');
+    const ticketPriceInput = document.getElementById('ticket_price');
+    const bannerInput = document.getElementById('banner_image');
+
+    const previewTitle = document.getElementById('previewTitle');
+    const previewCategory = document.getElementById('previewCategory');
+    const previewLocation = document.getElementById('previewLocation');
+    const previewDate = document.getElementById('previewDate');
+    const previewTime = document.getElementById('previewTime');
+    const previewMode = document.getElementById('previewMode');
+    const previewImage = document.getElementById('previewImage');
+    const previewImageText = document.getElementById('previewImageText');
+
+    if (!form) return;
+
+    /* ==========================
+       Helpers
+    ========================== */
+
+    const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:MM';
+
+    function showError(message, field = null) {
+        if (field && typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity(message);
+            field.reportValidity();
+            field.focus();
+        } else {
+            alert(message);
+        }
+    }
+
+    function clearError(field) {
+        if (field && typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity('');
+        }
+    }
+
+    function clearAllErrors() {
+        [
+            titleInput,
+            categoryInput,
+            locationInput,
+            startDateInput,
+            endDateInput,
+            startTimeInput,
+            endTimeInput,
+            eventTypeInput,
+            totalSeatsInput,
+            registrationDeadlineInput,
+            ticketPriceInput,
+            bannerInput
+        ].forEach(clearError);
+    }
+
+    function parseDateTime(dateValue, timeValue, fallbackTime = '00:00') {
+        if (!dateValue) return null;
+        return new Date(`${dateValue}T${timeValue || fallbackTime}`);
+    }
+
+    function isValidDateObject(value) {
+        return value instanceof Date && !Number.isNaN(value.getTime());
+    }
+
+    function updateDateConstraints() {
+        if (startDateInput && endDateInput) {
+            endDateInput.min = startDateInput.value || '';
+        }
+
+        if (startDateInput && registrationDeadlineInput) {
+            if (!startDateInput.value) {
+                registrationDeadlineInput.max = '';
+                return;
+            }
+
+            const d = new Date(startDateInput.value);
+            d.setDate(d.getDate() - 1);
+
+            registrationDeadlineInput.max = d.toISOString().split('T')[0];
+        }
+    }
+
+    function updateEndTimeConstraint() {
+        if (!startDateInput || !endDateInput || !startTimeInput || !endTimeInput) return;
+
+        const sameDay =
+            startDateInput.value &&
+            endDateInput.value &&
+            startDateInput.value === endDateInput.value;
+
+        if (sameDay) {
+            endTimeInput.min = startTimeInput.value || '';
+        } else {
+            endTimeInput.min = '';
+        }
+    }
+
+    function updatePreviewDate() {
+        if (!previewDate) return;
+
+        if (!startDateInput.value) {
+            previewDate.textContent = '📅 Select Date';
+            return;
+        }
+
+        const date = new Date(startDateInput.value);
+
+        previewDate.textContent =
+            '📅 ' +
+            date.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+    }
+
+    function updatePreviewTime() {
+        if (!previewTime) return;
+
+        const start = startTimeInput?.value || 'Select Time';
+        previewTime.textContent = '🕒 ' + start;
+    }
+
+    function validateFile(file) {
+        if (!file) return true;
+
+        const allowedTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp'
+        ];
+
+        const maxSizeMB = 5;
+        const maxBytes = maxSizeMB * 1024 * 1024;
+
+        if (!allowedTypes.includes(file.type)) {
+            showError(
+                'Only JPG, PNG, and WEBP images are allowed.',
+                bannerInput
+            );
+            return false;
+        }
+
+        if (file.size > maxBytes) {
+            showError(
+                'Banner image must be 5MB or smaller.',
+                bannerInput
+            );
+            return false;
+        }
+
+        clearError(bannerInput);
+        return true;
+    }
+
+    function validateForm() {
+        clearAllErrors();
+
+        const title = titleInput?.value.trim() || '';
+        const category = categoryInput?.value || '';
+        const location = locationInput?.value.trim() || '';
+        const startDate = startDateInput?.value || '';
+        const endDate = endDateInput?.value || '';
+        const startTime = startTimeInput?.value || '';
+        const endTime = endTimeInput?.value || '';
+        const eventMode = eventModeInput?.value || '';
+        const eventType = eventTypeInput?.value || 'Free';
+        const deadline = registrationDeadlineInput?.value || '';
+        const ticketPrice = ticketPriceInput?.value || '';
+        const seats = totalSeatsInput?.value || '';
+        const bannerFile = bannerInput?.files?.[0] || null;
+
+        if (!title) {
+            showError('Event title is required.', titleInput);
+            return false;
+        }
+
+        if (!category) {
+            showError('Please select a category.', categoryInput);
+            return false;
+        }
+
+        if (!eventMode) {
+            showError('Please select an event mode.', eventModeInput);
+            return false;
+        }
+
+        if (!location) {
+            showError('Venue / location is required.', locationInput);
+            return false;
+        }
+
+        if (!startDate) {
+            showError('Start date is required.', startDateInput);
+            return false;
+        }
+
+        if (!startTime) {
+            showError('Start time is required.', startTimeInput);
+            return false;
+        }
+
+        if ((endDate && !endTime) || (!endDate && endTime)) {
+            showError(
+                'End date and end time must be provided together.',
+                endDate || endTimeInput
+            );
+            return false;
+        }
+
+        const startDateTime = parseDateTime(startDate, startTime);
+        if (!isValidDateObject(startDateTime)) {
+            showError('Start date and time are invalid.', startDateInput);
+            return false;
+        }
+
+        let endDateTime = null;
+
+        if (endDate && endTime) {
+            endDateTime = parseDateTime(endDate, endTime);
+            if (!isValidDateObject(endDateTime)) {
+                showError('End date and time are invalid.', endDateInput);
+                return false;
+            }
+
+            if (endDateTime <= startDateTime) {
+                showError(
+                    'Event end date and time must be after start date and time.',
+                    endDateInput
+                );
+                return false;
+            }
+        }
+
+        if (deadline) {
+            const deadlineDateTime = parseDateTime(deadline, '23:59');
+
+            if (!isValidDateObject(deadlineDateTime)) {
+                showError(
+                    'Registration deadline is invalid.',
+                    registrationDeadlineInput
+                );
+                return false;
+            }
+
+            if (deadlineDateTime >= startDateTime) {
+                showError(
+                    'Registration deadline must be before the event starts.',
+                    registrationDeadlineInput
+                );
+                return false;
+            }
+        }
+
+        if (seats && Number(seats) <= 0) {
+            showError(
+                'Total seats must be greater than zero.',
+                totalSeatsInput
+            );
+            return false;
+        }
+
+        if (eventType === 'Paid') {
+            if (!ticketPrice || Number(ticketPrice) <= 0) {
+                showError(
+                    'Please enter a valid ticket price for paid events.',
+                    ticketPriceInput
+                );
+                return false;
+            }
+        }
+
+        if (eventType === 'Free' && ticketPrice && Number(ticketPrice) > 0) {
+            showError(
+                'Free events cannot have a ticket price.',
+                ticketPriceInput
+            );
+            return false;
+        }
+
+        if (bannerFile && !validateFile(bannerFile)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function validateEndDateLive() {
+        clearError(endDateInput);
+        clearError(endTimeInput);
+
+        if (!startDateInput?.value || !endDateInput?.value || !startTimeInput?.value || !endTimeInput?.value) {
+            updateEndTimeConstraint();
+            return;
+        }
+
+        const startDateTime = parseDateTime(startDateInput.value, startTimeInput.value);
+        const endDateTime = parseDateTime(endDateInput.value, endTimeInput.value);
+
+        if (isValidDateObject(startDateTime) && isValidDateObject(endDateTime)) {
+            if (endDateTime <= startDateTime) {
+                showError(
+                    'End date and time must be after the start date and time.',
+                    endDateInput
+                );
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /* ==========================
+       Live Preview
+    ========================== */
+
+    titleInput?.addEventListener('input', () => {
+        previewTitle.textContent = titleInput.value.trim() || 'Event Title Preview';
+        clearError(titleInput);
+    });
+
+    categoryInput?.addEventListener('change', () => {
+        previewCategory.textContent = categoryInput.value || 'Category';
+        clearError(categoryInput);
+    });
+
+    locationInput?.addEventListener('input', () => {
+        previewLocation.textContent =
+            '📍 ' + (locationInput.value.trim() || 'Event Location');
+        clearError(locationInput);
+    });
+
+    startDateInput?.addEventListener('change', () => {
+        updateDateConstraints();
+        updateEndTimeConstraint();
+        updatePreviewDate();
+        clearError(startDateInput);
+
+        if (endDateInput?.value && endDateInput.value < startDateInput.value) {
+            endDateInput.value = '';
+            endTimeInput.value = '';
+            previewTime.textContent = '🕒 Select Time';
+        }
+
+        if (registrationDeadlineInput?.value && registrationDeadlineInput.value >= startDateInput.value) {
+            registrationDeadlineInput.value = '';
+        }
+
+        clearError(endDateInput);
+        clearError(registrationDeadlineInput);
+    });
+
+    endDateInput?.addEventListener('change', () => {
+        updateEndTimeConstraint();
+        clearError(endDateInput);
+
+        if (startDateInput?.value && endDateInput.value < startDateInput.value) {
+            showError(
+                'End date cannot be before start date.',
+                endDateInput
+            );
+            return;
+        }
+
+        validateEndDateLive();
+    });
+
+    startTimeInput?.addEventListener('change', () => {
+        updateEndTimeConstraint();
+        updatePreviewTime();
+        clearError(startTimeInput);
+        validateEndDateLive();
+    });
+
+    endTimeInput?.addEventListener('change', () => {
+        clearError(endTimeInput);
+        validateEndDateLive();
+    });
+
+    eventModeInput?.addEventListener('change', () => {
+        previewMode.textContent = '⚪ ' + eventModeInput.value;
+        clearError(eventModeInput);
+    });
+
+    eventTypeInput?.addEventListener('change', () => {
+        clearError(eventTypeInput);
+
+        if (eventTypeInput.value === 'Free') {
+            ticketPriceInput.value = '';
+            clearError(ticketPriceInput);
+        }
+    });
+
+    totalSeatsInput?.addEventListener('input', () => {
+        clearError(totalSeatsInput);
+    });
+
+    registrationDeadlineInput?.addEventListener('change', () => {
+        clearError(registrationDeadlineInput);
+
+        if (
+            startDateInput?.value &&
+            registrationDeadlineInput.value &&
+            registrationDeadlineInput.value >= startDateInput.value
+        ) {
+            showError(
+                'Registration deadline must be before the event starts.',
+                registrationDeadlineInput
+            );
+        }
+    });
+
+    ticketPriceInput?.addEventListener('input', () => {
+        clearError(ticketPriceInput);
+    });
+
+    bannerInput?.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        if (!validateFile(file)) {
+            bannerInput.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            previewImage.style.backgroundImage = `url(${event.target.result})`;
+            previewImage.style.backgroundSize = 'cover';
+            previewImage.style.backgroundPosition = 'center';
+            previewImageText.style.display = 'none';
+            clearError(bannerInput);
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    /* ==========================
+       Initial Constraints
+    ========================== */
+
+    updateDateConstraints();
+    updateEndTimeConstraint();
+    updatePreviewDate();
+    updatePreviewTime();
+
+    /* ==========================
+       Submit Validation
+    ========================== */
+
+    form.addEventListener('submit', function (e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            return;
+        }
+    });
+});
+</script>
+@endpush

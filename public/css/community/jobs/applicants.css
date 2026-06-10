@@ -1,0 +1,371 @@
+/* ═══════════════════════════════════════════════════════════════
+   css/community/jobs/applicants.css
+   Extends my-jobs.css — reuses .mj-* classes, adds .ap-* only
+   ═══════════════════════════════════════════════════════════════ */
+
+.mj-modal--edit {
+    height: min(95vh, 850px) !important;
+}
+/* ── Page ────────────────────────────────────────────────────── */
+
+.ap-page {
+    padding: 4px 0 48px;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.ap-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.ap-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    text-decoration: none;
+    margin-bottom: 10px;
+    transition: color 0.15s;
+}
+
+.ap-back:hover {
+    color: #1c2331;
+}
+
+.ap-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a202c;
+    margin: 0 0 6px;
+}
+
+.ap-subtitle {
+    font-size: 13px;
+    color: #718096;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.ap-company {
+    font-weight: 600;
+    color: #1a202c;
+}
+.ap-dot {
+    color: #cbd5e0;
+}
+.ap-meta {
+    color: #718096;
+}
+
+/* ── Stats ───────────────────────────────────────────────────── */
+.ap-stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.ap-stat {
+    flex: 1;
+    min-width: 80px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.ap-stat__num {
+    display: block;
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a202c;
+    line-height: 1;
+}
+
+.ap-stat__label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.ap-stat--blue .ap-stat__num {
+    color: #1d4ed8;
+}
+.ap-stat--amber .ap-stat__num {
+    color: #b45309;
+}
+.ap-stat--green .ap-stat__num {
+    color: #065f46;
+}
+.ap-stat--grey .ap-stat__num {
+    color: #475569;
+}
+
+/* ── Applicant cell ──────────────────────────────────────────── */
+.ap-applicant {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ap-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1c2331, #2d3d55);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ap-avatar--lg {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    border-radius: 50%;
+}
+
+.ap-phone {
+    font-size: 13px;
+    color: #475569;
+}
+
+/* ── Resume buttons ──────────────────────────────────────────── */
+.ap-resume-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ap-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #2d6fa4;
+    background: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+        background 0.15s,
+        color 0.15s;
+    white-space: nowrap;
+}
+
+.ap-link-btn:hover {
+    background: #bee3f8;
+    color: #1a3a5c;
+}
+
+/* ── Status badges ───────────────────────────────────────────── */
+.ap-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ap-badge--submitted {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.ap-badge--shortlisted {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.ap-badge--hired {
+    background: rgba(16, 185, 129, 0.1);
+    color: #065f46;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.ap-badge--rejected {
+    background: rgba(148, 163, 184, 0.1);
+    color: #475569;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* ── Action button ───────────────────────────────────────────── */
+.ap-icon-action {
+    color: #e8640c !important;
+    border-color: rgba(232, 100, 12, 0.2) !important;
+    background: rgba(232, 100, 12, 0.06) !important;
+}
+
+.ap-icon-action:hover {
+    background: rgba(232, 100, 12, 0.14) !important;
+    border-color: rgba(232, 100, 12, 0.4) !important;
+}
+
+/* ── Status modal ─────────────────────────────────────────────── */
+.ap-applicant-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+}
+
+.ap-summary-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a202c;
+}
+.ap-summary-sub {
+    font-size: 12.5px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* 2×2 status option grid */
+.ap-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.ap-status-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 10px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background 0.15s,
+        transform 0.1s;
+    font-family: inherit;
+}
+
+.ap-status-opt:hover {
+    border-color: #cbd5e0;
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.ap-status-opt__icon {
+    font-size: 22px;
+    line-height: 1;
+}
+.ap-status-opt__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+/* Current status — subtle highlight */
+.ap-status-opt--current {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+}
+
+.ap-status-opt--current .ap-status-opt__label::after {
+    content: " (current)";
+    font-size: 10px;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+/* Selected status */
+.ap-status-opt--selected[data-value="submitted"] {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.07);
+}
+.ap-status-opt--selected[data-value="shortlisted"] {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.07);
+}
+.ap-status-opt--selected[data-value="hired"] {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.07);
+}
+.ap-status-opt--selected[data-value="rejected"] {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.07);
+}
+
+/* Email notice */
+.ap-email-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0fff4;
+    border: 1px solid #9ae6b4;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #276749;
+    margin-top: 14px;
+}
+
+/* ── Cover letter modal ───────────────────────────────────────── */
+.ap-cover-from {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0 0 12px;
+}
+
+.ap-cover-body {
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .ap-stats {
+        gap: 8px;
+    }
+    .ap-stat {
+        padding: 10px 12px;
+    }
+    .ap-stat__num {
+        font-size: 20px;
+    }
+    .ap-status-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .ap-resume-btns {
+        flex-direction: row;
+    }
+}
