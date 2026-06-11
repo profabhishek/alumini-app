@@ -37,18 +37,20 @@ class AlumniUser extends Authenticatable
         'hide_email',
         'hide_phone',
         'email_notifications',
-        'appearance',         
-        'profile_visibility', 
+        'appearance',
+        'profile_visibility',
+        'last_seen_at',       
     ];
 
     protected $hidden = ['password'];
 
     protected $casts = [
-        'permissions'  => 'array',
-        'is_approved'  => 'boolean',
-        'hide_email'  => 'boolean',
-        'hide_phone'  => 'boolean',
+        'permissions'         => 'array',
+        'is_approved'         => 'boolean',
+        'hide_email'          => 'boolean',
+        'hide_phone'          => 'boolean',
         'email_notifications' => 'array',
+        'last_seen_at'        => 'datetime',
     ];
 
     // ── Role checks ───────────────────────────────────────────────────────
@@ -82,7 +84,7 @@ class AlumniUser extends Authenticatable
     public function canManageUsers(): bool            { return $this->hasPermission('manage_users'); }
     public function canCreateAdmins(): bool           { return $this->isSuperAdmin(); }
 
-    // ── Accessor ──────────────────────────────────────────────────────────
+    // ── Accessors ─────────────────────────────────────────────────────────
 
     public function getInitialsAttribute(): string
     {
@@ -91,5 +93,36 @@ class AlumniUser extends Authenticatable
             ->map(fn($w) => strtoupper($w[0]))
             ->take(2)
             ->join('');
+    }
+
+    // ── Online status ─────────────────────────────────────────────────────
+
+    public function isOnline(): bool
+    {
+        if (!$this->last_seen_at) return false;
+        return $this->last_seen_at->gt(now()->subMinutes(2));
+    }
+
+    public function lastSeenHuman(): string
+    {
+        if (!$this->last_seen_at) return 'Never seen';
+        if ($this->isOnline())    return 'Online';
+
+        $ts = $this->last_seen_at;
+
+        if ($ts->isToday())     return 'Last seen today at '     . $ts->format('H:i');
+        if ($ts->isYesterday()) return 'Last seen yesterday at ' . $ts->format('H:i');
+
+        return 'Last seen ' . $ts->format('j M') . ' at ' . $ts->format('H:i');
+    }
+
+    public function onlineStatusArray(): array
+    {
+        return [
+            'id'               => $this->id,
+            'is_online'        => $this->isOnline(),
+            'last_seen_at'     => $this->last_seen_at?->toISOString(),
+            'last_seen_human'  => $this->lastSeenHuman(),
+        ];
     }
 }

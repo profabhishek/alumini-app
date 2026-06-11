@@ -57,10 +57,11 @@ $latestJobs = \App\Models\Job::where('status','published')
             {{-- Right controls --}}
             <nav class="comm-header__right">
                 {{-- Messages --}}
-                <a href="#" class="comm-icon-btn" title="Messages">
+                <a href="{{ route('chat.index') }}" class="comm-icon-btn comm-icon-btn--badge" title="Messages" id="headerMsgBtn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                     </svg>
+                    <span class="badge" id="headerMsgBadge" style="display:none;">0</span>
                 </a>
 
                 {{-- Notifications --}}
@@ -488,5 +489,43 @@ $latestJobs = \App\Models\Job::where('status','published')
 
     <script src="{{ asset('js/community/layout.js') }}"></script>
     @stack('scripts')
+
+       @if(session('alumni_id'))
+        <script>
+        (function () {
+            const badge = document.getElementById('headerMsgBadge');
+            if (!badge) return;
+    
+            async function fetchUnread() {
+                try {
+                    const res = await fetch('{{ route('chat.unread-count') }}', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) return;
+                    const data  = await res.json();
+                    const count = data.count || 0;
+    
+                    if (count > 0) {
+                        badge.textContent   = count > 99 ? '99+' : count;
+                        badge.style.display = '';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } catch { /* silent */ }
+            }
+    
+            fetchUnread();
+            setInterval(fetchUnread, 10000);
+    
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) fetchUnread();
+            });
+        })();
+        </script>
+        @endif
 </body>
 </html>

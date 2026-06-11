@@ -315,6 +315,45 @@ Route::middleware('alumni.auth')->group(function () {
 
     Route::post('/chat/direct', [ChatController::class, 'startDirect'])
         ->name('chat.direct');
+
+    Route::post('/chat/groups', [ChatController::class, 'createGroup'])
+        ->name('chat.groups.store');
+
+    Route::get('/chat/groups/{id}/info', [ChatController::class, 'groupInfo'])
+        ->name('chat.groups.info');
+
+    Route::put('/chat/groups/{id}', [ChatController::class, 'updateGroup'])
+        ->name('chat.groups.update');
+
+    Route::post('/chat/groups/{id}/members', [ChatController::class, 'addMembers'])
+        ->name('chat.groups.members.store');
+
+    Route::delete('/chat/groups/{id}/members/{memberId}', [ChatController::class, 'removeMember'])
+        ->name('chat.groups.members.destroy');
+
+    Route::post('/chat/groups/{id}/promote/{memberId}', [ChatController::class, 'promoteAdmin'])
+        ->name('chat.groups.members.promote');
+
+    Route::post('/chat/groups/{id}/invite/regenerate', [ChatController::class, 'regenerateInvite'])
+        ->name('chat.groups.invite.regenerate');
+
+    Route::get('/chat/join/{token}', [ChatController::class, 'joinPage'])
+        ->name('chat.join');
+
+    Route::post('/chat/join/{token}', [ChatController::class, 'joinGroup'])
+        ->name('chat.join.store');
+
+    Route::get('/chat/groups/{id}/join-requests', [ChatController::class, 'joinRequests'])
+        ->name('chat.groups.join-requests');
+
+    Route::patch('/chat/groups/{id}/join-requests/{requestId}', [ChatController::class, 'handleJoinRequest'])
+        ->name('chat.groups.join-requests.update');
+
+    Route::get('/chat/users/online-status', [ChatController::class, 'onlineStatus'])
+        ->name('chat.online-status');
+
+    Route::get('/chat/unread-count', [ChatController::class, 'unreadCount'])
+        ->name('chat.unread-count');
 });
 
 

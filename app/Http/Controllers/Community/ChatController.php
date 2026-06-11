@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Cache;
 
 class ChatController extends Controller
 {
@@ -51,10 +52,6 @@ class ChatController extends Controller
 
     // ── Conversation list ─────────────────────────────────────────────────
 
-    /**
-     * GET /chat/conversations
-     * Returns conversations for the authenticated user with unread counts.
-     */
     public function conversations(Request $request): JsonResponse
     {
         $myId = session('alumni_id');
@@ -82,17 +79,13 @@ class ChatController extends Controller
 
     // ── Messages in a conversation ────────────────────────────────────────
 
-    /**
-     * GET /chat/conversations/{id}/messages?before_id=&limit=
-     * Returns paginated messages (cursor-based, newest-first).
-     */
     public function messages(Request $request, int $id): JsonResponse
     {
         $myId = session('alumni_id');
 
         $conversation = $this->findConversationForUser($id, $myId);
 
-        $limit    = min((int) $request->input('limit', 40), 100);
+        $limit    = max(1, min((int) $request->input('limit', 40), 100));
         $beforeId = (int) $request->input('before_id', 0);
 
         $query = ChatMessage::where('conversation_id', $id)
@@ -118,11 +111,6 @@ class ChatController extends Controller
         ]);
     }
 
-    /**
-     * GET /chat/conversations/{id}/poll?after_id=
-     * Long-poll endpoint: returns messages newer than after_id.
-     * Also returns current unread count for badge updates.
-     */
     public function poll(Request $request, int $id): JsonResponse
     {
         $myId    = session('alumni_id');
@@ -274,9 +262,6 @@ class ChatController extends Controller
 
     // ── Delete a message ──────────────────────────────────────────────────
 
-    /**
-     * DELETE /chat/messages/{messageId}
-     */
     public function deleteMessage(int $messageId): JsonResponse
     {
         $myId    = session('alumni_id');
@@ -299,10 +284,6 @@ class ChatController extends Controller
 
     // ── Start / find a direct conversation ───────────────────────────────
 
-    /**
-     * POST /chat/direct
-     * Body: { user_id: int }
-     */
     public function startDirect(Request $request): JsonResponse
     {
         $myId = session('alumni_id');
@@ -366,10 +347,6 @@ class ChatController extends Controller
 
     // ── Groups ────────────────────────────────────────────────────────────
 
-    /**
-     * POST /chat/groups
-     * Body: { name, description?, member_ids: [] }
-     */
     public function createGroup(Request $request): JsonResponse
     {
         $myId = session('alumni_id');
@@ -398,6 +375,7 @@ class ChatController extends Controller
                 'name'         => $request->input('name'),
                 'description'  => $request->input('description'),
                 'created_by'   => $myId,
+                'allow_join_via_link' => true, 
                 'invite_token' => Str::random(32),
                 'avatar'       => $avatarPath,
             ]);
@@ -439,9 +417,6 @@ class ChatController extends Controller
         ], 201);
     }
 
-    /**
-     * GET /chat/groups/{id}/info
-     */
     public function groupInfo(int $id): JsonResponse
     {
         $myId = session('alumni_id');
@@ -458,10 +433,6 @@ class ChatController extends Controller
         ]);
     }
 
-    /**
-     * PUT /chat/groups/{id}
-     * Update group name/description/avatar. Group admins only.
-     */
     public function updateGroup(Request $request, int $id): JsonResponse
     {
         $myId = session('alumni_id');
@@ -495,10 +466,6 @@ class ChatController extends Controller
         return response()->json(['ok' => true, 'group' => $conversation->fresh()]);
     }
 
-    /**
-     * POST /chat/groups/{id}/members
-     * Add members to a group. Admins only.
-     */
     public function addMembers(Request $request, int $id): JsonResponse
     {
         $myId = session('alumni_id');
@@ -523,6 +490,7 @@ class ChatController extends Controller
 
             $user = AlumniUser::where('id', $memberId)->where('is_approved', true)->first();
             if (!$user) continue;
+            $wasAdded = false;
 
             // Re-add if they left, otherwise create
             $existing = ChatParticipant::where('conversation_id', $id)
@@ -533,6 +501,7 @@ class ChatController extends Controller
                 if ($existing->left_at !== null) {
                     $existing->update(['left_at' => null, 'role' => 'member']);
                     $added++;
+                    $wasAdded = true;
                 }
                 // Already active — skip
             } else {
@@ -542,9 +511,10 @@ class ChatController extends Controller
                     'role'            => 'member',
                 ]);
                 $added++;
+                $wasAdded = true;
             }
 
-            if ($added > 0) {
+            if ($wasAdded) {
                 $adder = AlumniUser::find($myId);
                 ChatMessage::create([
                     'conversation_id' => $id,
@@ -558,10 +528,6 @@ class ChatController extends Controller
         return response()->json(['ok' => true, 'added' => $added]);
     }
 
-    /**
-     * DELETE /chat/groups/{id}/members/{memberId}
-     * Remove a member. Admins only (or member removing themselves = leave).
-     */
     public function removeMember(int $id, int $memberId): JsonResponse
     {
         $myId = session('alumni_id');
@@ -643,56 +609,58 @@ class ChatController extends Controller
 
     // ── Invite links ──────────────────────────────────────────────────────
 
-    /**
-     * POST /chat/groups/{id}/invite/regenerate
-     * Regenerate the invite link. Admins only.
-     */
     public function regenerateInvite(int $id): JsonResponse
     {
         $myId = session('alumni_id');
         $conversation = $this->findConversationForUser($id, $myId);
-
+ 
         if (!$conversation->isGroup() || !$conversation->isAdmin($myId)) {
             return response()->json(['error' => 'Forbidden.'], 403);
         }
-
+ 
         $token = $conversation->generateInviteToken();
-
+ 
+        // Re-enable in case it was disabled
+        $conversation->update(['allow_join_via_link' => true]);
+ 
         return response()->json([
             'invite_url' => route('chat.join', ['token' => $token]),
             'token'      => $token,
         ]);
     }
 
-    /**
-     * GET /chat/join/{token}
-     * Show "join group" confirmation page.
-     */
     public function joinPage(string $token)
     {
         $conversation = ChatConversation::where('invite_token', $token)
             ->where('type', 'group')
             ->whereNull('deleted_at')
             ->firstOrFail();
-
-        $myId = session('alumni_id');
-
-        // Already a member?
+ 
+        // If admin has disabled the link, show a friendly error
+        if (!$conversation->allow_join_via_link) {
+            return view('community.messages.join-group', [
+                'conversation'  => $conversation,
+                'isMember'      => false,
+                'hasPending'    => false,
+                'token'         => $token,
+                'linkDisabled'  => true,
+            ]);
+        }
+ 
+        $myId = (int) session('alumni_id');
+ 
         $isMember = $conversation->hasParticipant($myId);
-
-        // Pending request?
+ 
         $hasPending = ChatGroupJoinRequest::where('conversation_id', $conversation->id)
             ->where('alumni_id', $myId)
             ->where('status', 'pending')
             ->exists();
-
-        return view('community.messages.join-group', compact('conversation', 'isMember', 'hasPending', 'token'));
+ 
+        return view('community.messages.join-group', compact(
+            'conversation', 'isMember', 'hasPending', 'token'
+        ) + ['linkDisabled' => false]);
     }
 
-    /**
-     * POST /chat/join/{token}
-     * Actually join (or request to join) a group.
-     */
     public function joinGroup(string $token): JsonResponse
     {
         $myId = session('alumni_id');
@@ -890,14 +858,27 @@ class ChatController extends Controller
         $unread     = $c->unreadCountFor($myId);
 
         if ($c->isDirect()) {
-            $other = $c->otherParticipant($myId);
-            $name  = $other?->full_name ?? 'Unknown User';
-            $avatar = $other?->photo ? asset('storage/' . $other->photo) : null;
+            $other    = $c->otherParticipant($myId);
+            $name     = $other?->full_name ?? 'Unknown User';
+            $avatar   = $other?->photo ? asset('storage/' . $other->photo) : null;
             $initials = $other?->initials ?? '?';
+ 
+            // Online status for direct chat header
+            $otherOnline        = $other?->isOnline() ?? false;
+            $otherLastSeen      = $other?->last_seen_at?->toISOString();
+            $otherLastSeenHuman = $other?->lastSeenHuman() ?? '';
+            $otherId            = $other?->id;
         } else {
-            $name    = $c->name;
-            $avatar  = $c->avatar ? asset('storage/' . $c->avatar) : null;
+            // Group conversation
+            $name     = $c->name;
+            $avatar   = $c->avatar ? asset('storage/' . $c->avatar) : null;
             $initials = strtoupper(substr($c->name ?? 'G', 0, 1));
+ 
+            // Online status not applicable for groups in the sidebar
+            $otherOnline        = false;
+            $otherLastSeen      = null;
+            $otherLastSeenHuman = '';
+            $otherId            = null;
         }
 
         return [
@@ -914,28 +895,37 @@ class ChatController extends Controller
             'participant_count' => $c->participants()->count(),
             'latest_message' => $latest ? [
                 'id'         => $latest->id,
-                'preview'    => $latest->preview(),
+                'preview'    => $this->messagePreview($latest),
                 'time'       => $latest->created_at->isToday()
                     ? $latest->created_at->format('H:i')
                     : $latest->created_at->format('d M'),
                 'sender_id'  => $latest->sender_id,
                 'is_mine'    => (int)$latest->sender_id === $myId,
             ] : null,
-            'unread_count' => $unread,
-            'updated_at'   => $c->updated_at?->toISOString(),
+            'unread_count'       => $unread,
+            'updated_at'         => $c->updated_at?->toISOString(),
+            // ── Online status (direct chats only) ──────────────────────
+            'other_user_id'      => $otherId,
+            'other_is_online'    => $otherOnline,
+            'other_last_seen_at' => $otherLastSeen,     
+            'other_last_seen'    => $otherLastSeenHuman,  
         ];
     }
 
     private function serializeGroupInfo(ChatConversation $c, int $myId): array
     {
         $members = $c->participants->map(fn($p) => [
-            'id'       => $p->alumni_id,
-            'name'     => $p->alumni->full_name ?? 'Unknown',
-            'avatar'   => $p->alumni->photo ? asset('storage/' . $p->alumni->photo) : null,
-            'initials' => $p->alumni->initials ?? '?',
-            'role'     => $p->role,
-            'is_me'    => (int)$p->alumni_id === $myId,
+            'id'             => $p->alumni_id,
+            'name'           => $p->alumni->full_name ?? 'Unknown',
+            'avatar'         => $p->alumni->photo ? asset('storage/' . $p->alumni->photo) : null,
+            'initials'       => $p->alumni->initials ?? '?',
+            'role'           => $p->role,
+            'is_me'          => (int)$p->alumni_id === $myId,
+            'is_online'      => $p->alumni?->isOnline() ?? false,
+            'last_seen_at'   => $p->alumni?->last_seen_at?->toISOString(),
+            'last_seen_human'=> $p->alumni?->lastSeenHuman() ?? '',
         ]);
+ 
 
         $pendingRequests = $c->isAdmin($myId)
             ? $c->joinRequests->map(fn($r) => [
@@ -962,4 +952,78 @@ class ChatController extends Controller
             'join_requests'  => $pendingRequests,
         ];
     }
+
+    private function messagePreview(ChatMessage $message): string
+    {
+        if ($message->isSystem()) {
+            return $message->body ?? '';
+        }
+
+        return match ($message->type) {
+            'image' => 'Photo',
+            'video' => 'Video',
+            'pdf'   => $message->file_name ?? 'PDF',
+            'file'  => $message->file_name ?? 'File',
+            default => $message->body ?? '',
+        };
+    }
+
+    public function onlineStatus(Request $request): JsonResponse
+        {
+            $ids = collect($request->input('ids', []))
+                ->map(fn($id) => (int) $id)
+                ->filter(fn($id) => $id > 0)
+                ->unique()
+                ->take(50)
+                ->values()
+                ->all();
+    
+            if (empty($ids)) {
+                return response()->json(['users' => []]);
+            }
+    
+            $users = AlumniUser::whereIn('id', $ids)
+                ->select('id', 'last_seen_at')
+                ->get()
+                ->map(fn($u) => $u->onlineStatusArray());
+    
+            return response()->json(['users' => $users]);
+    }
+
+    public function unreadCount(): JsonResponse
+    {
+        $myId = (int) session('alumni_id');
+
+        // Get all conversation IDs the user is active in
+        $conversationIds = ChatParticipant::where('alumni_id', $myId)
+            ->whereNull('left_at')
+            ->pluck('conversation_id');
+
+        if ($conversationIds->isEmpty()) {
+            return response()->json(['count' => 0]);
+        }
+
+        // For each conversation, count messages after the user's last read message
+        $total = 0;
+
+        $reads = ChatMessageRead::where('alumni_id', $myId)
+            ->whereIn('conversation_id', $conversationIds)
+            ->pluck('last_read_message_id', 'conversation_id');
+
+        foreach ($conversationIds as $convId) {
+            $lastReadId = $reads->get($convId, 0);
+
+            $count = ChatMessage::where('conversation_id', $convId)
+                ->where('sender_id', '!=', $myId)
+                ->whereNull('deleted_at')
+                ->where('type', '!=', 'system')
+                ->when($lastReadId, fn($q) => $q->where('id', '>', $lastReadId))
+                ->count();
+
+            $total += $count;
+        }
+
+        return response()->json(['count' => min($total, 99)]);
+    }
+
 }
