@@ -224,23 +224,23 @@
 }
 
 /* =====================================================
-   PAGINATION
+   PAGINATION1
 ===================================================== */
 
-.pagination-section {
+.pagination1-section {
     margin-top: 70px;
 }
 
-.pagination {
+.pagination1 {
     justify-content: center;
     gap: 12px;
 }
 
-.pagination .page-item {
+.pagination1 .page-item {
     list-style: none;
 }
 
-.pagination .page-link {
+.pagination1 .page-link {
     min-width: 52px;
     height: 52px;
     border: none;
@@ -255,12 +255,12 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
 }
 
-.pagination .active .page-link {
+.pagination1 .active .page-link {
     background: #111;
     color: #fff;
 }
 
-.pagination .page-link:hover {
+.pagination1 .page-link:hover {
     transform: translateY(-2px);
 }
 
@@ -303,7 +303,7 @@
         padding: 22px;
     }
 }
-.pagination-demo {
+.pagination1-demo {
     display: flex;
     justify-content: center;
     gap: 10px;

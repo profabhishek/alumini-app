@@ -60,7 +60,6 @@
         groupFormError: $("#groupFormError"),
         createGroupButton: $("#createGroupBtn"),
         toastRegion: $("#toastRegion"),
-        onlineDot: $("#chatOnlineDot"), // injected by renderActiveHeader
     };
 
     // ── State ─────────────────────────────────────────────────────────────
@@ -80,8 +79,9 @@
         searchTimer: null,
         memberSearchTimer: null,
         requestSerial: 0,
-        // Online status cache: Map<userId, { is_online, last_seen_at, last_seen_human }>
         onlineCache: new Map(),
+        pendingTicks: new Map(),
+        tickPoll: null,
     };
 
     // ── Utilities ─────────────────────────────────────────────────────────
@@ -362,18 +362,6 @@
         }
     }
 
-    /**
-     * Build the online-dot HTML injected next to the avatar.
-     */
-    function onlineDotHtml(isOnline) {
-        return `<span
-            id="chatOnlineDot"
-            class="wa-online-dot"
-            aria-label="Online"
-            ${isOnline ? "" : "hidden"}
-        ></span>`;
-    }
-
     // ── Conversations ─────────────────────────────────────────────────────
 
     async function fetchConversations({ quiet = false } = {}) {
@@ -611,7 +599,8 @@
             state.hasMoreMessages = Boolean(data.has_more);
 
             renderMessages();
-            scrollToBottom();
+            collectPendingTicks();
+            scrollToBottomAfterImages();
             el.messageInput.focus({ preventScroll: true });
             startMessagePolling();
             startOnlinePolling();
@@ -675,6 +664,7 @@
             state.oldestMessageId = data.oldest_id || state.oldestMessageId;
             state.hasMoreMessages = Boolean(data.has_more);
             renderMessages();
+            collectPendingTicks();
             el.messageList.scrollTop = el.messageList.scrollHeight - prevHeight;
         } catch (err) {
             toast(err.message, "error");
@@ -797,10 +787,7 @@
                         <time datetime="${escAttr(m.created_at || "")}" title="${escAttr(m.created_at ? new Date(m.created_at).toLocaleString() : "")}">${esc(timeDisplay)}</time>
                         ${
                             m.is_mine
-                                ? `
-                            <svg class="wa-delivery-check" viewBox="0 0 24 24" aria-label="Sent">
-                                <path d="m2 13 4 4L16 7"/><path d="m9 14 3 3L22 7"/>
-                            </svg>`
+                                ? `<span class="wa-tick-btn" title="Message info">${tickMarkup(m.tick_state, m.id, m.delivered_at, m.read_at)}</span>`
                                 : ""
                         }
                     </div>
@@ -809,9 +796,8 @@
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 17-5-5 5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
                         </button>
                         ${
-                            m.is_mine
-                                ? `
-                            <button type="button" data-action="delete" aria-label="Delete" title="Delete">
+                            m.is_mine || state.activeConversation?.is_admin
+                                ? `<button type="button" data-action="delete" aria-label="Delete" title="Delete">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></svg>
                             </button>`
                                 : ""
@@ -827,10 +813,27 @@
 
     function scrollToBottom() {
         requestAnimationFrame(() => {
-            el.messageList.scrollTop = el.messageList.scrollHeight;
+            requestAnimationFrame(() => {
+                el.messageList.scrollTop = el.messageList.scrollHeight;
+            });
         });
     }
+    function scrollToBottomAfterImages() {
+        // Scroll immediately
+        scrollToBottom();
 
+        // Then re-scroll after every image in the list loads
+        el.messageList.querySelectorAll("img").forEach((img) => {
+            if (!img.complete) {
+                img.addEventListener("load", () => scrollToBottom(), {
+                    once: true,
+                });
+                img.addEventListener("error", () => scrollToBottom(), {
+                    once: true,
+                });
+            }
+        });
+    }
     // ── Reply / upload ────────────────────────────────────────────────────
 
     function setReply(m) {
@@ -920,7 +923,9 @@
             clearReply();
             clearUpload();
             renderMessages();
-            scrollToBottom();
+            collectPendingTicks();
+            scrollToBottomAfterImages();
+            pollTickUpdates();
             fetchConversations({ quiet: true });
         } catch (err) {
             toast(err.message, "error");
@@ -932,7 +937,15 @@
     }
 
     async function deleteMessage(messageId) {
-        if (!confirm("Delete this message?")) return;
+        if (
+            !(await waConfirm({
+                title: "Delete message",
+                body: "This message will be deleted for everyone. This cannot be undone.",
+                confirmText: "Delete",
+                danger: true,
+            }))
+        )
+            return;
         try {
             await api(route(config.routes.deleteMessage, messageId), {
                 method: "DELETE",
@@ -971,7 +984,8 @@
                     ...incoming.map((m) => m.id),
                 );
                 renderMessages();
-                if (nearBottom) scrollToBottom();
+                collectPendingTicks();
+                if (nearBottom) scrollToBottomAfterImages();
                 fetchConversations({ quiet: true });
             }
         } catch {
@@ -986,14 +1000,19 @@
 
     function startOnlinePolling() {
         clearInterval(state.onlineStatusPoll);
-        // Poll immediately then every 30 seconds
+        clearInterval(state.tickPoll);
+        // Run both immediately on conversation open
         pollOnlineStatus();
-        state.onlineStatusPoll = setInterval(pollOnlineStatus, 30000);
+        pollTickUpdates();
+        // Then poll on intervals
+        state.onlineStatusPoll = setInterval(pollOnlineStatus, 8000);
+        state.tickPoll = setInterval(pollTickUpdates, 2000);
     }
 
     function stopPolling() {
         clearInterval(state.messagePoll);
         clearInterval(state.onlineStatusPoll);
+        clearInterval(state.tickPoll);
     }
 
     // ── Composer ──────────────────────────────────────────────────────────
@@ -1247,6 +1266,7 @@
             state.activeConversation.name = name;
             el.chatName.textContent = name;
             fetchConversations({ quiet: true });
+            pollTickUpdates();
             toast("Group updated.", "success");
             openInfoPanel(); // refresh panel
         } catch (err) {
@@ -1258,9 +1278,12 @@
         const conv = state.activeConversation;
         if (!conv) return;
         if (
-            !confirm(
-                `Leave "${conv.name}"? You won't be able to send or receive messages.`,
-            )
+            !(await waConfirm({
+                title: "Leave group",
+                body: `You'll no longer receive messages from "${conv.name}".`,
+                confirmText: "Leave",
+                danger: true,
+            }))
         )
             return;
 
@@ -1292,7 +1315,15 @@
     async function removeMember(memberId, memberName) {
         const conv = state.activeConversation;
         if (!conv) return;
-        if (!confirm(`Remove ${memberName} from the group?`)) return;
+        if (
+            !(await waConfirm({
+                title: "Remove member",
+                body: `${memberName} will be removed from this group.`,
+                confirmText: "Remove",
+                danger: true,
+            }))
+        )
+            return;
 
         try {
             await api(
@@ -1312,7 +1343,14 @@
     async function promoteToAdmin(memberId, memberName) {
         const conv = state.activeConversation;
         if (!conv) return;
-        if (!confirm(`Make ${memberName} a group admin?`)) return;
+        if (
+            !(await waConfirm({
+                title: "Make admin",
+                body: `${memberName} will become a group admin and can add or remove members.`,
+                confirmText: "Make admin",
+            }))
+        )
+            return;
 
         try {
             await api(
@@ -1332,7 +1370,14 @@
     async function regenerateInvite() {
         const conv = state.activeConversation;
         if (!conv) return;
-        if (!confirm("Reset invite link? The old link will stop working."))
+        if (
+            !(await waConfirm({
+                title: "Reset invite link",
+                body: "The current invite link will stop working. A new one will be generated.",
+                confirmText: "Reset",
+                danger: true,
+            }))
+        )
             return;
 
         try {
@@ -1352,6 +1397,54 @@
         } catch (err) {
             toast(err.message, "error");
         }
+    }
+
+    // ── Custom confirm modal ──────────────────────────────────────────────────
+    function waConfirm({
+        title,
+        body,
+        confirmText = "Confirm",
+        danger = false,
+    }) {
+        return new Promise((resolve) => {
+            const backdrop = document.createElement("div");
+            backdrop.className = "wa-confirm-backdrop";
+            backdrop.innerHTML = `
+                <div class="wa-confirm-box">
+                    <p class="wa-confirm-box__title">${esc(title)}</p>
+                    <p class="wa-confirm-box__body">${esc(body)}</p>
+                    <div class="wa-confirm-box__actions">
+                        <button class="wa-confirm-box__btn wa-confirm-box__btn--cancel" id="waCancelBtn">Cancel</button>
+                        <button class="wa-confirm-box__btn ${danger ? "wa-confirm-box__btn--danger" : "wa-confirm-box__btn--primary"}" id="waConfirmBtn">
+                            ${esc(confirmText)}
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(backdrop);
+            const cleanup = (result) => {
+                backdrop.remove();
+                resolve(result);
+            };
+            backdrop
+                .querySelector("#waConfirmBtn")
+                .addEventListener("click", () => cleanup(true));
+            backdrop
+                .querySelector("#waCancelBtn")
+                .addEventListener("click", () => cleanup(false));
+            backdrop.addEventListener("click", (e) => {
+                if (e.target === backdrop) cleanup(false);
+            });
+            document.addEventListener("keydown", function handler(e) {
+                if (e.key === "Escape") {
+                    cleanup(false);
+                    document.removeEventListener("keydown", handler);
+                }
+                if (e.key === "Enter") {
+                    cleanup(true);
+                    document.removeEventListener("keydown", handler);
+                }
+            });
+        });
     }
 
     function closeInfoPanel() {
@@ -1468,6 +1561,216 @@
         }
     }
 
+    function tickMarkup(tickState, messageId, deliveredAt, readAt) {
+        const state = tickState || "sent";
+
+        // Build tooltip text
+        let tooltip = "Sent";
+        if (state === "delivered" && deliveredAt) {
+            tooltip =
+                "Delivered " +
+                localTime(deliveredAt, "full").replace("Last seen ", "");
+        }
+        if (state === "read") {
+            tooltip = "Read";
+        }
+
+        if (state === "sent") {
+            // Single grey tick
+            return `<svg class="wa-tick wa-tick--sent" viewBox="0 0 16 11"
+                data-message-id="${messageId}" title="${esc(tooltip)}"
+                aria-label="Sent">
+                <path d="m1 6 4 4L15 1" stroke="currentColor" stroke-width="1.8"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`;
+        }
+
+        if (state === "delivered") {
+            // Double grey tick
+            return `<svg class="wa-tick wa-tick--delivered" viewBox="0 0 22 11"
+                data-message-id="${messageId}" title="${esc(tooltip)}"
+                aria-label="Delivered">
+                <path d="m1 6 4 4L15 1" stroke="currentColor" stroke-width="1.8"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="m7 6 4 4L21 1" stroke="currentColor" stroke-width="1.8"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`;
+        }
+
+        // read — double blue tick
+        return `<svg class="wa-tick wa-tick--read" viewBox="0 0 22 11"
+            data-message-id="${messageId}" title="${esc(tooltip)}"
+            aria-label="Read">
+            <path d="m1 6 4 4L15 1" stroke="currentColor" stroke-width="1.8"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="m7 6 4 4L21 1" stroke="currentColor" stroke-width="1.8"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
+    }
+
+    /**
+     * After rendering messages, collect all own messages that are
+     * not yet 'read' into pendingTicks so we poll for updates.
+     */
+    function collectPendingTicks() {
+        state.pendingTicks.clear();
+        state.messages.forEach((m) => {
+            if (m.is_mine && m.tick_state !== "read") {
+                state.pendingTicks.set(m.id, m.tick_state);
+            }
+        });
+    }
+
+    /**
+     * Poll tick updates for own unread messages.
+     * Updates tick SVGs in-place without re-rendering the whole message list.
+     */
+    async function pollTickUpdates() {
+        if (!state.activeConversation || state.pendingTicks.size === 0) return;
+
+        const ids = [...state.pendingTicks.keys()];
+
+        try {
+            const params = ids.map((id) => `message_ids[]=${id}`).join("&");
+            const data = await api(
+                `${route(config.routes.tickUpdates, state.activeConversation.id)}?${params}`,
+            );
+
+            (data.ticks || []).forEach((tick) => {
+                const current = state.pendingTicks.get(tick.id);
+                if (!current || current === tick.tick_state) return;
+
+                // Update state
+                const msg = state.messages.find(
+                    (m) => Number(m.id) === Number(tick.id),
+                );
+                if (msg) {
+                    msg.tick_state = tick.tick_state;
+                    msg.delivered_at = tick.delivered_at;
+                    msg.read_at = tick.read_at;
+                }
+
+                // Update the SVG in-place
+                const article = el.messageList.querySelector(
+                    `[data-message-id="${tick.id}"]`,
+                );
+                if (article) {
+                    const oldTick = article.querySelector(".wa-tick");
+                    if (oldTick) {
+                        const newTick = document.createElement("div");
+                        newTick.innerHTML = tickMarkup(
+                            tick.tick_state,
+                            tick.id,
+                            tick.delivered_at,
+                            null,
+                        );
+                        oldTick.replaceWith(newTick.firstElementChild);
+                    }
+                }
+
+                // If now read, remove from pending
+                if (tick.tick_state === "read") {
+                    state.pendingTicks.delete(tick.id);
+                } else {
+                    state.pendingTicks.set(tick.id, tick.tick_state);
+                }
+            });
+        } catch {
+            /* silent */
+        }
+    }
+
+    function showTickPopup(tick, m) {
+        document.querySelector(".wa-tick-popup")?.remove();
+
+        const sentTime = m.created_at
+            ? new Date(m.created_at).toLocaleString([], {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+              })
+            : "—";
+
+        const deliveredTime = m.delivered_at
+            ? new Date(m.delivered_at).toLocaleString([], {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+              })
+            : "Not yet";
+
+        // For read time — find from conversation read data
+        const readText = m.read_at
+            ? new Date(m.read_at).toLocaleString([], {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+              })
+            : m.tick_state === "read"
+              ? "Seen"
+              : "Not yet";
+
+        const popup = document.createElement("div");
+        popup.className = "wa-tick-popup";
+        popup.innerHTML = `
+            <p class="wa-tick-popup__title">Message Info</p>
+            <div class="wa-tick-popup__row">
+                <span>
+                    <svg class="wa-tick wa-tick--sent" viewBox="0 0 16 11" width="14" height="10">
+                        <path d="m1 6 4 4L15 1" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Sent
+                </span>
+                <span>${esc(sentTime)}</span>
+            </div>
+            <div class="wa-tick-popup__row">
+                <span>
+                    <svg class="wa-tick wa-tick--delivered" viewBox="0 0 22 11" width="18" height="10">
+                        <path d="m1 6 4 4L15 1" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="m7 6 4 4L21 1" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Delivered
+                </span>
+                <span>${esc(deliveredTime)}</span>
+            </div>
+            <div class="wa-tick-popup__row">
+                <span>
+                    <svg class="wa-tick wa-tick--read" viewBox="0 0 22 11" width="18" height="10">
+                        <path d="m1 6 4 4L15 1" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="m7 6 4 4L21 1" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Read
+                </span>
+                <span>${esc(readText)}</span>
+            </div>`;
+
+        const bubble = tick.closest(".wa-bubble");
+        bubble.appendChild(popup);
+
+        // Smart positioning — flip above if too close to bottom
+        const bubbleRect = bubble.getBoundingClientRect();
+        const panelRect = el.messageList.getBoundingClientRect();
+        if (bubbleRect.bottom + 120 > panelRect.bottom) {
+            popup.style.bottom = "calc(100% + 6px)";
+            popup.style.top = "auto";
+        } else {
+            popup.style.top = "calc(100% + 6px)";
+            popup.style.bottom = "auto";
+        }
+
+        setTimeout(() => {
+            document.addEventListener(
+                "click",
+                () => {
+                    document.querySelector(".wa-tick-popup")?.remove();
+                },
+                { once: true },
+            );
+        }, 0);
+    }
     // ── Event listeners ───────────────────────────────────────────────────
 
     el.conversationList.addEventListener("click", (e) => {
@@ -1519,6 +1822,21 @@
     });
 
     el.messageList.addEventListener("click", (e) => {
+        // Tick popup
+        const tick =
+            e.target.closest(".wa-tick") || e.target.closest(".wa-tick-btn");
+        if (tick) {
+            e.stopPropagation();
+            const messageId =
+                tick.closest("[data-message-id]")?.dataset.messageId;
+            const m = state.messages.find(
+                (m) => Number(m.id) === Number(messageId),
+            );
+            if (m) showTickPopup(tick, m);
+            return;
+        }
+
+        // Message actions (reply / delete)
         const action = e.target.closest("[data-action]");
         if (!action) return;
         const article = action.closest("[data-message-id]");
@@ -1530,6 +1848,37 @@
         if (action.dataset.action === "delete") deleteMessage(m.id);
     });
 
+    // Mobile: show actions on tap, hide on tap elsewhere
+    if ("ontouchstart" in window) {
+        el.messageList.addEventListener(
+            "touchstart",
+            (e) => {
+                const bubble = e.target.closest(".wa-bubble");
+                // Remove from all other bubbles first
+                el.messageList
+                    .querySelectorAll(".wa-bubble.is-touched")
+                    .forEach((b) => {
+                        if (b !== bubble) b.classList.remove("is-touched");
+                    });
+                if (bubble) bubble.classList.toggle("is-touched");
+            },
+            { passive: true },
+        );
+
+        document.addEventListener(
+            "touchstart",
+            (e) => {
+                if (!e.target.closest(".wa-bubble")) {
+                    el.messageList
+                        .querySelectorAll(".wa-bubble.is-touched")
+                        .forEach((b) => {
+                            b.classList.remove("is-touched");
+                        });
+                }
+            },
+            { passive: true },
+        );
+    }
     el.chatIdentity.addEventListener("click", openInfoPanel);
     el.chatMenu.addEventListener("click", openInfoPanel);
     el.closeInfo.addEventListener("click", closeInfoPanel);
@@ -1635,6 +1984,7 @@
             fetchConversations({ quiet: true });
             pollMessages();
             pollOnlineStatus();
+            pollTickUpdates();
         }
     });
 
@@ -1651,4 +2001,16 @@
         () => fetchConversations({ quiet: true }),
         8000,
     );
+
+    // ── Tab close / navigation away ───────────────────────────────────────────
+    window.addEventListener("beforeunload", () => {
+        if (navigator.sendBeacon) {
+            // sendBeacon needs a Blob with Content-Type to send CSRF token
+            const data = new Blob(
+                [JSON.stringify({ _token: config.csrfToken })],
+                { type: "application/json" },
+            );
+            navigator.sendBeacon(config.routes.markOffline, data);
+        }
+    });
 })();

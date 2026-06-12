@@ -4,6 +4,23 @@
 @section('title', 'Messages')
 
 @push('styles')
+<style>
+.comm-center {
+    height: calc(100vh - var(--header-h, 60px));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.wa-chat {
+    flex: 1;
+    height: 100% !important;
+    min-height: 0 !important;
+}
+.comm-content-grid {
+    padding: 0px;
+}
+</style>
     <link rel="stylesheet" href="{{ asset('css/community/messages/chat.css') }}">
 @endpush
 
@@ -254,6 +271,8 @@ window.ChatConfig = {!! json_encode([
         'deleteMessage' => url('/chat/messages/__ID__'),
         'groupInfo' => url('/chat/groups/__ID__/info'),
         'onlineStatus'      => route('chat.online-status'),
+        'tickUpdates' => url('/chat/conversations/__ID__/tick-updates'),
+        'markOffline' => route('chat.mark-offline'),
     ],
 ]) !!};
     </script>

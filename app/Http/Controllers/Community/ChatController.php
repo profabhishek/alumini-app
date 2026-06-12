@@ -83,7 +83,14 @@ class ChatController extends Controller
     {
         $myId = session('alumni_id');
 
-        $conversation = $this->findConversationForUser($id, $myId);
+        $this->findConversationForUser($id, $myId);
+
+        ChatMessage::where('conversation_id', $id)
+            ->where('sender_id', '!=', $myId)
+            ->whereNull('delivered_at')
+            ->whereNull('deleted_at')
+            ->update(['delivered_at' => now()]);
+        Cache::forget("alumni_delivery_{$myId}");
 
         $limit    = max(1, min((int) $request->input('limit', 40), 100));
         $beforeId = (int) $request->input('before_id', 0);
@@ -99,7 +106,6 @@ class ChatController extends Controller
 
         $messages = $query->limit($limit)->get()->reverse()->values();
 
-        // Mark as read
         if ($messages->isNotEmpty()) {
             ChatMessageRead::markRead($id, $myId, $messages->last()->id);
         }
@@ -116,7 +122,14 @@ class ChatController extends Controller
         $myId    = session('alumni_id');
         $afterId = (int) $request->input('after_id', 0);
 
-        $conversation = $this->findConversationForUser($id, $myId);
+        $this->findConversationForUser($id, $myId);
+
+        ChatMessage::where('conversation_id', $id)
+        ->where('sender_id', '!=', $myId)
+        ->whereNull('delivered_at')
+        ->whereNull('deleted_at')
+        ->update(['delivered_at' => now()]);
+        Cache::forget("alumni_delivery_{$myId}");
 
         $messages = ChatMessage::where('conversation_id', $id)
             ->whereNull('deleted_at')
@@ -267,16 +280,31 @@ class ChatController extends Controller
         $myId    = session('alumni_id');
         $message = ChatMessage::findOrFail($messageId);
 
-        // Only the sender can delete their own message
-        if ((int) $message->sender_id !== $myId) {
-            return response()->json(['error' => 'You can only delete your own messages.'], 403);
+        $isSender = (int) $message->sender_id === $myId;
+
+        if (!$isSender) {
+            // Check if user is admin of this conversation
+            $isConvAdmin = ChatParticipant::where('conversation_id', $message->conversation_id)
+                ->where('alumni_id', $myId)
+                ->where('role', 'admin')
+                ->whereNull('left_at')
+                ->exists();
+
+            // Also allow site admins
+            $isSiteAdmin = in_array(
+                AlumniUser::find($myId)?->role,
+                ['admin', 'super_admin']
+            );
+
+            if (!$isConvAdmin && !$isSiteAdmin) {
+                return response()->json(['error' => 'You can only delete your own messages.'], 403);
+            }
         }
 
         if ($message->isDeleted()) {
             return response()->json(['error' => 'Already deleted.'], 409);
         }
 
-        // Soft-delete: mark deleted_at, don't remove the file immediately
         $message->delete();
 
         return response()->json(['ok' => true, 'message_id' => $messageId]);
@@ -1026,4 +1054,55 @@ class ChatController extends Controller
         return response()->json(['count' => min($total, 99)]);
     }
 
+
+        public function tickUpdates(Request $request, int $id): JsonResponse
+    {
+        $myId = session('alumni_id');
+ 
+        $this->findConversationForUser($id, $myId);
+ 
+        $messageIds = collect($request->input('message_ids', []))
+            ->map(fn($mid) => (int) $mid)   
+            ->filter(fn($mid) => $mid > 0)
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+ 
+        if (empty($messageIds)) {
+            return response()->json(['ticks' => []]);
+        }
+ 
+        $messages = ChatMessage::whereIn('id', $messageIds)
+            ->where('conversation_id', $id)
+            ->where('sender_id', $myId)  // only own messages
+            ->whereNull('deleted_at')
+            ->get(['id', 'conversation_id', 'sender_id', 'delivered_at', 'created_at']);
+ 
+        $ticks = $messages->map(function ($m) use ($myId) {
+            $tick = $m->tickState($myId);
+            return [
+                'id'           => $m->id,
+                'tick_state'   => $tick['state'],
+                'delivered_at' => $m->delivered_at?->toISOString(),
+                'read_at'      => $tick['read_at']?->toISOString(),
+            ];
+        });
+ 
+        return response()->json(['ticks' => $ticks]);
+    }
+
+    public function markOffline(): JsonResponse
+    {
+        $alumniId = session('alumni_id');
+        if ($alumniId) {
+            AlumniUser::where('id', $alumniId)
+                ->update(['last_seen_at' => now()->subMinutes(3)]);
+
+            // Clear the cache gate so next page load updates fresh
+            Cache::forget("alumni_last_seen_{$alumniId}");
+        }
+
+        return response()->json(['ok' => true]);
+    }
 }

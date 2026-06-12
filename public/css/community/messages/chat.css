@@ -1,7 +1,3 @@
-/* =============================================================
-   WHATSAPP-STYLE COMMUNITY CHAT
-============================================================= */
-
 .wa-chat {
     --wa-green: #00a884;
     --wa-green-dark: #008069;
@@ -21,7 +17,7 @@
     display: grid;
     grid-template-columns: minmax(310px, 34%) minmax(0, 1fr);
     width: 100%;
-    height: 100%;
+    height: calc(100vh - var(--header-h, 60px) - 56px);
     min-height: 620px;
     overflow: hidden;
     color: var(--wa-text);
@@ -43,7 +39,7 @@
 .wa-chat svg,
 .wa-modal svg {
     display: block;
-    width: 20px;
+    width: 12px;
     height: 20px;
     fill: none;
     stroke: currentColor;
@@ -851,13 +847,6 @@
     line-height: 1;
 }
 
-.wa-delivery-check {
-    width: 16px !important;
-    height: 12px !important;
-    color: #53bdeb;
-    stroke-width: 2.2 !important;
-}
-
 .wa-message-actions {
     position: absolute;
     z-index: 3;
@@ -1382,15 +1371,18 @@ body.wa-modal-open {
 .wa-toast {
     padding: 11px 14px;
     opacity: 0;
-    color: #fff;
-    background: #243138;
+    color: #fff !important;
+    background: #243138 !important;
     border-radius: 8px;
     box-shadow: 0 8px 25px rgba(11, 20, 26, 0.24);
     font-size: 0.78rem;
+    font-family: inherit;
     transform: translateY(8px);
     transition:
         opacity 180ms ease,
         transform 180ms ease;
+    pointer-events: none;
+    word-break: break-word;
 }
 
 .wa-toast.is-visible {
@@ -1399,11 +1391,30 @@ body.wa-modal-open {
 }
 
 .wa-toast--success {
-    background: var(--wa-green-dark);
+    background: #008069 !important;
+    color: #fff !important;
 }
 
 .wa-toast--error {
-    background: #b42318;
+    background: #b42318 !important;
+    color: #fff !important;
+}
+
+.wa-toast--info {
+    background: #243138 !important;
+    color: #fff !important;
+}
+
+.wa-toast-region {
+    position: fixed;
+    z-index: 1100;
+    right: 22px;
+    bottom: 22px;
+    display: flex;
+    width: min(360px, calc(100vw - 32px));
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
 }
 
 /* Group invite landing page */
@@ -1610,6 +1621,11 @@ body.wa-modal-open {
     }
 
     .wa-message-actions {
+        visibility: hidden;
+        opacity: 0;
+    }
+
+    .wa-bubble.is-touched .wa-message-actions {
         visibility: visible;
         opacity: 1;
     }
@@ -1630,6 +1646,7 @@ body.wa-modal-open {
 
     .wa-composer {
         padding-inline: 6px;
+        margin-bottom: 30px;
     }
 
     .wa-file {
@@ -2027,4 +2044,731 @@ body.wa-modal-open {
 /* ── Dark mode border color for dot ─────────────────────── */
 .dark .wa-online-dot {
     border-color: var(--wa-panel);
+}
+
+/* ── Base tick ───────────────────────────────────────────── */
+.wa-tick {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 11px;
+    vertical-align: middle;
+    cursor: default;
+    transition: color 0.2s ease;
+}
+
+/* ── Single grey — sent ──────────────────────────────────── */
+.wa-tick--sent {
+    width: 12px;
+    color: #92a7ae;
+}
+
+/* ── Double grey — delivered ─────────────────────────────── */
+.wa-tick--delivered {
+    width: 18px;
+    color: #92a7ae;
+}
+
+/* ── Double blue — read ──────────────────────────────────── */
+.wa-tick--read {
+    width: 18px;
+    color: #53bdeb;
+}
+
+/* ── Message meta row — ensure tick sits inline with time ── */
+.wa-message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    min-height: 15px;
+    margin: 2px 1px -1px 20px;
+    flex-wrap: nowrap;
+}
+
+.wa-message-meta time {
+    color: #667781;
+    font-size: 0.6rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.wa-tick:hover {
+    opacity: 0.85;
+}
+
+/* ── Dark mode ───────────────────────────────────────────── */
+.dark .wa-tick--sent,
+.dark .wa-tick--delivered {
+    color: #aebac1;
+}
+
+.dark .wa-tick--read {
+    color: #53bdeb;
+}
+
+.dark .wa-message-meta time {
+    color: #aebac1;
+}
+
+.wa-tick-popup {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    background: #1f2937;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    min-width: 160px;
+    animation: wa-fade-in 0.15s ease;
+}
+
+.wa-tick-popup__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wa-tick-popup__row:last-child {
+    border-bottom: none;
+}
+
+.wa-tick-popup__row span:first-child {
+    color: #9ca3af;
+}
+
+.wa-tick-popup__row span:last-child {
+    font-weight: 600;
+}
+
+@keyframes wa-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+/* ============================================================
+   ADD TO BOTTOM OF chat.css — Tick popup improvements
+============================================================= */
+
+/* Bigger click target for tick */
+.wa-tick-btn {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 3px;
+    border-radius: 3px;
+    transition: background 0.15s;
+}
+.wa-tick-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+/* Popup title */
+.wa-tick-popup__title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Updated popup row — icon + label on left, time on right */
+.wa-tick-popup__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.wa-tick-popup__row:last-child {
+    border-bottom: none;
+}
+
+.wa-tick-popup__row > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #9ca3af;
+    font-size: 0.72rem;
+}
+
+.wa-tick-popup__row > span:last-child {
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: #e5e7eb;
+}
+
+/* Popup can also appear below bubble */
+.wa-tick-popup {
+    position: absolute;
+    right: 0;
+    background: #1f2937;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    z-index: 20;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    min-width: 200px;
+    animation: wa-fade-in 0.15s ease;
+    bottom: calc(100% + 6px);
+}
+
+/* ── Confirm modal ───────────────────────────────────────── */
+.wa-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 20, 26, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 900;
+    display: grid;
+    place-items: center;
+    animation: wa-fade-in 0.15s ease;
+}
+
+.wa-confirm-box {
+    background: var(--wa-panel, #fff);
+    border-radius: 14px;
+    padding: 24px 24px 18px;
+    width: min(340px, calc(100vw - 32px));
+    box-shadow: 0 16px 48px rgba(11, 20, 26, 0.28);
+    animation: wa-slide-up 0.18s ease;
+}
+
+.wa-confirm-box__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--wa-text, #111b21);
+    margin: 0 0 6px;
+}
+
+.wa-confirm-box__body {
+    font-size: 0.82rem;
+    color: var(--wa-muted, #667781);
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+.wa-confirm-box__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.wa-confirm-box__btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.15s;
+}
+
+.wa-confirm-box__btn--cancel {
+    background: transparent;
+    color: var(--wa-muted, #667781);
+    border-color: var(--wa-border, #e9edef);
+}
+
+.wa-confirm-box__btn--cancel:hover {
+    background: var(--wa-hover, #f5f6f6);
+}
+
+.wa-confirm-box__btn--danger {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+}
+
+.wa-confirm-box__btn--danger:hover {
+    background: #b91c1c;
+}
+
+.wa-confirm-box__btn--primary {
+    background: var(--wa-green, #00a884);
+    color: #fff;
+    border-color: var(--wa-green, #00a884);
+}
+
+.wa-confirm-box__btn--primary:hover {
+    background: var(--wa-green-dark, #008069);
+}
+
+@keyframes wa-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   MOBILE OVERRIDES — max-width: 720px
+   Append this block to the bottom of chat.css.
+   Desktop styles above are untouched.
+   Works on all phones (small 360px → large 430px).
+============================================================= */
+
+@media (max-width: 720px) {
+    /* ── Root layout ──────────────────────────────────────── */
+
+    .wa-chat {
+        display: block;
+        position: fixed; /* fill the full visual viewport */
+        inset: 0;
+        min-height: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: hidden;
+    }
+
+    /* ── Sidebar (conversation list) ──────────────────────── */
+
+    .wa-sidebar {
+        position: absolute;
+        inset: 0;
+        visibility: visible;
+        transform: translateX(0);
+        transition:
+            transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+            visibility 220ms;
+        z-index: 2;
+        background: var(--wa-panel);
+    }
+
+    .wa-chat.has-active-chat .wa-sidebar {
+        visibility: hidden;
+        transform: translateX(-100%);
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+
+    .wa-sidebar__header {
+        min-height: 60px;
+        padding: 10px 14px;
+        /* Safe area top for notched phones */
+        padding-top: max(10px, env(safe-area-inset-top));
+    }
+
+    .wa-title {
+        font-size: 1.25rem;
+    }
+
+    /* ── Search bar ───────────────────────────────────────── */
+
+    .wa-search-wrap {
+        padding: 8px 12px;
+    }
+
+    .wa-search {
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    /* ── Conversation rows ────────────────────────────────── */
+
+    .wa-conversation {
+        gap: 11px;
+        padding: 0 14px;
+    }
+
+    .wa-conversation__body {
+        padding: 14px 0;
+    }
+
+    .wa-conversation__topline strong {
+        font-size: 0.97rem;
+    }
+
+    .wa-conversation__preview {
+        font-size: 0.82rem;
+    }
+
+    /* ── Main panel ───────────────────────────────────────── */
+
+    .wa-panel {
+        position: absolute;
+        inset: 0;
+        visibility: hidden;
+        transform: translateX(100%);
+        transition:
+            transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+            visibility 220ms;
+        z-index: 3;
+        background: var(--wa-canvas);
+        /* Allow panel to shrink when keyboard opens */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wa-chat.has-active-chat .wa-panel {
+        visibility: visible;
+        transform: translateX(0);
+    }
+
+    /* ── Active chat layout — keyboard-aware ──────────────── */
+    /*
+     * KEY TRICK: height: 100% on the panel lets the browser
+     * resize it when the keyboard appears (works with
+     * <meta name="viewport" content="..., interactive-widget=resizes-content">
+     * or the default behaviour on modern iOS/Android).
+     * The flex column pushes composer to the visible bottom.
+    */
+
+    .wa-active-chat {
+        display: flex;
+        flex-direction: column;
+        height: 100%; /* fills the panel which is already position:absolute inset:0 */
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /* ── Chat header ──────────────────────────────────────── */
+
+    .wa-chat-header {
+        flex: 0 0 auto;
+        min-height: 60px;
+        padding: 6px 8px 6px 4px;
+        /* Push down below status bar on notched devices */
+        padding-top: max(6px, env(safe-area-inset-top));
+        background: var(--wa-panel-soft);
+        border-bottom: 1px solid var(--wa-border);
+        /* Prevent shrinking */
+        z-index: 5;
+    }
+
+    .wa-back-btn {
+        display: inline-grid;
+        flex: 0 0 auto;
+    }
+
+    .wa-chat-identity {
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .wa-chat-identity__copy strong {
+        font-size: 0.96rem;
+    }
+
+    .wa-chat-identity__copy span {
+        font-size: 0.71rem;
+    }
+
+    /* hide search button to save space on very small screens */
+    @media (max-width: 380px) {
+        .wa-chat-header .wa-header-actions .wa-icon-btn:first-child {
+            display: none;
+        }
+    }
+
+    /* ── Message search bar ───────────────────────────────── */
+
+    .wa-message-search {
+        flex: 0 0 auto;
+        padding: 7px 10px;
+    }
+
+    /* ── Message list — scrollable middle section ─────────── */
+
+    .wa-messages {
+        flex: 1 1 auto; /* takes all available space between header + composer */
+        min-height: 0; /* critical — allows flex shrink */
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 11px 8px;
+        /* Smooth scroll so auto-scroll to bottom feels native */
+        scroll-behavior: smooth;
+        /* Prevent content jumping when keyboard opens */
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+
+    /* ── Reply + upload previews ──────────────────────────── */
+
+    .wa-reply-preview,
+    .wa-upload-preview {
+        flex: 0 0 auto;
+        padding: 7px 12px;
+    }
+
+    /* ── Composer — always anchored at visual bottom ──────── */
+
+    .wa-composer {
+        flex: 0 0 auto;
+        min-height: 56px;
+        padding: 7px 8px;
+        padding-bottom: max(7px, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--wa-border);
+        background: var(--wa-panel-soft);
+        /* Sit above keyboard — no fixed position needed because
+           the panel itself resizes when keyboard opens */
+        z-index: 5;
+        align-items: flex-end;
+        gap: 6px;
+    }
+
+    .wa-composer textarea {
+        min-height: 40px;
+        max-height: 110px;
+        padding: 10px 14px;
+        font-size: 0.93rem;
+        line-height: 1.4;
+        border-radius: 22px;
+    }
+
+    .wa-send-btn {
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        margin-bottom: 0;
+    }
+
+    .wa-attach-btn {
+        margin-bottom: 0;
+    }
+
+    /* ── Bubbles ──────────────────────────────────────────── */
+
+    .wa-bubble {
+        max-width: 86%;
+    }
+
+    .wa-message-text {
+        font-size: 0.91rem;
+    }
+
+    /* ── Message actions (always visible on mobile) ───────── */
+
+    .wa-message-actions {
+        visibility: hidden;
+        opacity: 0;
+    }
+
+    .wa-bubble.is-touched .wa-message-actions {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* ── Load older messages button ───────────────────────── */
+
+    .wa-load-older {
+        top: 66px;
+    }
+
+    /* ── Info panel ───────────────────────────────────────── */
+
+    .wa-info-panel {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        z-index: 10;
+        box-shadow: none;
+    }
+
+    .wa-info-panel__header {
+        padding-top: max(0px, env(safe-area-inset-top));
+    }
+
+    /* ── Member actions always visible on mobile ──────────── */
+
+    .wa-member-actions {
+        opacity: 1;
+    }
+
+    /* ── Group modal — slide up from bottom ───────────────── */
+
+    .wa-modal-backdrop {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .wa-modal {
+        width: 100%;
+        max-height: 92dvh; /* dvh accounts for keyboard */
+        border-radius: 18px 18px 0 0;
+        overflow: hidden;
+    }
+
+    .wa-modal form {
+        max-height: calc(92dvh - 130px);
+        padding: 14px 16px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Toast ────────────────────────────────────────────── */
+
+    .wa-toast-region {
+        right: 12px;
+        bottom: max(12px, calc(env(safe-area-inset-bottom) + 68px));
+        width: calc(100vw - 24px);
+    }
+
+    /* ── Welcome screen ───────────────────────────────────── */
+
+    .wa-welcome {
+        padding: 32px 20px;
+    }
+
+    .wa-welcome__art {
+        width: 110px;
+        height: 110px;
+    }
+
+    .wa-welcome h2 {
+        font-size: 1.35rem;
+    }
+
+    .wa-welcome p {
+        font-size: 0.84rem;
+    }
+
+    /* ── Tick popup — prevent overflow on small screens ──── */
+
+    .wa-tick-popup {
+        right: -4px;
+        min-width: 180px;
+        max-width: calc(100vw - 32px);
+        font-size: 0.74rem;
+        padding: 9px 12px;
+    }
+
+    /* ── Confirm dialog ───────────────────────────────────── */
+
+    .wa-confirm-backdrop {
+        align-items: flex-end;
+        padding: 0 0 max(12px, env(safe-area-inset-bottom));
+    }
+
+    .wa-confirm-box {
+        width: 100%;
+        border-radius: 18px 18px 0 0;
+        padding: 22px 20px 16px;
+    }
+}
+/* ============================================================
+   MOBILE CHAT FIX — append to bottom of chat.css
+   Fixes: header hidden behind community navbar
+   Works alongside the previous mobile block.
+============================================================= */
+
+@media (max-width: 720px) {
+    /* ── 1. Measure the community header height ───────────────
+       The .comm-header is roughly 60px tall. We offset the
+       fixed chat container so it starts BELOW the site header.
+       Adjust --comm-header-h if your header height differs.
+    ─────────────────────────────────────────────────────────── */
+
+    :root {
+        --comm-header-h: 60px; /* tweak if header is taller */
+    }
+
+    /* ── 2. Chat container starts below the site navbar ──────── */
+
+    .wa-chat {
+        position: fixed;
+        top: var(--comm-header-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        inset: var(--comm-header-h) 0 0 0; /* top = navbar height */
+        height: auto; /* don't fight with inset */
+        min-height: 0;
+    }
+
+    /* ── 3. Panel and sidebar fill that same offset box ──────── */
+
+    .wa-sidebar,
+    .wa-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    /* ── 4. Sidebar header — no extra safe-area top padding
+       because the community header already clears the notch ── */
+
+    .wa-sidebar__header {
+        padding-top: 10px;
+    }
+
+    /* ── 5. Chat header — same, no extra top offset needed ───── */
+
+    .wa-chat-header {
+        padding-top: 6px;
+    }
+
+    /* ── 6. Active chat fills the panel correctly ────────────── */
+
+    .wa-active-chat {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* ── 7. Message list scrolls within the remaining space ──── */
+
+    .wa-messages {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Bottom padding clears home indicator */
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+
+    /* ── 8. Composer always at the visible bottom ────────────── */
+
+    .wa-composer {
+        flex: 0 0 auto;
+        padding-bottom: max(35px, env(safe-area-inset-bottom));
+    }
+
+    /* ── 9. Info panel stays within chat container ───────────── */
+
+    .wa-info-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* ── 10. Toasts float above composer ─────────────────────── */
+
+    .wa-toast-region {
+        bottom: max(72px, calc(env(safe-area-inset-bottom) + 72px));
+    }
 }

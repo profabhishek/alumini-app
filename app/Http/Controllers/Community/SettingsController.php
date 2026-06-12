@@ -11,14 +11,17 @@ class SettingsController extends Controller
 {
     // ── Show settings page ────────────────────────────────────────────────
 
-    public function index()
+    public function index(Request $request)
     {
         $user     = AlumniUser::findOrFail(session('alumni_id'));
         $sessions = AlumniSession::where('alumni_user_id', $user->id)
                         ->orderByDesc('last_active_at')
                         ->get();
 
-        return view('community.settings.index', compact('user', 'sessions'));
+        $currentIp = $request->ip();
+        $currentUa = $request->userAgent() ?? '';
+
+        return view('community.settings.index', compact('user', 'sessions', 'currentIp', 'currentUa'));
     }
 
     // ── Save notification preferences ─────────────────────────────────────

@@ -331,7 +331,7 @@
     <div class="mobile-drawer-footer">
         @if(session()->has('alumni_id'))
 
-            <a href="#"
+            <a href="{{ route('dashboard.home') }}"
             class="mobile-cta-btn">
                 Go To Community
             </a>

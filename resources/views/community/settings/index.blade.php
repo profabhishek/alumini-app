@@ -238,36 +238,45 @@
                 </div>
             @else
                 <div class="sessions-list">
-                    @foreach($sessions as $sess)
-                        <div class="session-item">
-                            <div class="session-icon">
-                                {{-- Mobile vs desktop icon based on device string --}}
-                                @if(str_contains(strtolower($sess->device ?? ''), 'android') || str_contains(strtolower($sess->device ?? ''), 'ios'))
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                                @else
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                                @endif
-                            </div>
-                            <div class="session-info">
-                                <span class="session-device">{{ $sess->device ?? 'Unknown device' }}</span>
-                                <span class="session-meta">
-                                    {{ $sess->ip_address ?? '—' }}
-                                    @if($sess->location) · {{ $sess->location }} @endif
-                                    · {{ $sess->last_active_at?->diffForHumans() ?? 'Unknown time' }}
-                                </span>
-                            </div>
-                            <form action="{{ route('settings.sessions.revoke', $sess) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Revoke this session?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn-revoke">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                    Revoke
-                                </button>
-                            </form>
-                        </div>
-                    @endforeach
+            @foreach($sessions as $sess)
+                @php
+                    $isCurrent = $sess->ip_address === $currentIp && $sess->user_agent === $currentUa;
+                    $isMobile  = str_contains(strtolower($sess->device ?? ''), 'android')
+                            || str_contains(strtolower($sess->device ?? ''), 'iphone')
+                            || str_contains(strtolower($sess->device ?? ''), 'ipad');
+                @endphp
+                <div class="session-item {{ $isCurrent ? 'session-item--current' : '' }}">
+                    <div class="session-icon {{ $isCurrent ? 'session-icon--current' : '' }}">
+                        @if($isMobile)
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                        @else
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        @endif
+                    </div>
+                    <div class="session-info">
+                        <span class="session-device">
+                            {{ $sess->device ?? 'Unknown device' }}
+                            @if($isCurrent)
+                                <span class="session-badge">This device</span>
+                            @endif
+                        </span>
+                        <span class="session-meta">
+                            {{ $sess->ip_address ?? '—' }}
+                            @if($sess->location) · {{ $sess->location }} @endif
+                            · {{ $sess->last_active_at?->diffForHumans() ?? 'Unknown time' }}
+                        </span>
+                    </div>
+                    <form action="{{ route('settings.sessions.revoke', $sess) }}" method="POST"
+                        onsubmit="return confirm('{{ $isCurrent ? 'This will log you out. Continue?' : 'Revoke this session?' }}')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn-revoke {{ $isCurrent ? 'btn-revoke--current' : '' }}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            {{ $isCurrent ? 'Log out' : 'Revoke' }}
+                        </button>
+                    </form>
+                </div>
+            @endforeach
                 </div>
             @endif
         </div>

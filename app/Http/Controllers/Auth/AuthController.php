@@ -91,6 +91,7 @@ class AuthController extends Controller
             'alumni_email',
             'alumni_role',
             'alumni_permissions',
+            'alumni_avatar',
         ]);
 
         session()->invalidate();
@@ -348,7 +349,21 @@ class AuthController extends Controller
             'alumni_email'       => $user->email,
             'alumni_role'        => $user->role,
             'alumni_permissions' => $user->permissions ?? [],
+            'alumni_avatar'      => $user->photo,
         ]);
+
+        // ── Record this device in alumni_sessions ─────────────────────────
+        \App\Models\AlumniSession::updateOrCreate(
+            [
+                'alumni_user_id' => $user->id,
+                'ip_address'     => request()->ip(),
+                'user_agent'     => request()->userAgent() ?? '',
+            ],
+            [
+                'device'         => \App\Models\AlumniSession::parseDevice(request()->userAgent() ?? ''),
+                'last_active_at' => now(),
+            ]
+        );
     }
 
     // ── OTP helper ────────────────────────────────────────────────────────

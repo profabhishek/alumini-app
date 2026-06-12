@@ -72,6 +72,7 @@ class AlumniAuth
             'alumni_email'       => $user->email,
             'alumni_role'        => $user->role,
             'alumni_permissions' => $user->permissions ?? [],
+            'alumni_avatar'      => $user->photo,
         ]);
 
         // ── Rotate the token (prevents cookie reuse if cookie is stolen) ──

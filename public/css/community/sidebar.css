@@ -130,10 +130,12 @@
     backdrop-filter: blur(2px);
     opacity: 0;
     transition: opacity 0.25s var(--ease);
+    pointer-events: none; /* ← add this */
 }
 
 .sidebar-overlay.active {
     opacity: 1;
+    pointer-events: auto; /* ← add this */
 }
 
 /* =============================================================
@@ -153,6 +155,10 @@
 
     .sidebar-overlay {
         display: block;
+    }
+
+    .sidebar-footer {
+        margin-bottom: 60px;
     }
 }
 /* Expandable children */
@@ -206,4 +212,20 @@
 }
 .nav-chevron.open {
     transform: rotate(90deg);
+}
+
+.nav-msg-badge {
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #e8640c;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }

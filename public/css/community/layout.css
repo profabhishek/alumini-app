@@ -11,10 +11,9 @@
     margin-left: var(--sidebar-w);
     min-width: 0;
     height: calc(100vh - var(--header-h));
-    overflow: hidden;
+    overflow-y: auto;
 }
 
-/* GRID */
 .comm-content-grid {
     display: grid;
     grid-template-columns: 1fr 320px;
@@ -22,9 +21,10 @@
     max-width: 1120px;
     margin: 0 auto;
     padding: 28px 24px;
-    height: 100%;
-    overflow: hidden;
-    align-items: start; /* important */
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    align-items: start;
     box-sizing: border-box;
 }
 
@@ -32,11 +32,11 @@
     grid-template-columns: 1fr;
     max-width: 1200px;
 }
+
 .comm-center {
     min-width: 0;
-    height: 100%;
-    overflow-y: auto;
-
+    height: auto;
+    overflow-y: visible;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }

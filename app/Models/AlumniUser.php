@@ -100,7 +100,7 @@ class AlumniUser extends Authenticatable
     public function isOnline(): bool
     {
         if (!$this->last_seen_at) return false;
-        return $this->last_seen_at->gt(now()->subMinutes(2));
+        return $this->last_seen_at->gt(now()->subSeconds(10));
     }
 
     public function lastSeenHuman(): string

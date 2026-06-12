@@ -16,7 +16,7 @@ use App\Http\Controllers\Community\Admin\AdminStoryController;
 use App\Http\Controllers\Community\AlumniDirectoryController;
 use App\Http\Controllers\Community\AlumniProfileController;
 use App\Http\Controllers\Community\ChatController;
-
+use App\Http\Controllers\Admin\AlumniDataController;
 /*
 |--------------------------------------------------------------------------
 | Public Website
@@ -354,6 +354,20 @@ Route::middleware('alumni.auth')->group(function () {
 
     Route::get('/chat/unread-count', [ChatController::class, 'unreadCount'])
         ->name('chat.unread-count');
+
+    Route::get('/chat/conversations/{id}/tick-updates', [ChatController::class, 'tickUpdates'])
+        ->name('chat.tick-updates');
+
+    Route::post('/chat/mark-offline', [ChatController::class, 'markOffline'])
+        ->name('chat.mark-offline');
+
+
+    Route::get('/admin/alumni-data/template', [AlumniDataController::class, 'template'])->name('admin.alumni-data.template');
+    Route::get('/admin/alumni-data/export',   [AlumniDataController::class, 'export'])->name('admin.alumni-data.export');
+    Route::get('/admin/alumni-data',          [AlumniDataController::class, 'index'])->name('admin.alumni-data.index');
+    Route::post('/admin/alumni-data/import',  [AlumniDataController::class, 'import'])->name('admin.alumni-data.import');
+    Route::delete('/admin/alumni-data',       [AlumniDataController::class, 'clearAll'])->name('admin.alumni-data.clear');
+    Route::delete('/admin/alumni-data/{id}',  [AlumniDataController::class, 'destroy'])->name('admin.alumni-data.destroy');
 });
 
 
