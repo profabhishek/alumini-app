@@ -1,0 +1,1396 @@
+.feed-modal-backdrop[hidden] {
+    display: none !important;
+}
+
+.feed-lightbox[hidden] {
+    display: none !important;
+}
+
+.composer-textarea {
+    max-height: 160px;
+}
+
+.composer-media-preview {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.composer-media-preview.is-video {
+    grid-template-columns: 1fr;
+}
+
+.composer-media-item {
+    position: relative;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    background: var(--bg-input);
+}
+
+.composer-media-preview.is-video .composer-media-item {
+    aspect-ratio: 16 / 9;
+}
+
+.composer-media-item img,
+.composer-media-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.composer-media-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+}
+
+.composer-media-remove:hover {
+    background: rgba(0, 0, 0, 0.78);
+}
+
+.composer-media-remove svg {
+    width: 13px;
+    height: 13px;
+}
+
+.attach-btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn-post[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none !important;
+}
+
+.btn-post.is-loading {
+    pointer-events: none;
+}
+
+.btn-post .post-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: feed-spin 0.6s linear infinite;
+    vertical-align: -2px;
+    margin-right: 6px;
+}
+
+/* ── Skeleton loading ─────────────────────────────────────── */
+
+.feed-skel-card {
+    padding: 20px 22px;
+}
+
+.feed-skel-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.feed-skel-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.feed-skel {
+    display: block;
+    border-radius: 7px;
+    background: linear-gradient(90deg, #f0ede7 25%, #f7f5f1 50%, #f0ede7 75%);
+    background-size: 200% 100%;
+    animation: feed-shimmer 1.25s infinite;
+}
+
+.feed-skel--avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.feed-skel--line {
+    height: 10px;
+}
+
+.feed-skel--short {
+    width: 60%;
+}
+
+@keyframes feed-shimmer {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes feed-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Feed end / loader ───────────────────────────────────── */
+
+.feed-end {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px 0 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.feed-end svg {
+    opacity: 0.35;
+}
+
+.feed-end p {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.feed-loader {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
+}
+
+.feed-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--border-light);
+    border-top-color: var(--iccr-saffron);
+    border-radius: 50%;
+    animation: feed-spin 0.7s linear infinite;
+}
+
+/* ── Feed card entrance animation ─────────────────────────── */
+
+.feed-card {
+    animation: feed-card-in 0.35s var(--ease) both;
+}
+
+@keyframes feed-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ── Shared post badge ────────────────────────────────────── */
+
+.feed-share-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 22px 4px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.feed-share-header svg {
+    width: 14px;
+    height: 14px;
+    color: var(--iccr-saffron);
+    flex-shrink: 0;
+}
+
+/* Embedded original post inside a share */
+.feed-shared-inner {
+    margin: 4px 22px 0;
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bg-card-hover);
+}
+
+.feed-shared-inner .card-header {
+    padding: 14px 16px 0;
+}
+
+.feed-shared-inner .card-body {
+    padding: 10px 16px 14px;
+}
+
+.feed-shared-inner .post-author {
+    font-size: 13.5px;
+}
+
+.feed-shared-inner .post-text {
+    font-size: 13.5px;
+}
+
+.feed-shared-inner .photo-grid,
+.feed-shared-inner .video-wrap {
+    margin: 10px 16px 0;
+    border-radius: var(--r-sm);
+}
+
+/* ── Media grids ──────────────────────────────────────────── */
+
+.photo-grid {
+    margin-top: 12px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    display: grid;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.photo-grid--1 {
+    grid-template-columns: 1fr;
+}
+.photo-grid--2 {
+    grid-template-columns: 1fr 1fr;
+}
+.photo-grid--3 {
+    grid-template-columns: 1fr 1fr;
+}
+.photo-grid--3 .photo-tile:first-child {
+    grid-row: span 2;
+}
+.photo-grid--4 {
+    grid-template-columns: 1fr 1fr;
+}
+.photo-grid--many {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.photo-tile {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-input);
+    aspect-ratio: 1 / 1;
+}
+
+.photo-grid--1 .photo-tile {
+    aspect-ratio: 16 / 10;
+}
+
+.photo-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s var(--ease);
+    display: block;
+}
+
+.feed-card:hover .photo-tile img {
+    transform: scale(1.025);
+}
+
+.photo-tile__more {
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    backdrop-filter: blur(2px);
+}
+
+/* ── Video ────────────────────────────────────────────────── */
+
+.video-wrap {
+    margin-top: 12px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: #000;
+    position: relative;
+}
+
+.video-wrap video {
+    width: 100%;
+    max-height: 480px;
+    display: block;
+    background: #000;
+}
+
+/* ── Card actions — counts row above buttons ─────────────── */
+
+.card-reactions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 22px 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.card-reactions__likes {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.card-reactions__likes .like-icon-stack {
+    display: flex;
+    align-items: center;
+}
+
+.card-reactions__likes .like-icon-stack svg {
+    width: 16px;
+    height: 16px;
+    color: var(--iccr-saffron);
+    fill: var(--iccr-saffron);
+    stroke: #fff;
+    stroke-width: 1.5;
+}
+
+.card-reactions__right {
+    display: flex;
+    gap: 12px;
+}
+
+.card-reactions__right span {
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.card-reactions__right span:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+/* ── Action buttons ───────────────────────────────────────── */
+
+.card-actions {
+    margin-top: 6px;
+}
+
+.action-btn {
+    flex: 1;
+    justify-content: center;
+}
+
+.action-btn.is-active {
+    color: var(--iccr-saffron);
+}
+
+.action-btn.is-active svg {
+    fill: var(--iccr-saffron);
+    stroke: var(--iccr-saffron);
+}
+
+.save-btn.is-active svg {
+    fill: var(--iccr-saffron);
+    stroke: var(--iccr-saffron);
+}
+
+/* Like pop animation */
+.like-btn.is-popping svg {
+    animation: feed-like-pop 0.35s var(--ease);
+}
+
+@keyframes feed-like-pop {
+    0% {
+        transform: scale(1);
+    }
+    35% {
+        transform: scale(1.35);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ── Comments section ─────────────────────────────────────── */
+
+.comments-section {
+    border-top: 1px solid var(--border-light);
+    padding: 14px 22px 16px;
+}
+
+.comment-composer {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.comment-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    background: var(--bg-input);
+    border-radius: 18px;
+    padding: 8px 8px 8px 16px;
+    border: 1.5px solid transparent;
+    transition: border-color 0.18s var(--ease);
+}
+
+.comment-input-wrap:focus-within {
+    border-color: var(--iccr-saffron);
+    background: #fff;
+}
+
+.comment-input {
+    flex: 1;
+    border: none;
+    background: none;
+    outline: none;
+    resize: none;
+    font: inherit;
+    font-size: 13.5px;
+    color: var(--text-primary);
+    max-height: 80px;
+    line-height: 1.5;
+    padding: 4px 0;
+}
+
+.comment-input::placeholder {
+    color: var(--text-muted);
+}
+
+.comment-send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--iccr-saffron);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: none;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        transform 0.1s,
+        opacity 0.15s;
+}
+
+.comment-send-btn:hover {
+    background: var(--iccr-saffron-h);
+}
+.comment-send-btn:active {
+    transform: scale(0.94);
+}
+.comment-send-btn[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.comment-send-btn svg {
+    width: 14px;
+    height: 14px;
+    margin-left: 1px;
+}
+
+/* Comment list */
+.comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.comment-item {
+    display: flex;
+    gap: 10px;
+}
+
+.comment-body-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.comment-bubble {
+    background: var(--bg-input);
+    border-radius: var(--r-md);
+    padding: 9px 14px;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.comment-author {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    display: block;
+}
+
+.comment-text {
+    font-size: 13.5px;
+    color: var(--text-primary);
+    line-height: 1.55;
+    word-break: break-word;
+}
+
+.comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 4px;
+    padding-left: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.comment-meta button {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.comment-meta button:hover,
+.comment-meta button.is-active {
+    color: var(--iccr-saffron);
+}
+
+.comment-meta .comment-like-count {
+    font-weight: 700;
+}
+
+/* Replies */
+.reply-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+    padding-left: 38px;
+    border-left: 2px solid var(--border-light);
+}
+
+.reply-item {
+    display: flex;
+    gap: 9px;
+}
+
+.reply-item .avatar {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    font-size: 11px;
+}
+.reply-item .comment-bubble {
+    padding: 7px 12px;
+}
+.reply-item .comment-author {
+    font-size: 12.5px;
+}
+.reply-item .comment-text {
+    font-size: 12.5px;
+}
+
+/* Reply input (shown when "Reply" clicked) */
+.reply-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    padding-left: 38px;
+}
+
+.reply-composer .comment-input-wrap {
+    border-radius: 16px;
+    padding: 6px 6px 6px 14px;
+}
+.reply-composer .comment-send-btn {
+    width: 28px;
+    height: 28px;
+}
+.reply-composer .comment-send-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Load more comments */
+.comments-load-more {
+    display: block;
+    margin: 10px 0 0;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: color 0.15s;
+}
+
+.comments-load-more:hover {
+    color: var(--iccr-saffron);
+}
+
+.comments-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 16px 0 4px;
+}
+
+.comments-loader {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.comments-loader .feed-spinner {
+    width: 20px;
+    height: 20px;
+    border-width: 2.5px;
+}
+
+/* ── Card menu dropdown ───────────────────────────────────── */
+
+.card-menu-wrap {
+    position: relative;
+}
+
+.card-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
+    min-width: 160px;
+    z-index: 20;
+    overflow: hidden;
+    animation: feed-dropdown-in 0.15s var(--ease);
+}
+
+@keyframes feed-dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.card-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.card-menu-item:hover {
+    background: var(--bg-input);
+}
+
+.card-menu-item--danger {
+    color: #d33;
+}
+
+.card-menu-item svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.card-menu-item--danger svg {
+    color: #d33;
+}
+
+/* ── Share modal ──────────────────────────────────────────── */
+
+.feed-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: feed-fade-in 0.15s ease;
+}
+
+@keyframes feed-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.feed-modal {
+    background: var(--bg-card);
+    border-radius: var(--r-lg);
+    width: min(520px, 100%);
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    animation: feed-modal-in 0.2s var(--ease);
+}
+
+@keyframes feed-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.feed-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.feed-modal__header h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.feed-modal__close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.feed-modal__close:hover {
+    background: var(--border-medium);
+    color: var(--text-primary);
+}
+
+.feed-modal__body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.feed-modal__body .composer-textarea {
+    margin-top: 12px;
+    max-height: 100px;
+}
+
+.feed-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-light);
+}
+
+.btn-secondary {
+    padding: 0 22px;
+    height: 42px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: var(--r-xl);
+    border: none;
+    cursor: pointer;
+    transition: background 0.18s var(--ease);
+}
+
+.btn-secondary:hover {
+    background: var(--border-medium);
+}
+
+.share-preview-wrap {
+    margin-top: 14px;
+}
+
+/* Embedded preview reuses .feed-shared-inner but with no outer margin */
+.share-preview-wrap .feed-shared-inner {
+    margin: 0;
+}
+
+/* ── Toasts ───────────────────────────────────────────────── */
+
+.feed-toast-region {
+    position: fixed;
+    z-index: 1300;
+    right: 22px;
+    bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(340px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.feed-toast {
+    padding: 11px 14px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: #243138;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.feed-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.feed-toast--success {
+    background: #16803c;
+}
+.feed-toast--error {
+    background: #c0362c;
+}
+
+/* ── Lightbox ─────────────────────────────────────────────── */
+
+.feed-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 1400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: feed-fade-in 0.15s ease;
+}
+
+.feed-lightbox__content {
+    max-width: min(94vw, 1100px);
+    max-height: 92vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feed-lightbox__content img,
+.feed-lightbox__content video {
+    max-width: 100%;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.feed-lightbox__close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+    z-index: 2;
+}
+
+.feed-lightbox__close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.feed-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+    z-index: 2;
+}
+
+.feed-lightbox__nav:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.feed-lightbox__nav--prev {
+    left: 18px;
+}
+.feed-lightbox__nav--next {
+    right: 18px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .photo-grid--many {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .reply-list,
+    .reply-composer {
+        padding-left: 24px;
+    }
+    .feed-modal {
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+        align-self: flex-end;
+        max-height: 85vh;
+    }
+    .feed-modal-backdrop {
+        align-items: flex-end;
+        padding: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-actions .action-btn .action-count {
+        display: none;
+    }
+    .card-actions .action-btn.like-btn .action-count,
+    .card-actions .action-btn.comment-btn .action-count {
+        display: inline;
+    }
+    .comments-section,
+    .card-reactions,
+    .feed-share-header {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    .feed-shared-inner {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+}
+
+/* ── Repost / Share-link action buttons ──────────────────── */
+
+.repost-btn svg,
+.share-link-btn svg {
+    flex-shrink: 0;
+}
+
+.repost-btn:hover svg {
+    color: var(--iccr-saffron);
+}
+
+.share-link-btn:hover svg {
+    color: var(--iccr-saffron);
+}
+
+/* ── Navigable post header/body (click to open post page) ─── */
+
+[data-navigable] {
+    cursor: pointer;
+}
+
+.card-body[data-navigable] .post-text,
+.card-body[data-navigable] {
+    cursor: pointer;
+}
+
+/* Make sure interactive children don't inherit the pointer-as-link feel oddly */
+.card-body[data-navigable] .photo-grid,
+.card-body[data-navigable] .video-wrap {
+    cursor: zoom-in;
+}
+
+/* ── Profile feed tabs (My Posts / Saved Posts) ──────────── */
+
+.profile-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.profile-feed-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 56px 20px;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-light);
+}
+
+.profile-feed-empty svg {
+    opacity: 0.3;
+}
+
+.profile-feed-empty p {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.profile-feed-empty span {
+    font-size: 13px;
+    max-width: 320px;
+    line-height: 1.6;
+}
+
+/* Reuse .feed-end styling but tighten top padding inside profile tabs */
+.profile-tab-panel .feed-end {
+    padding-top: 16px;
+}
+
+/* =============================================================
+   FEED.CSS ADDITIONS — Repost/Share buttons, Profile feed tabs
+   Append to public/css/community/feed.css
+============================================================= */
+
+/* ── Repost / Share-link action buttons ──────────────────── */
+
+.repost-btn svg,
+.share-link-btn svg {
+    flex-shrink: 0;
+}
+
+.repost-btn:hover svg {
+    color: var(--iccr-saffron);
+}
+
+.share-link-btn:hover svg {
+    color: var(--iccr-saffron);
+}
+
+/* ── Navigable post header/body (click to open post page) ─── */
+
+[data-navigable] {
+    cursor: pointer;
+}
+
+.card-body[data-navigable] .post-text,
+.card-body[data-navigable] {
+    cursor: pointer;
+}
+
+/* Make sure interactive children don't inherit the pointer-as-link feel oddly */
+.card-body[data-navigable] .photo-grid,
+.card-body[data-navigable] .video-wrap {
+    cursor: zoom-in;
+}
+
+.feed-end[hidden],
+.feed-loader[hidden],
+.feed-skeleton[hidden],
+.profile-feed-empty[hidden],
+.card-reactions[hidden],
+.card-reactions__likes[hidden],
+.composer-media-preview[hidden],
+.comments-section[hidden],
+.reply-list[hidden],
+.reply-composer[hidden],
+.card-menu-dropdown[hidden] {
+    display: none !important;
+}
+
+.profile-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.profile-feed-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 56px 20px;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-light);
+}
+
+.profile-feed-empty[hidden] {
+    display: none;
+}
+
+.profile-feed-empty svg {
+    opacity: 0.3;
+}
+
+.profile-feed-empty p {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.profile-feed-empty span {
+    font-size: 13px;
+    max-width: 320px;
+    line-height: 1.6;
+}
+
+/* Reuse .feed-end styling but tighten top padding inside profile tabs */
+.profile-tab-panel .feed-end {
+    padding-top: 16px;
+}
+
+.fv-player {
+    position: relative;
+    background: #000;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.fv-video {
+    width: 100%;
+    max-height: 600px;
+    display: block;
+    background: #000;
+    cursor: pointer;
+}
+
+/* Center play button overlay — shown when paused */
+.fv-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.fv-overlay.is-hidden {
+    opacity: 0;
+}
+
+.fv-play-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition:
+        background 0.15s,
+        transform 0.15s;
+    backdrop-filter: blur(2px);
+}
+
+.fv-play-btn:hover {
+    background: rgba(0, 0, 0, 0.65);
+    transform: scale(1.06);
+}
+
+.fv-play-btn svg {
+    width: 28px;
+    height: 28px;
+    margin-left: 2px;
+}
+
+.fv-player.is-playing .fv-play-btn {
+    opacity: 0;
+}
+
+/* Bottom control bar */
+.fv-controls {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.fv-player:hover .fv-controls,
+.fv-player:focus-within .fv-controls {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Always show controls on touch devices (no hover) */
+@media (hover: none) {
+    .fv-controls {
+        opacity: 1;
+        transform: none;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
+    }
+}
+
+.fv-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: none;
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.fv-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.fv-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.fv-btn--play svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Progress bar */
+.fv-progress {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.fv-progress-fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: var(--iccr-saffron);
+    border-radius: 999px;
+    transition: width 0.1s linear;
+}
+
+/* Increase hit area for the progress bar without growing visually */
+.fv-progress::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    bottom: -8px;
+    left: 0;
+    right: 0;
+}
+
+.fv-time {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fff;
+    min-width: 38px;
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.fv-icon-play[hidden],
+.fv-icon-pause[hidden],
+.fv-icon-mute-on[hidden],
+.fv-icon-mute-off[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 480px) {
+    .fv-video {
+        max-height: 420px;
+    }
+
+    .fv-play-btn {
+        width: 52px;
+        height: 52px;
+    }
+
+    .fv-play-btn svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .fv-controls {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+
+    .fv-time {
+        font-size: 11px;
+        min-width: 34px;
+    }
+}

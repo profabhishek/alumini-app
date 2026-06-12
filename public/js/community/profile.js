@@ -6,8 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabs = document.querySelectorAll(".profile-tab");
     const panels = document.querySelectorAll(".profile-tab-panel");
 
-    // Check if returning from password update
-
     tabs.forEach((tab) => {
         tab.addEventListener("click", () => {
             activateTab(tab.dataset.tab);
@@ -25,7 +23,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (targetTab) targetTab.classList.add("active");
         if (targetPanel) targetPanel.classList.add("active");
+
+        // Lazy-load feed tabs on first activation
+        if (name === "posts" && typeof window.initMyPosts === "function") {
+            window.initMyPosts();
+        }
+        if (name === "saved" && typeof window.initSavedFeed === "function") {
+            window.initSavedFeed();
+        }
     }
+
+    // Expose for the session('tab') redirect hook in the Blade view
+    window.activateTab = activateTab;
 
     /* =====================================================
        BIO CHARACTER COUNT

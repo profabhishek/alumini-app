@@ -5,6 +5,8 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/community/profile.css') }}">
+<link rel="stylesheet" href="{{ asset('css/community/home.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('css/community/feed.css') }}?v=4">
 @endpush
 
 @section('content')
@@ -77,6 +79,14 @@
         <button class="profile-tab active" data-tab="info">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             Personal Info
+        </button>
+        <button class="profile-tab" data-tab="posts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            My Posts
+        </button>
+        <button class="profile-tab" data-tab="saved">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+            Saved Posts
         </button>
         <button class="profile-tab" data-tab="social">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -205,6 +215,72 @@
             </div>
 
         </form>
+    </div>
+
+    {{-- Tab: My Posts --}}
+    <div class="profile-tab-panel" id="tab-posts">
+        <div class="feed-list profile-feed-list" id="myPostsList">
+            <div class="feed-skeleton" id="myPostsSkeleton">
+                @for ($i = 0; $i < 2; $i++)
+                    <div class="feed-skel-card card">
+                        <div class="feed-skel-header">
+                            <span class="feed-skel feed-skel--avatar"></span>
+                            <span class="feed-skel-copy">
+                                <span class="feed-skel feed-skel--line" style="width:140px"></span>
+                                <span class="feed-skel feed-skel--line feed-skel--short" style="width:90px"></span>
+                            </span>
+                        </div>
+                        <span class="feed-skel feed-skel--line" style="width:100%;height:14px;margin-top:14px"></span>
+                        <span class="feed-skel feed-skel--line" style="width:80%;height:14px;margin-top:8px"></span>
+                    </div>
+                @endfor
+            </div>
+            <div class="profile-feed-empty" id="myPostsEmpty" hidden>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <p>You haven't posted anything yet.</p>
+                <span>Share an update, photo, or video on the home feed to see it here.</span>
+            </div>
+        </div>
+        <div class="feed-end" id="myPostsEnd" hidden>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l4-4 4 4M12 16V8"/></svg>
+            <p>You're all caught up</p>
+        </div>
+        <div class="feed-loader" id="myPostsLoader" hidden>
+            <span class="feed-spinner"></span>
+        </div>
+    </div>
+
+    {{-- Tab: Saved Posts --}}
+    <div class="profile-tab-panel" id="tab-saved">
+        <div class="feed-list profile-feed-list" id="savedFeedList">
+            <div class="feed-skeleton" id="savedFeedSkeleton">
+                @for ($i = 0; $i < 2; $i++)
+                    <div class="feed-skel-card card">
+                        <div class="feed-skel-header">
+                            <span class="feed-skel feed-skel--avatar"></span>
+                            <span class="feed-skel-copy">
+                                <span class="feed-skel feed-skel--line" style="width:140px"></span>
+                                <span class="feed-skel feed-skel--line feed-skel--short" style="width:90px"></span>
+                            </span>
+                        </div>
+                        <span class="feed-skel feed-skel--line" style="width:100%;height:14px;margin-top:14px"></span>
+                        <span class="feed-skel feed-skel--line" style="width:80%;height:14px;margin-top:8px"></span>
+                    </div>
+                @endfor
+            </div>
+            <div class="profile-feed-empty" id="savedFeedEmpty" hidden>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                <p>No saved posts yet.</p>
+                <span>Tap the Save icon on any post to keep it here for later.</span>
+            </div>
+        </div>
+        <div class="feed-end" id="savedFeedEnd" hidden>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l4-4 4 4M12 16V8"/></svg>
+            <p>You're all caught up</p>
+        </div>
+        <div class="feed-loader" id="savedFeedLoader" hidden>
+            <span class="feed-spinner"></span>
+        </div>
     </div>
 
     {{-- Tab: Social & Privacy --}}
@@ -417,13 +493,90 @@
     </div>
 </div>
 
+{{-- ============================================================
+     REPOST MODAL (shared by My Posts and Saved Posts tabs)
+============================================================ --}}
+<div class="feed-modal-backdrop" id="shareModal" hidden>
+    <div class="feed-modal">
+        <div class="feed-modal__header">
+            <h3>Repost</h3>
+            <button class="feed-modal__close" id="shareModalClose" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="feed-modal__body">
+            <div class="composer-row">
+                <div class="avatar avatar--md">
+                    @if(session('alumni_avatar'))
+                        <img src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
+                    @else
+                        <span class="avatar-initials">{{ strtoupper(substr(session('alumni_name', 'A'), 0, 1)) }}</span>
+                    @endif
+                </div>
+                <span class="composer-name">{{ session('alumni_name', 'Alumni') }}</span>
+            </div>
+            <textarea class="composer-textarea" id="shareCaption" placeholder="Add your thoughts..." rows="2" maxlength="2000"></textarea>
+            <div class="share-preview-wrap" id="sharePreviewWrap"></div>
+        </div>
+        <div class="feed-modal__footer">
+            <button class="btn-secondary" id="shareCancelBtn" type="button">Cancel</button>
+            <button class="btn-post" id="shareConfirmBtn" type="button">Repost Now</button>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================
+     LIGHTBOX (shared by My Posts and Saved Posts tabs)
+============================================================ --}}
+<div class="feed-lightbox" id="feedLightbox" hidden>
+    <button class="feed-lightbox__close" id="lightboxClose" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <button class="feed-lightbox__nav feed-lightbox__nav--prev" id="lightboxPrev" type="button" hidden>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="feed-lightbox__content" id="lightboxContent"></div>
+    <button class="feed-lightbox__nav feed-lightbox__nav--next" id="lightboxNext" type="button" hidden>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+</div>
+
+<div class="feed-toast-region" id="feedToastRegion"></div>
+
 @endsection
 
 @push('scripts')
 {{-- Cropper.js from CDN --}}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-<script src="{{ asset('js/community/profile.js') }}"></script>
+
+<script>
+window.FeedConfig = {!! json_encode([
+    'csrfToken'     => csrf_token(),
+    'currentUserId' => (int) session('alumni_id'),
+    'currentUserName' => session('alumni_name', 'Alumni'),
+    'currentUserAvatar' => session('alumni_avatar') ? asset('storage/' . session('alumni_avatar')) : null,
+    'currentUserInitials' => strtoupper(substr(session('alumni_name', 'A'), 0, 1)),
+    'routes' => [
+        'feed'           => route('posts.feed'),
+        'store'          => route('posts.store'),
+        'destroy'        => url('/posts/__ID__'),
+        'like'           => url('/posts/__ID__/like'),
+        'save'           => url('/posts/__ID__/save'),
+        'share'          => url('/posts/__ID__/share'),
+        'comments'       => url('/posts/__ID__/comments'),
+        'commentDestroy' => url('/posts/__POST_ID__/comments/__ID__'),
+        'commentLike'    => url('/comments/__ID__/like'),
+        'postShow'       => url('/posts/__ID__'),
+        'saved'          => route('posts.saved'),
+        'myPosts'        => route('posts.my'),
+    ],
+]) !!};
+</script>
+<script src="{{ asset('js/community/feed-core.js') }}?v=4"></script>
+<script src="{{ asset('js/community/my-posts.js') }}?v=4"></script>
+<script src="{{ asset('js/community/saved-feed.js') }}?v=4"></script>
+<script src="{{ asset('js/community/profile.js') }}?v=4"></script>
 
 @if(session('tab'))
 <script>

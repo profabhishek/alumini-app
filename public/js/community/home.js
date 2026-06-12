@@ -24,28 +24,6 @@
     revealEls.forEach((el) => observer.observe(el));
 
     /* ----------------------------------------------------------
-       LIKE TOGGLE
-    ---------------------------------------------------------- */
-    document.querySelectorAll(".like-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-            const liked = this.dataset.liked === "true";
-            const countEl = this.querySelector(".action-count");
-            const count = parseInt(countEl.textContent) || 0;
-
-            this.dataset.liked = liked ? "false" : "true";
-            countEl.textContent = liked ? count - 1 : count + 1;
-
-            this.classList.toggle("liked", !liked);
-
-            /* micro-bounce */
-            this.style.transform = "scale(1.25)";
-            setTimeout(() => {
-                this.style.transform = "";
-            }, 180);
-        });
-    });
-
-    /* ----------------------------------------------------------
        MOBILE SIDEBAR TOGGLE
     ---------------------------------------------------------- */
     const sidebarToggle = document.getElementById("sidebarToggle");
@@ -81,34 +59,6 @@
 
         document.addEventListener("click", () => {
             userMenu.classList.remove("open");
-        });
-    }
-
-    /* ----------------------------------------------------------
-       POST BUTTON (frontend-only stub)
-    ---------------------------------------------------------- */
-    const postBtn = document.getElementById("postBtn");
-    const postTextarea = document.getElementById("postTextarea");
-
-    if (postBtn && postTextarea) {
-        postBtn.addEventListener("click", () => {
-            const text = postTextarea.value.trim();
-            if (!text) {
-                postTextarea.focus();
-                postTextarea.style.borderColor = "#e74c3c";
-                setTimeout(() => {
-                    postTextarea.style.borderColor = "";
-                }, 1200);
-                return;
-            }
-            /* Flash success state */
-            postBtn.textContent = "Posted!";
-            postBtn.style.background = "#27ae60";
-            postTextarea.value = "";
-            setTimeout(() => {
-                postBtn.textContent = "Post Now";
-                postBtn.style.background = "";
-            }, 2000);
         });
     }
 

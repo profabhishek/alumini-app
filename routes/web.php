@@ -17,6 +17,7 @@ use App\Http\Controllers\Community\AlumniDirectoryController;
 use App\Http\Controllers\Community\AlumniProfileController;
 use App\Http\Controllers\Community\ChatController;
 use App\Http\Controllers\Admin\AlumniDataController;
+use App\Http\Controllers\Community\PostController;
 /*
 |--------------------------------------------------------------------------
 | Public Website
@@ -368,6 +369,56 @@ Route::middleware('alumni.auth')->group(function () {
     Route::post('/admin/alumni-data/import',  [AlumniDataController::class, 'import'])->name('admin.alumni-data.import');
     Route::delete('/admin/alumni-data',       [AlumniDataController::class, 'clearAll'])->name('admin.alumni-data.clear');
     Route::delete('/admin/alumni-data/{id}',  [AlumniDataController::class, 'destroy'])->name('admin.alumni-data.destroy');
+
+
+    Route::get('/feed', [PostController::class, 'feed'])
+    ->name('posts.feed');
+ 
+    // Create a post (text / images / video)
+    Route::post('/posts', [PostController::class, 'store'])
+        ->name('posts.store');
+    
+    // Delete a post
+    Route::delete('/posts/{id}', [PostController::class, 'destroy'])
+        ->name('posts.destroy');
+    
+    // Like / unlike a post
+    Route::post('/posts/{id}/like', [PostController::class, 'toggleLike'])
+        ->name('posts.like');
+    
+    // Save / unsave a post
+    Route::post('/posts/{id}/save', [PostController::class, 'toggleSave'])
+        ->name('posts.save');
+    
+    // Saved posts (profile tab)
+    Route::get('/profile/saved-posts', [PostController::class, 'savedPosts'])
+        ->name('posts.saved');
+
+    Route::get('/profile/my-posts', [PostController::class, 'myPosts'])
+        ->name('posts.my');
+    
+    // Share a post
+    Route::post('/posts/{id}/share', [PostController::class, 'share'])
+        ->name('posts.share');
+    
+    // Comments — list + create
+    Route::get('/posts/{id}/comments', [PostController::class, 'comments'])
+        ->name('posts.comments');
+    
+    Route::post('/posts/{id}/comments', [PostController::class, 'storeComment'])
+        ->name('posts.comments.store');
+    
+    // Delete a comment / reply
+    Route::delete('/posts/{postId}/comments/{commentId}', [PostController::class, 'destroyComment'])
+        ->name('posts.comments.destroy');
+    
+    // Like / unlike a comment or reply
+    Route::post('/comments/{id}/like', [PostController::class, 'toggleCommentLike'])
+        ->name('comments.like');
+
+    Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
+
+    
 });
 
 
