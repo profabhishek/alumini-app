@@ -320,6 +320,15 @@
         .ap-hero__top { flex-direction: column; align-items: flex-start; }
         .ap-hero__actions { padding-top: 0; }
     }
+
+    .ap-privacy-note {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: #E8640C;
+    margin-left: 4px;
+}
 </style>
 @endpush
 
@@ -344,7 +353,7 @@
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span>This is your public profile. <a href="#">Update your information</a> to keep it accurate.</span>
+            <span>This is your public profile. <a href="/profile">Update your information</a> to keep it accurate.</span>
         </div>
     @endif
 
@@ -357,8 +366,8 @@
 
                 {{-- Avatar --}}
                 <div class="ap-avatar">
-                    @if(!empty($alumniUser->attachment))
-                        <img src="{{ asset('storage/' . $alumniUser->attachment) }}"
+                    @if(!empty($alumniUser->photo))
+                        <img src="{{ asset('storage/' . $alumniUser->photo) }}"
                              alt="{{ $alumniUser->full_name }}"
                              loading="lazy">
                     @else
@@ -368,13 +377,15 @@
 
                 {{-- Action buttons --}}
                 <div class="ap-hero__actions">
-                    <button class="ap-btn ap-btn--dm" disabled title="Messaging coming soon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                        </svg>
-                        Message
-                    </button>
+                    @unless($isOwnProfile)
+                        <button class="ap-btn ap-btn--primary" onclick="startDirectChat({{ $alumniUser->id }}, this)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                            </svg>
+                            Message
+                        </button>
+                    @endunless
                 </div>
 
             </div>
@@ -541,10 +552,20 @@
                     </p>
                 </div>
 
-                {{-- Only show email/phone on own profile or admin --}}
-                @if($isOwnProfile || in_array(session('alumni_role'), ['admin', 'super_admin']))
+                @php
+                    $canSeePrivate = $isOwnProfile || in_array(session('alumni_role'), ['admin', 'super_admin']);
+                    $showEmail = $canSeePrivate || ! $alumniUser->hide_email;
+                    $showPhone = $canSeePrivate || ! $alumniUser->hide_phone;
+                @endphp
+
+                @if($showEmail)
                     <div class="ap-field">
-                        <p class="ap-field__label">Email</p>
+                        <p class="ap-field__label">
+                            Email
+                            @if($isOwnProfile && $alumniUser->hide_email)
+                                <span class="ap-privacy-note">— hidden from other alumni</span>
+                            @endif
+                        </p>
                         <p class="ap-field__value">
                             <a href="mailto:{{ $alumniUser->email }}"
                                style="color:#E8640C; text-decoration:none; font-weight:500;">
@@ -552,9 +573,16 @@
                             </a>
                         </p>
                     </div>
+                @endif
 
+                @if($showPhone)
                     <div class="ap-field">
-                        <p class="ap-field__label">Phone</p>
+                        <p class="ap-field__label">
+                            Phone
+                            @if($isOwnProfile && $alumniUser->hide_phone)
+                                <span class="ap-privacy-note">— hidden from other alumni</span>
+                            @endif
+                        </p>
                         <p class="ap-field__value">
                             @if(!empty($alumniUser->phone))
                                 {{ $alumniUser->phone }}
@@ -601,3 +629,7 @@
 
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/community/start-chat.js') }}"></script>
+@endpush

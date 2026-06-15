@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Mail\EventRegistrationConfirmationMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
@@ -46,6 +49,38 @@ class EventController extends Controller
         }
 
         return view('events.index', compact('events', 'registeredEventIds'));
+    }
+
+    public function show(Event $event)
+    {
+        $alumniId = session('alumni_id');
+        $role     = session('alumni_role');
+    
+        $isOwner = $alumniId && $alumniId == $event->created_by;
+        $isAdmin = in_array($role, ['admin', 'super_admin']);
+    
+        // Only published events are publicly viewable.
+        // Owners/admins can preview pending/draft/rejected events.
+        if ($event->status !== 'published' && !$isOwner && !$isAdmin) {
+            abort(404);
+        }
+    
+        $alreadyRegistered = false;
+    
+        if ($alumniId) {
+            $alreadyRegistered = \App\Models\EventRegistration::where('event_id', $event->id)
+                ->where('user_id', $alumniId)
+                ->exists();
+        }
+    
+        $relatedEvents = Event::where('status', 'published')
+            ->where('id', '!=', $event->id)
+            ->whereDate('start_date', '>=', now()->toDateString())
+            ->orderBy('start_date')
+            ->take(3)
+            ->get();
+    
+        return view('events.show', compact('event', 'alreadyRegistered', 'relatedEvents'));
     }
 
     // ── Create form ───────────────────────────────────────────────────────
@@ -272,11 +307,18 @@ class EventController extends Controller
             }
         }
 
-        \App\Models\EventRegistration::create([
+        $registration = \App\Models\EventRegistration::create([
             ...$validated,
             'event_id' => $event->id,
             'user_id'  => session('alumni_id'),
         ]);
+
+        try {
+            Mail::to($registration->email)
+                ->send(new EventRegistrationConfirmationMail($event, $registration));
+        } catch (\Throwable $e) {
+            Log::error('Event registration confirmation email failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success'   => true,

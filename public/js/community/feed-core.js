@@ -1,21 +1,3 @@
-/**
- * FEED-CORE.JS
- * Shared rendering + interaction logic for all feed surfaces:
- *   - Home feed (feed.js)
- *   - Saved Posts tab (saved-feed.js)
- *   - My Posts tab (my-posts.js)
- *   - Single post page (post-page.js)
- *
- * Exposes window.FeedCore with pure markup renderers and a factory
- * `FeedCore.createFeedController(options)` that wires up interactions
- * (like, save, share/repost, comments, lightbox, delete, navigate-to-post)
- * for a given container element.
- *
- * Each consuming script is responsible for:
- *   - Providing its own container + state elements (skeleton/end/loader)
- *   - Calling controller.mountPost() / appendPosts() / etc.
- *   - Booting (infinite scroll / initial load)
- */
 (() => {
     "use strict";
 
@@ -314,10 +296,16 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                     <span class="action-count">Comment</span>
                 </button>
+                ${
+                    !post.group_id
+                        ? `
                 <button class="action-btn repost-btn" data-action="open-repost" title="Repost to your feed">
                     ${repostIconSvg()}
                     <span class="action-count">Repost</span>
-                </button>
+                </button>`
+                        : ""
+                }
+                
                 <button class="action-btn share-link-btn" data-action="share-link" title="Share link">
                     ${sendIconSvg()}
                     <span class="action-count">Share</span>

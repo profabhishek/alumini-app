@@ -260,6 +260,9 @@
 window.ChatConfig = {!! json_encode([
     'csrfToken' => csrf_token(),
     'currentUserId' => (int) session('alumni_id'),
+    'openConversationId' => request()->query('conversation')
+        ? (int) request()->query('conversation')
+        : null,
     'routes' => [
         'conversations' => route('chat.conversations'),
         'pollConversations' => route('chat.poll-conversations'),

@@ -11,6 +11,7 @@ class AlumniSession extends Model
 
     protected $fillable = [
         'alumni_user_id',
+        'session_id',
         'ip_address',
         'user_agent',
         'device',

@@ -10,20 +10,31 @@
                 </div>
             </div>
             <div>
-                <div class="nl-form">
+                <form class="nl-form" id="newsletterForm" novalidate>
+                    @csrf
+
+                    {{-- Honeypot — hidden from real users, bots tend to fill every field --}}
+                    <div style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+                        <label for="nl_website">Leave this field empty</label>
+                        <input type="text" id="nl_website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+
                     <input
-                        id="1"
+                        id="nl_email"
                         class="nl-input"
                         type="email"
+                        name="email"
                         placeholder="Enter your email address"
+                        required
                     />
-                    <button class="nl-btn">
-                        Subscribe
+                    <button class="nl-btn" id="nlSubmitBtn" type="submit">
+                        <span id="nlBtnText">Subscribe</span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     </button>
-                </div>
+                </form>
+                <div id="nlMessage" class="nl-message" style="display:none;"></div>
                 <div style="margin-top: 10px; font-size: 11.5px; color: black">
-                    No spam. Unsubscribe anytime.
+                    No spam. <a href="{{ route('newsletter.unsubscribe.form') }}" style="color: inherit; text-decoration: underline;">Unsubscribe anytime.</a>
                 </div>
             </div>
         </div>
@@ -34,21 +45,11 @@
             <div>
                 <a href="/" class="footer-brand-logo">
                     <div class="logo-mark">
-                        <!-- <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="17" stroke="#F4A825" stroke-width="1.8" fill="none" opacity="0.3"/>
-            <ellipse cx="20" cy="20" rx="17" ry="7.5" stroke="#F4A825" stroke-width="1.4" fill="none" opacity="0.55"/>
-            <circle cx="20" cy="20" r="3" fill="#F4A825"/>
-            <line x1="3" y1="20" x2="37" y2="20" stroke="#F4A825" stroke-width="1" opacity="0.35"/>
-          </svg> -->
                         <img
                             src="https://iccr.hialumni.com/storage/uploads/Setting/7881769241382.png"
                             alt="iccr"
                         />
                     </div>
-                    <!-- <div>
-          <div class="logo-primary">ICCR</div>
-          <div class="logo-sub">Alumni Network</div>
-        </div> -->
                 </a>
                 <p class="brand-desc">ICCR Alumni refers to the community of former scholarship students of the Indian Council for Cultural Relations. These alumni remain connected through events, mentorship, and collaborations — fostering academic progress and professional networks worldwide.</p>
                 <div class="social-row">
@@ -162,3 +163,67 @@
         </div>
     </div>
 </footer>
+
+@push('scripts')
+<script>
+(function () {
+    const form     = document.getElementById('newsletterForm');
+    if (!form) return;
+
+    const emailInput = document.getElementById('nl_email');
+    const submitBtn  = document.getElementById('nlSubmitBtn');
+    const btnText    = document.getElementById('nlBtnText');
+    const msgBox     = document.getElementById('nlMessage');
+
+    function showMessage(text, type) {
+        msgBox.textContent = text;
+        msgBox.className   = 'nl-message nl-message--' + type;
+        msgBox.style.display = 'block';
+    }
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const email = emailInput.value.trim();
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showMessage('Please enter a valid email address.', 'error');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        btnText.textContent = 'Subscribing...';
+
+        try {
+            const response = await fetch('{{ route('newsletter.subscribe') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: new FormData(form),
+            });
+
+            if (response.status === 429) {
+                showMessage("You're submitting too quickly. Please wait a moment and try again.", 'error');
+            } else {
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    form.reset();
+                } else {
+                    const fieldError = data.errors?.email?.[0];
+                    showMessage(fieldError || data.message || 'Something went wrong. Please try again.', 'error');
+                }
+            }
+        } catch (err) {
+            showMessage('Network error. Please try again.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            btnText.textContent = 'Subscribe';
+        }
+    });
+})();
+</script>
+@endpush

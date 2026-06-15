@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Models\AlumniSession;
 use App\Models\AlumniUser;
 use Closure;
 use Illuminate\Http\Request;
@@ -17,6 +18,17 @@ class AlumniAuth
     {
         // ── 1. Active session — fast path ─────────────────────────────────
         if (session()->has('alumni_id')) {
+            if (! $this->trackSession($request)) {
+                // This session's AlumniSession row was deleted — either the
+                // user revoked it from another device, or revoked "this
+                // device" themselves via Settings > Active Sessions.
+                session()->flush();
+
+                return redirect()
+                    ->route('login')
+                    ->with('error', 'You have been logged out because this session was revoked.');
+            }
+
             return $next($request);
         }
 
@@ -24,6 +36,8 @@ class AlumniAuth
         $cookie = $request->cookie(self::REMEMBER_COOKIE_NAME);
 
         if ($cookie && $this->attemptRememberLogin($request, $cookie)) {
+            $this->trackSession($request);
+
             return $next($request);
         }
 
@@ -34,6 +48,42 @@ class AlumniAuth
     }
 
     // ── Private ───────────────────────────────────────────────────────────
+
+    /**
+     * Keep an AlumniSession row in sync with this browser session, so the
+     * Settings > Active Sessions tab can list and revoke it.
+     *
+     * Returns false if this session was previously tracked but its row no
+     * longer exists — i.e. it was revoked — signalling the caller to log
+     * the user out.
+     */
+    private function trackSession(Request $request): bool
+    {
+        $sessionId = session()->getId();
+
+        $exists = AlumniSession::where('session_id', $sessionId)->exists();
+
+        if (! $exists && session('alumni_session_tracked')) {
+            return false;
+        }
+
+        $userAgent = $request->userAgent() ?? '';
+
+        AlumniSession::updateOrCreate(
+            ['session_id' => $sessionId],
+            [
+                'alumni_user_id' => session('alumni_id'),
+                'ip_address'     => $request->ip(),
+                'user_agent'     => $userAgent,
+                'device'         => AlumniSession::parseDevice($userAgent),
+                'last_active_at' => now(),
+            ]
+        );
+
+        session(['alumni_session_tracked' => true]);
+
+        return true;
+    }
 
     /**
      * Validate the remember-me cookie, re-hydrate the session,

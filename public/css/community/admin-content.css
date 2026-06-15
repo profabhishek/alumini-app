@@ -1,0 +1,522 @@
+.admin-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.admin-toolbar .admin-search-input {
+    flex: 1;
+    min-width: 200px;
+}
+.admin-toolbar .admin-filter-select {
+    width: 160px;
+}
+
+.admin-toolbar-spacer {
+    flex: 1;
+}
+
+/* ── Thumbnails in tables ─────────────────────────────────── */
+
+.admin-table__thumb {
+    width: 56px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #f1f4f8;
+    flex-shrink: 0;
+}
+
+.admin-table__thumb-placeholder {
+    width: 56px;
+    height: 40px;
+    border-radius: 8px;
+    background: #f1f4f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e0;
+    flex-shrink: 0;
+}
+
+.admin-table__title-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-table__title-text {
+    font-weight: 700;
+    color: var(--iccr-midnight, #1c2331);
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Status badges (draft / published) ───────────────────── */
+
+.admin-pub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.admin-pub-badge:hover {
+    opacity: 0.8;
+}
+
+.admin-pub-badge--published {
+    background: #f0fff4;
+    color: #276749;
+}
+
+.admin-pub-badge--draft {
+    background: #f7fafc;
+    color: #718096;
+}
+
+.admin-pub-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* ── Category pill in tables ──────────────────────────────── */
+
+.admin-cat-pill {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: #fef5e7;
+    color: var(--iccr-saffron, #e8640c);
+}
+
+.admin-cat-pill--none {
+    background: #f7fafc;
+    color: #a0aec0;
+}
+
+/* ── Content form layout (2-column: main + sidebar) ───────── */
+
+.admin-content-form {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .admin-content-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-content-main,
+.admin-content-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Rich text editor (Quill) ─────────────────────────────── */
+
+.admin-editor-wrap {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.admin-editor-wrap.is-error {
+    border-color: #fc8181;
+}
+
+.admin-editor-wrap .ql-toolbar {
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f7fafc;
+}
+
+.admin-editor-wrap .ql-container {
+    border: none;
+    font-family: inherit;
+    font-size: 13.5px;
+    min-height: 220px;
+}
+
+.admin-editor-wrap .ql-editor {
+    min-height: 220px;
+}
+
+/* ── Image upload dropzone ────────────────────────────────── */
+
+.admin-image-upload {
+    border: 2px dashed #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+    position: relative;
+}
+
+.admin-image-upload:hover,
+.admin-image-upload.is-dragover {
+    border-color: var(--iccr-saffron, #e8640c);
+    background: #fff8f1;
+}
+
+.admin-image-upload input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.admin-image-upload svg {
+    color: #cbd5e0;
+    margin-bottom: 8px;
+}
+
+.admin-image-upload p {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-secondary, #4a5568);
+    margin: 0 0 2px;
+}
+
+.admin-image-upload span {
+    font-size: 11.5px;
+    color: var(--text-muted, #718096);
+}
+
+.admin-image-preview-wrap {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.admin-image-preview-wrap img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+}
+
+.admin-image-remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* ── Sidebar field groups ─────────────────────────────────── */
+
+.admin-aside-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-aside-group label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--iccr-midnight, #1c2331);
+}
+
+/* Category select row (select + manage button) */
+.admin-category-select-row {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-category-select-row select {
+    flex: 1;
+}
+
+.admin-icon-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: var(--iccr-midnight, #1c2331);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.admin-icon-btn:hover {
+    background: #f7fafc;
+}
+
+/* ── Status pills (radio-style toggle) ────────────────────── */
+
+.admin-status-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-status-toggle label {
+    flex: 1;
+    text-align: center;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--text-secondary, #4a5568);
+    transition: all 0.15s;
+}
+
+.admin-status-toggle input {
+    display: none;
+}
+
+.admin-status-toggle input:checked + label,
+.admin-status-toggle label.is-active {
+    border-color: var(--iccr-saffron, #e8640c);
+    background: #fef5e7;
+    color: var(--iccr-saffron, #e8640c);
+}
+
+/* ── Modal (category manager) ─────────────────────────────── */
+
+.admin-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.admin-modal-backdrop[hidden] {
+    display: none;
+}
+
+.admin-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 460px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.admin-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.admin-modal__header h3 {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--iccr-midnight, #1c2331);
+    margin: 0;
+}
+
+.admin-modal__close {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: #f7fafc;
+    color: var(--text-secondary, #4a5568);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.admin-modal__body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-cat-add-row {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-cat-add-row input {
+    flex: 1;
+}
+
+.admin-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-cat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    border: 1px solid #edf2f7;
+    border-radius: 8px;
+}
+
+.admin-cat-row input[type="text"] {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--iccr-midnight, #1c2331);
+    padding: 4px 6px;
+    border-radius: 6px;
+}
+
+.admin-cat-row input[type="text"]:focus {
+    outline: none;
+    background: #f7fafc;
+}
+
+.admin-cat-row__count {
+    font-size: 11.5px;
+    color: var(--text-muted, #718096);
+    white-space: nowrap;
+}
+
+.admin-cat-row__btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #718096);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.admin-cat-row__btn:hover {
+    background: #f7fafc;
+}
+.admin-cat-row__btn--danger:hover {
+    background: #fff5f5;
+    color: #c53030;
+}
+
+.admin-cat-row.is-inactive {
+    opacity: 0.5;
+}
+
+.admin-empty-cats {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted, #718096);
+    padding: 16px 0;
+}
+
+/* ── Required field marker, char count ────────────────────── */
+
+.admin-char-count {
+    font-size: 11.5px;
+    color: var(--text-muted, #718096);
+    text-align: right;
+}
+
+.admin-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+}
+
+.admin-gallery-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.admin-gallery-card__img {
+    position: relative;
+    height: 140px;
+    background: #f1f4f8;
+}
+
+.admin-gallery-card__img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.admin-gallery-card__badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--iccr-midnight, #1c2331);
+}
+
+.admin-gallery-card__body {
+    padding: 12px 14px;
+}
+
+.admin-gallery-card__title {
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--iccr-midnight, #1c2331);
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-icon-btn[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+}

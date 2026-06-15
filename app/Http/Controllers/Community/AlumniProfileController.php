@@ -9,11 +9,7 @@ class AlumniProfileController extends Controller
 {
     public function show(AlumniUser $alumniUser)
     {
-        // Cast to int for safe comparison — is_approved stored as tinyint
-        abort_if(
-            $alumniUser->role !== 'alumni' || ! $alumniUser->is_approved,
-            404
-        );
+        abort_if(! $alumniUser->is_approved, 404);
 
         $isOwnProfile = (int) session('alumni_id') === (int) $alumniUser->id;
 

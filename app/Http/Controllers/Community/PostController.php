@@ -10,6 +10,7 @@ use App\Models\PostSave;
 use App\Models\PostComment;
 use App\Models\CommentLike;
 use App\Models\AlumniUser;
+use App\Models\CommunityGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,27 +22,59 @@ class PostController extends Controller
 {
     // ── Upload constraints ───────────────────────────────────────────────
 
-    private const IMAGE_MAX_KB = 10240;  // 10 MB per image
-    private const VIDEO_MAX_KB = 25600;  // 25 MB per video
-    private const MAX_MEDIA    = 10;     // max images/videos per post
+    private const IMAGE_MAX_KB = 10240;  
+    private const VIDEO_MAX_KB = 25600;  
+    private const MAX_MEDIA    = 10;   
 
     private const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     private const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 
+    // ── Community Group access helpers ──────────────────────────────────
+
+    private function authorizeGroupAccess(CommunityGroup $group): void
+    {
+        $myRole = session('alumni_role');
+
+        if (in_array($myRole, ['admin', 'super_admin'])) {
+            return;
+        }
+
+        $myId = (int) session('alumni_id');
+
+        abort_unless($group->isApprovedMember($myId), 403, 'You must be a member of this group to do that.');
+    }
+
+    private function canAccessGroupPost(?int $groupId): bool
+    {
+        if (!$groupId) {
+            return true;
+        }
+
+        $myRole = session('alumni_role');
+        if (in_array($myRole, ['admin', 'super_admin'])) {
+            return true;
+        }
+
+        $myId  = (int) session('alumni_id');
+        $group = CommunityGroup::find($groupId);
+
+        return $group && $group->isApprovedMember($myId);
+    }
+
     // ── Feed ─────────────────────────────────────────────────────────────
 
-    /**
-     * GET /feed?before_id=&limit=
-     * Returns posts older than before_id (for infinite scroll).
-     */
-    public function feed(Request $request): JsonResponse
+    public function feed(Request $request, ?CommunityGroup $group = null): JsonResponse
     {
         $myId = (int) session('alumni_id');
+
+        if ($group) {
+            $this->authorizeGroupAccess($group);
+        }
 
         $limit    = max(1, min((int) $request->input('limit', 10), 30));
         $beforeId = (int) $request->input('before_id', 0);
 
-        $query = Post::feed()->whereNull('deleted_at');
+        $query = Post::feed($group?->id)->whereNull('deleted_at');
 
         if ($beforeId > 0) {
             $query->where('id', '<', $beforeId);
@@ -58,12 +91,13 @@ class PostController extends Controller
 
     // ── Create post ──────────────────────────────────────────────────────
 
-    /**
-     * POST /posts
-     */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ?CommunityGroup $group = null): JsonResponse
     {
         $myId = (int) session('alumni_id');
+
+        if ($group) {
+            $this->authorizeGroupAccess($group);
+        }
 
         $request->validate([
             'body'    => 'nullable|string|max:5000',
@@ -120,11 +154,12 @@ class PostController extends Controller
             $type = $detectedType;
         }
 
-        $post = DB::transaction(function () use ($myId, $body, $type, $files) {
+        $post = DB::transaction(function () use ($myId, $body, $type, $files, $group) {
             $post = Post::create([
                 'alumni_id' => $myId,
                 'body'      => $body !== '' ? $body : null,
                 'type'      => $type,
+                'group_id'  => $group?->id,
             ]);
 
             $position = 0;
@@ -166,10 +201,17 @@ class PostController extends Controller
         $myId = (int) session('alumni_id');
         $post = Post::findOrFail($id);
 
+        if (!$this->canAccessGroupPost($post->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
+
         $isOwner = (int) $post->alumni_id === $myId;
         $isAdmin = in_array(session('alumni_role'), ['admin', 'super_admin']);
 
-        if (!$isOwner && !$isAdmin) {
+        // Group admins/moderators can also remove posts within their group.
+        $isGroupMod = $post->group_id && $post->group && $post->group->isGroupModerator($myId);
+
+        if (!$isOwner && !$isAdmin && !$isGroupMod) {
             return response()->json(['error' => 'You can only delete your own posts.'], 403);
         }
 
@@ -191,6 +233,10 @@ class PostController extends Controller
     {
         $myId = (int) session('alumni_id');
         $post = Post::findOrFail($id);
+
+        if (!$this->canAccessGroupPost($post->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
 
         $existing = PostLike::where('post_id', $id)->where('alumni_id', $myId)->first();
 
@@ -216,7 +262,11 @@ class PostController extends Controller
     public function toggleSave(int $id): JsonResponse
     {
         $myId = (int) session('alumni_id');
-        Post::findOrFail($id);
+        $post = Post::findOrFail($id);
+
+        if (!$this->canAccessGroupPost($post->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
 
         $existing = PostSave::where('post_id', $id)->where('alumni_id', $myId)->first();
 
@@ -231,9 +281,6 @@ class PostController extends Controller
         return response()->json(['ok' => true, 'is_saved' => $saved]);
     }
 
-    /**
-     * GET /profile/saved-posts
-     */
     public function savedPosts(Request $request): JsonResponse
     {
         $myId = (int) session('alumni_id');
@@ -258,11 +305,6 @@ class PostController extends Controller
         ]);
     }
 
-    /**
-     * GET /profile/my-posts
-     * All posts (including reposts) created by the current user — newest first.
-     * Used on the profile page "My Posts" tab.
-     */
     public function myPosts(Request $request): JsonResponse
     {
         $myId = (int) session('alumni_id');
@@ -289,11 +331,6 @@ class PostController extends Controller
 
     // ── Share (repost to feed) ───────────────────────────────────────────
 
-    /**
-     * POST /posts/{id}/share
-     * body: caption (optional)
-     * Creates a new post that wraps the original (Instagram-style repost).
-     */
     public function share(Request $request, int $id): JsonResponse
     {
         $myId = (int) session('alumni_id');
@@ -304,7 +341,14 @@ class PostController extends Controller
 
         $original = Post::findOrFail($id);
 
-        // If sharing a post that is itself a share, point to the TRUE original
+        if (!$this->canAccessGroupPost($original->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
+
+        if ($original->group_id) {
+            return response()->json(['error' => 'Posts inside a group can\'t be reposted to the main feed.'], 422);
+        }
+
         $targetId = $original->isShare() ? $original->shared_post_id : $original->id;
         $target   = $targetId === $original->id ? $original : Post::findOrFail($targetId);
 
@@ -314,6 +358,7 @@ class PostController extends Controller
                 'body'           => trim((string) $request->input('caption', '')) ?: null,
                 'type'           => $target->type,
                 'shared_post_id' => $target->id,
+                'group_id'       => null,
             ]);
 
             $target->increment('shares_count');
@@ -333,7 +378,11 @@ class PostController extends Controller
     public function comments(Request $request, int $id): JsonResponse
     {
         $myId = (int) session('alumni_id');
-        Post::findOrFail($id);
+        $post = Post::findOrFail($id);
+
+        if (!$this->canAccessGroupPost($post->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
 
         $limit    = max(1, min((int) $request->input('limit', 10), 30));
         $beforeId = (int) $request->input('before_id', 0);
@@ -360,6 +409,10 @@ class PostController extends Controller
     {
         $myId = (int) session('alumni_id');
         $post = Post::findOrFail($id);
+
+        if (!$this->canAccessGroupPost($post->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
 
         $request->validate([
             'body'      => 'required|string|max:2000',
@@ -415,10 +468,17 @@ class PostController extends Controller
         $post    = Post::findOrFail($postId);
         $comment = PostComment::where('id', $commentId)->where('post_id', $postId)->firstOrFail();
 
+        if (!$this->canAccessGroupPost($post->group_id)) {
+            return response()->json(['error' => 'Post not found.'], 404);
+        }
+
         $isOwner = (int) $comment->alumni_id === $myId;
         $isAdmin = in_array(session('alumni_role'), ['admin', 'super_admin']);
 
-        if (!$isOwner && !$isAdmin) {
+        // Group admins/moderators can also remove comments within their group.
+        $isGroupMod = $post->group_id && $post->group && $post->group->isGroupModerator($myId);
+
+        if (!$isOwner && !$isAdmin && !$isGroupMod) {
             return response()->json(['error' => 'You can only delete your own comments.'], 403);
         }
 
@@ -447,7 +507,11 @@ class PostController extends Controller
     public function toggleCommentLike(int $id): JsonResponse
     {
         $myId    = (int) session('alumni_id');
-        $comment = PostComment::findOrFail($id);
+        $comment = PostComment::with('post')->findOrFail($id);
+
+        if (!$this->canAccessGroupPost($comment->post?->group_id)) {
+            return response()->json(['error' => 'Not found.'], 404);
+        }
 
         $existing = CommentLike::where('comment_id', $id)->where('alumni_id', $myId)->first();
 
@@ -470,14 +534,13 @@ class PostController extends Controller
 
     // ── Single post page ─────────────────────────────────────────────────
 
-    /**
-     * GET /posts/{post}
-     * Dedicated page for a single post — used for "Share" links.
-     * Auth-only (alumni.auth middleware). Shows the post with comments open.
-     */
     public function show(Post $post)
     {
         if ($post->trashed()) {
+            abort(404);
+        }
+
+        if (!$this->canAccessGroupPost($post->group_id)) {
             abort(404);
         }
 

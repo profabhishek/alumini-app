@@ -60,33 +60,35 @@ class JobController extends Controller
 
     public function show(Job $job)
     {
-        if ($job->status !== 'published') {
+        $alumniId = session('alumni_id');
+        $role     = session('alumni_role');
+    
+        $isAdmin = in_array($role, ['admin', 'super_admin']);
+        $isOwner = $alumniId && $job->created_by == $alumniId;
+    
+        // Only published jobs are publicly visible — owners/admins can preview.
+        if ($job->status !== 'published' && !$isOwner && !$isAdmin) {
             abort(404);
         }
-
-        if (request()->expectsJson()) {
-            $alreadyApplied = false;
-            $application = null;
-
-            if (session()->has('alumni_id')) {
-                $application = JobApplication::where('job_id', $job->id)
-                    ->where('alumni_id', session('alumni_id'))
-                    ->first();
-
-                $alreadyApplied = (bool) $application;
-            }
-
-            return response()->json([
-                ...$job->toArray(),
-                'already_applied' => $alreadyApplied,
-                'application' => $application ? [
-                    'status' => $application->status,
-                    'applied_at' => $application->created_at?->format('d M Y'),
-                ] : null,
-            ]);
+    
+        $alreadyApplied = false;
+        $application    = null;
+    
+        if ($alumniId) {
+            $application = JobApplication::where('job_id', $job->id)
+                ->where('alumni_id', $alumniId)   // was 'user_id'
+                ->first();
+    
+            $alreadyApplied = (bool) $application;
         }
-
-        return redirect()->route('jobs.index');
+    
+        $relatedJobs = Job::where('status', 'published')
+            ->where('id', '!=', $job->id)
+            ->latest()
+            ->take(3)
+            ->get();
+    
+        return view('jobs.show', compact('job', 'alreadyApplied', 'application', 'relatedJobs'));
     }
 
     // ── Create form ───────────────────────────────────────────────────────

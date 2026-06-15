@@ -378,7 +378,7 @@
 
 .card-reactions__right span:hover {
     color: var(--text-primary);
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 /* ── Action buttons ───────────────────────────────────────── */

@@ -1996,7 +1996,15 @@
     });
 
     // ── Boot ──────────────────────────────────────────────────────────────
-    fetchConversations();
+    fetchConversations().then(() => {
+        if (config.openConversationId) {
+            openConversation(config.openConversationId);
+
+            const url = new URL(window.location.href);
+            url.searchParams.delete("conversation");
+            history.replaceState({}, "", url);
+        }
+    });
     state.conversationPoll = setInterval(
         () => fetchConversations({ quiet: true }),
         8000,

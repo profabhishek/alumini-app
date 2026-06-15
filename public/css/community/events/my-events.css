@@ -659,7 +659,7 @@ body {
 }
 
 .me-modal__info-link:hover {
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 /* Sections */

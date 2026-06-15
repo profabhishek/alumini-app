@@ -447,6 +447,22 @@
     .alumni-dir-toolbar { top: 8px; }
     .alumni-dir-select { flex: 1 1 calc(50% - 6px); }
 }
+.alumni-dir-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.alumni-dir-card__btn--message {
+    background: #E8640C;
+    color: #fff;
+    border-color: #E8640C;
+}
+.alumni-dir-card__btn--message:hover {
+    background: #d05a0b;
+    color: #fff;
+}
 </style>
 @endpush
 
@@ -540,7 +556,11 @@
 
                 {{-- Avatar --}}
                 <div class="alumni-dir-avatar">
-                    {{ $member->initials }}
+                    @if(!empty($member->photo))
+                        <img src="{{ asset('storage/' . $member->photo) }}" alt="{{ $member->full_name }}" loading="lazy">
+                    @else
+                        {{ $member->initials }}
+                    @endif
                 </div>
 
                 {{-- Name --}}
@@ -585,14 +605,16 @@
                         </svg>
                         View
                     </a>
-                    <button class="alumni-dir-card__btn alumni-dir-card__btn--dm"
-                        title="Messaging coming soon" disabled>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                        </svg>
-                        Message
-                    </button>
+                    @if((int) session('alumni_id') !== (int) $member->id)
+                        <button class="alumni-dir-card__btn alumni-dir-card__btn--message"
+                            onclick="startDirectChat({{ $member->id }}, this)">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                            </svg>
+                            Message
+                        </button>
+                    @endif
                 </div>
 
             </div>
@@ -640,4 +662,5 @@
     }
 })();
 </script>
+<script src="{{ asset('js/community/start-chat.js') }}"></script>
 @endpush

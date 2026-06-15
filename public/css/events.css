@@ -1,7 +1,12 @@
+body {
+    background: var(--light2);
+}
 .events-page {
     background: var(--light2);
     min-height: 100vh;
     padding: 20px 80px 50px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .events-hero {
@@ -739,4 +744,382 @@ a.pag-link:hover {
     padding: 8px 16px;
     border-radius: 999px;
     border: 1.5px solid #bbf7d0;
+    margin-right: 50px;
+}
+
+/* =============================================================
+   EVENT DETAIL PAGE
+   This block REPLACES every existing .event-detail-* rule and
+   its media queries in events.css (they were duplicated — search
+   for ".event-detail-back" and remove BOTH copies, including their
+   trailing @media (max-width: 900px) blocks, then paste this in).
+============================================================= */
+
+.event-detail-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
+    text-decoration: none;
+    margin: 18px 0 18px;
+    transition:
+        gap 0.2s,
+        opacity 0.2s;
+}
+.event-detail-back:hover {
+    opacity: 0.65;
+    gap: 9px;
+}
+
+/* ── Hero ──────────────────────────────────────────────────── */
+
+.event-detail-hero {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 21/8;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.08);
+    background: #111;
+}
+.event-detail-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.event-detail-hero-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1c2331 0%, #2a3650 55%, #e8640c 150%);
+    color: rgba(255, 255, 255, 0.5);
+}
+.event-detail-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.35) 0%,
+        rgba(0, 0, 0, 0) 35%
+    );
+    pointer-events: none;
+}
+.event-detail-hero-badges {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 1;
+}
+
+/* ── Layout ────────────────────────────────────────────────── */
+
+.event-detail-body-section {
+    padding: 36px 0 0;
+}
+
+.event-detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 48px;
+    align-items: start;
+}
+
+/* ── Main column ───────────────────────────────────────────── */
+
+.event-detail-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #fff4ec;
+    color: #e8640c;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+}
+
+.event-detail-title {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    color: #111;
+    line-height: 1.2;
+    margin-bottom: 20px;
+}
+
+.event-detail-organizer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 24px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid #eee;
+}
+.event-detail-organizer-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff4ec;
+    color: #e8640c;
+    font-size: 14px;
+    font-weight: 800;
+}
+.event-detail-organizer-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #aaa;
+    margin-bottom: 2px;
+}
+.event-detail-organizer-name {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1c2331;
+}
+
+.event-detail-description {
+    font-size: 15.5px;
+    line-height: 1.85;
+    color: #444;
+}
+.event-detail-description p {
+    margin-bottom: 1.1em;
+}
+.event-detail-description h2,
+.event-detail-description h3 {
+    margin: 1.4em 0 0.6em;
+    font-weight: 700;
+    color: #111;
+}
+.event-detail-description img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 1.2em 0;
+}
+.event-detail-description ul,
+.event-detail-description ol {
+    margin: 0 0 1.1em 1.4em;
+}
+
+/* ── Sidebar / ticket card ─────────────────────────────────── */
+
+.event-detail-sidebar {
+    position: sticky;
+    top: 24px;
+}
+
+.event-detail-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.07);
+    border: 1px solid #f1f1f1;
+}
+
+.event-detail-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+.event-detail-price-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #111;
+    line-height: 1;
+}
+.event-detail-price-label {
+    font-size: 13px;
+    color: #999;
+}
+
+.event-detail-facts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.event-detail-facts li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.event-detail-fact-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f6f7f9;
+    color: #555;
+}
+.event-detail-fact-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1c2331;
+    line-height: 1.5;
+    padding-top: 6px;
+}
+.event-detail-fact-sub {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #999;
+    margin-top: 2px;
+}
+
+.event-detail-divider {
+    height: 1px;
+    background: #eee;
+    margin: 22px 0;
+}
+
+/* Brand the seat-progress bar inside the ticket card */
+.event-detail-card .event-seats-track {
+    height: 6px;
+}
+.event-detail-card .event-seats-fill {
+    background: #e8640c;
+}
+.event-detail-card .event-seats {
+    margin: 22px 0 0;
+}
+
+.event-detail-register {
+    margin-top: 22px;
+}
+
+.event-detail-register-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #e8640c;
+    color: #fff;
+    text-decoration: none;
+    padding: 15px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    transition:
+        background 0.2s,
+        transform 0.15s,
+        box-shadow 0.2s;
+    box-shadow: 0 8px 20px rgba(232, 100, 12, 0.25);
+}
+.event-detail-register-btn:hover {
+    background: #cf5609;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(232, 100, 12, 0.3);
+}
+
+.event-detail-register-btn--closed {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.event-detail-register-btn--closed:hover {
+    background: #f3f4f6;
+    transform: none;
+    box-shadow: none;
+}
+
+.event-detail-register-btn--success {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1.5px solid #bbf7d0;
+    cursor: default;
+    box-shadow: none;
+}
+.event-detail-register-btn--success:hover {
+    background: #f0fdf4;
+    transform: none;
+    box-shadow: none;
+}
+
+.event-detail-deadline {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: #999;
+    text-align: center;
+}
+
+/* ── More events ───────────────────────────────────────────── */
+
+.related-events-section {
+    padding-top: 70px;
+    margin-top: 50px;
+    border-top: 1px solid #eee;
+}
+
+.related-events-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 32px;
+}
+
+.related-events-heading {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111;
+    margin: 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .event-detail-layout {
+        grid-template-columns: 1fr;
+    }
+    .event-detail-sidebar {
+        position: static;
+    }
+    .event-detail-hero {
+        aspect-ratio: 16/9;
+        border-radius: 18px;
+    }
+}
+
+.reg-success-email {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: -4px 0 18px;
+    padding: 8px 14px;
+    background: #fff7f0;
+    border: 1px solid #fbd0b0;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #92400e;
+}
+.reg-success-email svg {
+    color: #e8640c;
+    flex-shrink: 0;
+}
+.reg-success-email strong {
+    color: #1c2331;
 }

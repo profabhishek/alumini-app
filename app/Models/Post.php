@@ -16,6 +16,7 @@ class Post extends Model
         'body',
         'type',
         'shared_post_id',
+        'group_id',
         'likes_count',
         'comments_count',
         'shares_count',
@@ -42,6 +43,11 @@ class Post extends Model
     public function sharedPost()
     {
         return $this->belongsTo(Post::class, 'shared_post_id');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(CommunityGroup::class, 'group_id');
     }
 
     public function shares()
@@ -74,12 +80,9 @@ class Post extends Model
 
     // ── Scopes ───────────────────────────────────────────────────────────
 
-    /**
-     * Main feed query — newest first, with author + media + shared post eager loaded.
-     */
-    public function scopeFeed(Builder $query): Builder
+    public function scopeFeed(Builder $query, ?int $groupId = null): Builder
     {
-        return $query
+        $query = $query
             ->with([
                 'author',
                 'media',
@@ -87,6 +90,10 @@ class Post extends Model
                 'sharedPost.media',
             ])
             ->orderByDesc('created_at');
+
+        return $groupId
+            ? $query->where('group_id', $groupId)
+            : $query->whereNull('group_id');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -120,6 +127,7 @@ class Post extends Model
             'id'             => $this->id,
             'type'           => $this->type,
             'body'           => $this->body,
+            'group_id'       => $this->group_id,
             'created_at'     => $this->created_at?->toISOString(),
             'created_human'  => $this->created_at?->diffForHumans(),
             'likes_count'    => $this->likes_count,

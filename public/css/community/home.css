@@ -703,7 +703,7 @@
     font-size: 12px;
     font-weight: 700;
     color: var(--iccr-saffron);
-    text-decoration: underline;
+    text-decoration: none;
     text-decoration-color: transparent;
     transition: text-decoration-color 0.15s;
     margin-top: 4px;

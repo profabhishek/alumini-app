@@ -190,7 +190,7 @@
     cursor: pointer;
     font-size: 13.5px;
     padding: 0;
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 .resend-btn:disabled {

@@ -1,6 +1,9 @@
 /* ==========================================
    NOTICE PAGE
 ========================================== */
+body {
+    background: var(--light2);
+}
 
 .notice-page {
     background: var(--light2);

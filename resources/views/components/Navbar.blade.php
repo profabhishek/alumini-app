@@ -146,16 +146,6 @@
 
             {{-- RIGHT ACTIONS --}}
             <div class="nav-actions">
-                <button
-                    class="nav-search-btn"
-                    id="searchToggle"
-                    aria-label="Search"
-                >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.35-4.35" />
-                    </svg>
-                </button>
                 @if(session()->has('alumni_id'))
 
                     <a href="{{ route('dashboard.home') }}" class="nav-cta">
