@@ -17,6 +17,15 @@ class NewsPublicController extends Controller
             $query->whereHas('category', fn($q) => $q->where('slug', $categorySlug));
         }
 
+        if ($request->filled('q')) {
+            $search = '%' . trim($request->get('q')) . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('title',   'like', $search)
+                  ->orWhere('excerpt','like', $search)
+                  ->orWhere('body',   'like', $search);
+            });
+        }
+
         $newsItems = $query->paginate(9)->withQueryString();
 
         $categories = NewsCategory::where('status', true)

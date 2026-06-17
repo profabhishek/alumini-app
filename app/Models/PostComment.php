@@ -66,7 +66,7 @@ class PostComment extends Model
         return $this->likes()->where('alumni_id', $alumniId)->exists();
     }
 
-    public function toApiArray(?int $myId = null, bool $withReplies = true): array
+    public function toApiArray(?int $myId = null, bool $withReplies = true, ?int $groupId = null): array
     {
         $author = $this->author;
 
@@ -82,19 +82,38 @@ class PostComment extends Model
             'is_liked'      => $this->isLikedBy($myId),
             'is_mine'       => $myId && (int) $this->alumni_id === $myId,
             'author' => [
-                'id'       => $author?->id,
-                'name'     => $author?->full_name ?? 'Unknown',
-                'avatar'   => $author?->photo ? asset('storage/' . $author->photo) : null,
-                'initials' => $author?->initials ?? '?',
+                'id'          => $author?->id,
+                'name'        => $author?->full_name ?? 'Unknown',
+                'avatar'      => $author?->photo ? asset('storage/' . $author->photo) : null,
+                'initials'    => $author?->initials ?? '?',
+                'group_role'  => $this->groupRoleFor($author?->id, $groupId),
+                'profile_url' => $author?->id ? url('/members/' . $author->id) : null,
             ],
         ];
 
         if ($withReplies && !$this->isReply()) {
             $data['replies'] = $this->replies->map(
-                fn($r) => $r->toApiArray($myId, false)
+                fn($r) => $r->toApiArray($myId, false, $groupId)
             )->values();
         }
 
         return $data;
+    }
+
+    /**
+     * The comment author's role in the post's group ('admin' |
+     * 'moderator' | 'member'), or null if $groupId is null (main-feed
+     * post) or the author isn't an approved member of that group.
+     */
+    private function groupRoleFor(?int $alumniId, ?int $groupId): ?string
+    {
+        if (!$groupId || !$alumniId) {
+            return null;
+        }
+
+        return CommunityGroupMember::where('group_id', $groupId)
+            ->where('alumni_id', $alumniId)
+            ->where('status', 'approved')
+            ->value('role');
     }
 }

@@ -133,6 +133,38 @@
     flex-shrink: 0;
 }
 
+/* Add after existing .ap-avatar rule */
+.ap-avatar--link {
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        opacity 0.15s,
+        box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ap-avatar--link:hover {
+    opacity: 0.85;
+    box-shadow: 0 0 0 2px #e8640c;
+}
+.ap-avatar--link img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+.ap-name-link {
+    color: inherit;
+    text-decoration: none;
+}
+.ap-name-link:hover {
+    color: #c9622a;
+    text-decoration: underline;
+}
+
 .ap-avatar--lg {
     width: 44px;
     height: 44px;

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\CommunityGroupMember;
 
 class PostController extends Controller
 {
@@ -74,7 +75,25 @@ class PostController extends Controller
         $limit    = max(1, min((int) $request->input('limit', 10), 30));
         $beforeId = (int) $request->input('before_id', 0);
 
-        $query = Post::feed($group?->id)->whereNull('deleted_at');
+        $groupId    = $group?->id;
+        $isGroupMod = $this->isGroupModOrSiteAdmin($groupId, $myId);
+
+        $query = Post::feed($groupId)->whereNull('deleted_at');
+
+        if ($groupId && !$isGroupMod) {
+            $query->where(function ($q) use ($myId) {
+                $q->where(function ($q2) use ($myId) {
+                    $q2->where('status', 'active')
+                       ->where(function ($q3) use ($myId) {
+                           $q3->whereNull('pending_body')
+                              ->orWhere('alumni_id', $myId);
+                       });
+                })->orWhere(function ($q2) use ($myId) {
+                    $q2->where('status', 'pending_review')
+                       ->where('alumni_id', $myId);
+                });
+            });
+        }
 
         if ($beforeId > 0) {
             $query->where('id', '<', $beforeId);
@@ -83,7 +102,7 @@ class PostController extends Controller
         $posts = $query->limit($limit)->get();
 
         return response()->json([
-            'posts'    => $posts->map(fn($p) => $p->toFeedArray($myId)),
+            'posts'    => $posts->map(fn($p) => $p->toFeedArray($myId, $isGroupMod)),
             'has_more' => $posts->count() === $limit,
             'oldest_id' => $posts->last()?->id,
         ]);
@@ -154,12 +173,29 @@ class PostController extends Controller
             $type = $detectedType;
         }
 
-        $post = DB::transaction(function () use ($myId, $body, $type, $files, $group) {
+        $postStatus = 'active';
+        if ($group) {
+            $myRole      = session('alumni_role');
+            $isSiteAdmin = in_array($myRole, ['admin', 'super_admin']);
+            if (!$isSiteAdmin) {
+                $memberRole = CommunityGroupMember::where('group_id', $group->id)
+                    ->where('alumni_id', $myId)
+                    ->where('status', 'approved')
+                    ->value('role');
+                if (!in_array($memberRole, ['admin', 'moderator'])) {
+                    $postStatus = 'pending_review';
+                }
+            }
+        }
+
+        $post = DB::transaction(function () use ($myId, $body, $type, $files, $group, $postStatus) {
+
             $post = Post::create([
                 'alumni_id' => $myId,
                 'body'      => $body !== '' ? $body : null,
                 'type'      => $type,
                 'group_id'  => $group?->id,
+                'status'    => $postStatus,
             ]);
 
             $position = 0;
@@ -190,7 +226,11 @@ class PostController extends Controller
         $post->load(['author', 'media']);
 
         return response()->json([
-            'post' => $post->toFeedArray($myId),
+            'post'    => $post->toFeedArray($myId, false),
+            'pending' => $postStatus === 'pending_review',
+            'message' => $postStatus === 'pending_review'
+                ? 'Your post has been submitted and is awaiting moderator approval.'
+                : null,
         ], 201);
     }
 
@@ -225,6 +265,150 @@ class PostController extends Controller
         $post->delete();
 
         return response()->json(['ok' => true, 'post_id' => $id]);
+    }
+
+
+    /**
+     * Group moderator/admin (or site admin) access for reviewing a
+     * pending post edit.
+     */
+    private function authorizeGroupReview(int $groupId): void
+    {
+        $myId   = (int) session('alumni_id');
+        $myRole = session('alumni_role');
+
+        if (in_array($myRole, ['admin', 'super_admin'])) {
+            return;
+        }
+
+        $membership = CommunityGroupMember::where('group_id', $groupId)
+            ->where('alumni_id', $myId)
+            ->where('status', 'approved')
+            ->first();
+
+        abort_unless(
+            $membership && in_array($membership->role, ['admin', 'moderator']),
+            403
+        );
+    }
+
+    private function isGroupModOrSiteAdmin(?int $groupId, int $myId): bool
+    {
+        if (!$groupId) {
+            return false;
+        }
+
+        $myRole = session('alumni_role');
+        if (in_array($myRole, ['admin', 'super_admin'])) {
+            return true;
+        }
+
+        $membership = CommunityGroupMember::where('group_id', $groupId)
+            ->where('alumni_id', $myId)
+            ->where('status', 'approved')
+            ->first();
+
+        return $membership && in_array($membership->role, ['admin', 'moderator']);
+    }
+
+    // ── Edit post (with pending-approval for plain group members) ──────
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $post        = Post::findOrFail($id);
+        $myId        = (int) session('alumni_id');
+        $myRole      = session('alumni_role');
+        $isSiteAdmin = in_array($myRole, ['admin', 'super_admin']);
+        $isOwner     = (int) $post->alumni_id === $myId;
+        $isGroupMod  = $post->group_id ? $this->isGroupModOrSiteAdmin($post->group_id, $myId) : false;
+
+        if (!$isOwner && !$isGroupMod && !$isSiteAdmin) {
+            return response()->json(['error' => 'You cannot edit this post.'], 403);
+        }
+
+        $validated = $request->validate([
+            'body' => 'required|string|max:5000',
+        ]);
+
+        // Mods/admins editing any post → immediate, no approval needed
+        // Plain members editing their own group post → pending approval
+        $needsApproval = false;
+        if ($isOwner && $post->group_id && !$isGroupMod && !$isSiteAdmin) {
+            $groupRole     = $post->groupRoleFor($myId);
+            $needsApproval = !in_array($groupRole, ['admin', 'moderator']);
+        }
+
+        if ($needsApproval) {
+            $post->pending_body = $validated['body'];
+        } else {
+            $post->body         = $validated['body'];
+            $post->pending_body = null;
+            $post->status       = 'active'; // in case a mod approves via edit
+        }
+
+        $post->save();
+
+        return response()->json([
+            'post'    => $post->toFeedArray($myId, $isGroupMod),
+            'pending' => $needsApproval,
+        ]);
+    }
+
+    public function approveEdit(int $id): JsonResponse
+    {
+        $post = Post::findOrFail($id);
+
+        abort_unless(
+            $post->group_id && ($post->pending_body !== null || $post->status === 'pending_review'),
+            404
+        );
+        $this->authorizeGroupReview($post->group_id);
+
+        // Approve a pending edit
+        if ($post->pending_body !== null) {
+            $post->body         = $post->pending_body;
+            $post->pending_body = null;
+        }
+
+        // Approve a brand-new post that was awaiting review
+        if ($post->status === 'pending_review') {
+            $post->status = 'active';
+        }
+
+        $post->save();
+
+        $myId = (int) session('alumni_id');
+
+        return response()->json([
+            'post' => $post->toFeedArray($myId, true),
+        ]);
+    }
+
+    public function rejectEdit(int $id): JsonResponse
+    {
+        $post = Post::findOrFail($id);
+
+        abort_unless(
+            $post->group_id && ($post->pending_body !== null || $post->status === 'pending_review'),
+            404
+        );
+        $this->authorizeGroupReview($post->group_id);
+
+        // Rejecting a never-published post → delete it entirely
+        if ($post->status === 'pending_review' && $post->pending_body === null) {
+            $post->delete();
+            return response()->json(['ok' => true, 'deleted' => true, 'post_id' => $id]);
+        }
+
+        // Rejecting an edit on a published post → discard the proposed edit only
+        $post->pending_body = null;
+        $post->save();
+
+        $myId = (int) session('alumni_id');
+
+        return response()->json([
+            'post' => $post->toFeedArray($myId, true),
+        ]);
     }
 
     // ── Like / unlike post ───────────────────────────────────────────────
@@ -399,7 +583,7 @@ class PostController extends Controller
         $comments = $query->limit($limit)->get();
 
         return response()->json([
-            'comments'  => $comments->map(fn($c) => $c->toApiArray($myId)),
+            'comments'  => $comments->map(fn($c) => $c->toApiArray($myId, true, $post->group_id)),
             'has_more'  => $comments->count() === $limit,
             'oldest_id' => $comments->last()?->id,
         ]);
@@ -455,7 +639,7 @@ class PostController extends Controller
         $comment->load('author');
 
         return response()->json([
-            'comment' => $comment->toApiArray($myId, false),
+            'comment' => $comment->toApiArray($myId, false, $post->group_id),
         ], 201);
     }
 
@@ -548,8 +732,10 @@ class PostController extends Controller
 
         $post->load(['author', 'media', 'sharedPost.author', 'sharedPost.media']);
 
+        $isGroupMod = $this->isGroupModOrSiteAdmin($post->group_id, $myId);
+
         return view('community.posts.show', [
-            'post' => $post->toFeedArray($myId),
+            'post' => $post->toFeedArray($myId, $isGroupMod),
         ]);
     }
 }

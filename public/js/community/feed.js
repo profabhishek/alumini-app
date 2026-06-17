@@ -211,6 +211,12 @@
             clearComposer();
             prependPost(data.post);
             Core.toast("Posted!", "success");
+            if (data.pending) {
+                Core.toast(
+                    "Your post has been submitted and is awaiting moderator approval.",
+                    "info",
+                );
+            }
         } catch (err) {
             Core.toast(err.message, "error");
         } finally {

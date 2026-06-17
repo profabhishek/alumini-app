@@ -27,4 +27,9 @@ class EventRegistration extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function alumni()
+    {
+        return $this->belongsTo(\App\Models\AlumniUser::class, 'user_id');
+    }
 }

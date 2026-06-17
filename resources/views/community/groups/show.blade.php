@@ -41,7 +41,6 @@
                 &nbsp;·&nbsp; Created by {{ $group->creator->full_name ?? 'Unknown' }}
             </p>
         </div>
-
     </div>
 
     {{-- Status / actions bar --}}
@@ -58,45 +57,40 @@
             @if($isSiteAdmin && !$groupRole && !$isPending)
                 <span class="group-role-badge">Site Admin View</span>
             @endif
-        </div>
 
-                <div>
             @if($group->description)
-
-                <div class="group-detail-about-trigger">
-                    <button type="button" class="about-btn" onclick="openAboutModal()">
-                        About
-                    </button>
-                </div>
-
-                <div id="aboutModal" class="custom-modal">
-                    <div class="custom-modal-content">
-
-                        <button class="custom-modal-close" onclick="closeAboutModal()">
-                            &times;
-                        </button>
-
-                        <h3>About {{ $group->name }}</h3>
-
-                        <div class="custom-modal-body">
-                            {!! nl2br(e($group->description)) !!}
-                        </div>
-
-                    </div>
-                </div>
-
+                <button type="button" class="groups-btn groups-btn--ghost group-about-btn"
+                        onclick="document.getElementById('groupAboutModal').classList.add('is-visible')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    About
+                </button>
             @endif
         </div>
 
         <div class="group-detail-bar__actions">
-            @if($isApproved)
-                @if(($isGroupMod || $isSiteAdmin) && $pendingCount > 0)
-                    <span class="group-pending-count">
-                        {{ $pendingCount }} pending request{{ $pendingCount === 1 ? '' : 's' }}
-                    </span>
-                @endif
+            @if($isGroupMod || $isSiteAdmin)
+                <a href="{{ route('groups.members', $group->slug) }}" class="groups-btn groups-btn--ghost group-manage-btn">
+                    Manage Members
+                    @if($pendingCount > 0)
+                        <span class="notif-bubble">{{ $pendingCount > 99 ? '99+' : $pendingCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('groups.pending-edits', $group->slug) }}" class="groups-btn groups-btn--ghost group-manage-btn">
+                    Pending Approvals
+                    @if(!empty($pendingEditsCount) && $pendingEditsCount > 0)
+                        <span class="notif-bubble">{{ $pendingEditsCount > 99 ? '99+' : $pendingEditsCount }}</span>
+                    @endif
+                </a>
+            @endif
 
-                <form method="POST" action="{{ route('groups.leave', $group->slug) }}" onsubmit="return confirm('Leave this group?');">
+            @if($isApproved)
+                <form method="POST" action="{{ route('groups.leave', $group->slug) }}"
+                      data-confirm-title="Leave this group?"
+                      data-confirm-body="You'll lose access to this group's posts and discussions until an admin or moderator approves you again."
+                      data-confirm-text="Leave Group"
+                      data-confirm-danger="true">
                     @csrf
                     <button type="submit" class="groups-btn groups-btn--ghost">Leave Group</button>
                 </form>
@@ -109,11 +103,22 @@
                 </form>
             @endif
         </div>
-
-
     </div>
 
-
+    {{-- About modal --}}
+    @if($group->description)
+        <div class="gcm-backdrop gcm-static" id="groupAboutModal"
+             onclick="if(event.target===this) this.classList.remove('is-visible')">
+            <div class="gcm-box gcm-box--about">
+                <div class="gcm-box__header">
+                    <h3 class="gcm-title">About {{ $group->name }}</h3>
+                    <button type="button" class="gcm-close" aria-label="Close"
+                            onclick="document.getElementById('groupAboutModal').classList.remove('is-visible')">&times;</button>
+                </div>
+                <p class="gcm-about-text">{{ $group->description }}</p>
+            </div>
+        </div>
+    @endif
 
     {{-- Feed area --}}
     <div class="group-detail-feed">
@@ -266,6 +271,16 @@
 </div>
 @endsection
 
+@push('scripts')
+<script>
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        document.getElementById('groupAboutModal')?.classList.remove('is-visible');
+    }
+});
+</script>
+@endpush
+
 @if($isApproved)
 @push('scripts')
 <script>
@@ -279,6 +294,10 @@ window.FeedConfig = {!! json_encode([
         'feed'           => route('groups.feed', $group->slug),
         'store'          => route('groups.posts.store', $group->slug),
         'destroy'        => url('/posts/__ID__'),
+        'update'         => url('/posts/__ID__'),
+        'editApprove'    => url('/posts/__ID__/edit/approve'),
+        'editReject'     => url('/posts/__ID__/edit/reject'),
+        'pendingEdits'   => route('groups.pending-edits', $group->slug),
         'like'           => url('/posts/__ID__/like'),
         'save'           => url('/posts/__ID__/save'),
         'share'          => url('/posts/__ID__/share'),
@@ -288,29 +307,6 @@ window.FeedConfig = {!! json_encode([
         'postShow'       => url('/posts/__ID__'),
     ],
 ]) !!};
-</script>
-<script>
-function openAboutModal() {
-    document.getElementById('aboutModal').classList.add('active');
-}
-
-function closeAboutModal() {
-    document.getElementById('aboutModal').classList.remove('active');
-}
-
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('aboutModal');
-
-    if (e.target === modal) {
-        closeAboutModal();
-    }
-});
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeAboutModal();
-    }
-});
 </script>
 <script src="{{ asset('js/community/feed-core.js') }}?v=4" defer></script>
 <script src="{{ asset('js/community/feed.js') }}?v=4" defer></script>

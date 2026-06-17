@@ -222,7 +222,7 @@ Route::middleware('alumni.auth')->group(function () {
     |----------------------------------------------------------------
     | Job Applicants (for jobs the current user posted)
     |----------------------------------------------------------------
-    */
+    */ 
 
     Route::get('/my-jobs/{job}/applicants', [JobApplicationController::class, 'applicants'])
         ->name('jobs.applicants');
@@ -498,15 +498,6 @@ Route::middleware('alumni.auth')->group(function () {
     Route::get('/posts/{post}', [PostController::class, 'show'])
         ->name('posts.show');
 
-    /*
-    |----------------------------------------------------------------
-    | Public Detail Pages (login required)
-    | MUST stay last in this group — /events/create, /events/store,
-    | /stories/create and /stories (POST) above must match first,
-    | otherwise {event:slug} / {story:slug} would swallow them.
-    |----------------------------------------------------------------
-    */
-
     Route::get('/events/{event:slug}', [EventController::class, 'show'])
         ->name('events.show');
 
@@ -527,6 +518,15 @@ Route::middleware('alumni.auth')->group(function () {
     Route::get('/groups/{group:slug}/feed', [PostController::class, 'feed'])->name('groups.feed');
     Route::post('/groups/{group:slug}/posts', [PostController::class, 'store'])->name('groups.posts.store');
 
+    Route::get('/groups/{group:slug}/members', [GroupController::class, 'members'])->name('groups.members');
+    Route::post('/groups/{group:slug}/members/{member}/approve', [GroupController::class, 'approveMember'])->name('groups.members.approve');
+    Route::post('/groups/{group:slug}/members/{member}/reject', [GroupController::class, 'rejectMember'])->name('groups.members.reject');
+    Route::patch('/groups/{group:slug}/members/{member}/role', [GroupController::class, 'updateMemberRole'])->name('groups.members.role');
+    Route::delete('/groups/{group:slug}/members/{member}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
+    Route::patch('/posts/{id}', [PostController::class, 'update'])->name('posts.update');
+    Route::post('/posts/{id}/edit/approve', [PostController::class, 'approveEdit'])->name('posts.edit.approve');
+    Route::post('/posts/{id}/edit/reject', [PostController::class, 'rejectEdit'])->name('posts.edit.reject');
+    Route::get('/groups/{group:slug}/pending-edits', [GroupController::class, 'pendingEdits'])->name('groups.pending-edits');
 });
 
 

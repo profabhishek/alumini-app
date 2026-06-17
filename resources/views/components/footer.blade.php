@@ -92,9 +92,7 @@
                 <div class="col-title">Policies</div>
                 <ul class="col-links">
                     <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Cookie Policy</a></li>
                     <li><a href="#">Terms & Condition</a></li>
-                    <li><a href="#">Refund Policy</a></li>
                     <li><a href="#">Disclaimer</a></li>
                 </ul>
             </div>

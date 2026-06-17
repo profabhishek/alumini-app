@@ -1065,9 +1065,32 @@ function renderRegistrations(data) {
 
     data.registrations.forEach((reg, i) => {
         const tr = document.createElement('tr');
+        const avatarHtml = reg.photo
+            ? `<img src="${escHtml(reg.photo)}" alt="${escHtml(reg.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`
+            : `<span style="font-size:13px;font-weight:700;color:#e8640c;">${escHtml(reg.initials)}</span>`;
+
+        const profileHref = reg.profile_url || '#';
+
         tr.innerHTML = `
             <td>${i + 1}</td>
-            <td>${escHtml(reg.name)}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <a href="${escHtml(profileHref)}"
+                       style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#fde9d6,#fbd0b0);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;text-decoration:none;transition:opacity .15s;"
+                       title="View profile"
+                       onmouseover="this.style.opacity='.8'"
+                       onmouseout="this.style.opacity='1'">
+                        ${avatarHtml}
+                    </a>
+                    <a href="${escHtml(profileHref)}"
+                       style="font-weight:600;color:#1f2937;text-decoration:none;font-size:13.5px;"
+                       onmouseover="this.style.color='#c9622a';this.style.textDecoration='underline'"
+                       onmouseout="this.style.color='#1f2937';this.style.textDecoration='none'">
+                        ${escHtml(reg.name)}
+                    </a>
+                </div>
+            </td>
+            <td><a href="mailto:${escHtml(reg.email)}" ...
             <td><a href="mailto:${escHtml(reg.email)}" style="color:#E8640C;text-decoration:none;">${escHtml(reg.email)}</a></td>
             <td>${reg.phone !== '—' ? escHtml(reg.phone) : '<span class="regs-empty-cell">—</span>'}</td>
             <td>${reg.country !== '—' ? escHtml(reg.country) : '<span class="regs-empty-cell">—</span>'}</td>

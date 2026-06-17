@@ -124,7 +124,7 @@
                     <div class="hero-stats">
                         <div class="hero-stat">
                             <span class="hero-stat-num">19000<span>+</span></span>
-                            <span class="hero-stat-label">Members</span>
+                            <span class="hero-stat-label">Alumni's</span>
                         </div>
                         <div class="hero-stat-sep"></div>
                         <div class="hero-stat">
@@ -203,6 +203,68 @@
         </div>
     </section>
     <div class="gold-line-sep"></div>
+
+        <!-- ════════════════════════════════════
+     ⑦ NEW ALUMNI
+════════════════════════════════════ -->
+    <section class="alumni-section">
+        <div class="container">
+            <div class="reveal">
+                <div class="tag">New Alumni</div>
+                <div style="display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h2 class="section-heading gold-text" style="margin-bottom: 8px">
+                            Recent Joined Alumni
+                        </h2>
+                        <p class="section-sub">The Alumni Association leverages the resources, talents, and initiatives of alumni and friends to advise, guide, and support the community.</p>
+                    </div>
+                    {{-- Optional: remove this link, or point it at your real alumni index route --}}
+                    <a href="{{ route('alumni') }}" class="alumni-view-all">
+                        View All Alumni
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            @if($recentAlumni->isNotEmpty())
+            <div class="alumni-grid">
+                @foreach($recentAlumni as $i => $alum)
+                    <div class="alumni-card reveal {{ $i === 0 ? 'featured' : '' }} {{ $i > 0 ? 'reveal-delay-' . ($i % 4) : '' }}">
+                        @if($i === 0)
+                            <span class="featured-ribbon">Newest Member</span>
+                        @endif
+
+                        <div class="alumni-avatar av-{{ ($i % 8) + 1 }}">
+                            @if($alum->photo)
+                                <img src="{{ asset('storage/' . $alum->photo) }}" alt="{{ $alum->full_name }}">
+                            @else
+                                {{ $alum->initials }}
+                            @endif
+                        </div>
+
+                        <div>
+                            <div class="alumni-name">{{ $alum->full_name }}</div>
+                            <div class="alumni-dept">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                                {{ $alum->department ?: '—' }}
+                            </div>
+                            <span class="alumni-batch">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12.5V17c0 1 2.5 2 6 2s6-1 6-2v-4.5"/></svg>
+                                Batch {{ $alum->passing_year }}
+                            </span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            @else
+            <div class="reveal" style="text-align:center; padding: 40px 0; color: var(--txt3);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 12px; display:block; opacity:0.5;"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 1.5 9 1.5 12 0v-5"/></svg>
+                <p style="font-size:15px; font-weight:600; margin:0;">No alumni have joined yet.</p>
+            </div>
+            @endif
+        </div>
+    </section>
+
     <!-- ════════════════════════════════════
      ② WHY JOIN US
 ════════════════════════════════════ -->
@@ -646,48 +708,6 @@
             @else
             <div class="reveal" style="text-align:center; padding: 40px 0; color: var(--txt3);">
                 <p style="font-size:15px; font-weight:600; margin:0;">No stories published yet.</p>
-            </div>
-            @endif
-        </div>
-    </section>
-
-    <!-- ════════════════════════════════════
-     ⑦ NEW ALUMNI
-════════════════════════════════════ -->
-    <section class="alumni-section">
-        <div class="container">
-            <div class="reveal">
-                <div class="tag">New Alumni</div>
-                <div style="display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                    <div>
-                        <h2 class="section-heading" style="margin-bottom: 8px">
-                            Recent Joined Alumni
-                        </h2>
-                        <p class="section-sub">The Alumni Association leverages the resources, talents, and initiatives of alumni and friends to advise, guide, and support the community.</p>
-                    </div>
-                </div>
-            </div>
-
-            @if($recentAlumni->isNotEmpty())
-            <div class="alumni-grid">
-                @foreach($recentAlumni as $i => $alum)
-                    <div class="alumni-card reveal {{ $i > 0 ? 'reveal-delay-' . ($i % 4) : '' }}">
-                        <div class="alumni-avatar av-{{ ($i % 8) + 1 }}">
-                            @if($alum->photo)
-                                <img src="{{ asset('storage/' . $alum->photo) }}" alt="{{ $alum->full_name }}">
-                            @else
-                                {{ $alum->initials }}
-                            @endif
-                        </div>
-                        <div class="alumni-name">{{ $alum->full_name }}</div>
-                        <div class="alumni-dept">{{ $alum->department ?: '—' }}</div>
-                        <span class="alumni-batch">Batch {{ $alum->passing_year }}</span>
-                    </div>
-                @endforeach
-            </div>
-            @else
-            <div class="reveal" style="text-align:center; padding: 40px 0; color: var(--txt3);">
-                <p style="font-size:15px; font-weight:600; margin:0;">No alumni have joined yet.</p>
             </div>
             @endif
         </div>

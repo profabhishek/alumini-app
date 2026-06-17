@@ -17,9 +17,11 @@ class Post extends Model
         'type',
         'shared_post_id',
         'group_id',
+        'status',
         'likes_count',
         'comments_count',
         'shares_count',
+        'pending_body',
     ];
 
     protected $casts = [
@@ -119,7 +121,7 @@ class Post extends Model
      * Serialize a post for the feed JSON / Blade rendering.
      * $myId = current logged-in alumni id (for liked/saved flags).
      */
-    public function toFeedArray(?int $myId = null): array
+    public function toFeedArray(?int $myId = null, bool $viewerIsGroupMod = false): array
     {
         $author = $this->author;
 
@@ -128,6 +130,15 @@ class Post extends Model
             'type'           => $this->type,
             'body'           => $this->body,
             'group_id'       => $this->group_id,
+            'status'           => $this->status,
+            'is_pending_review'=> $this->status === 'pending_review',
+            'has_pending_edit' => $this->pending_body !== null,
+            'pending_body'     => $this->pending_body,
+            'can_review_edit'  => ($this->pending_body !== null || $this->status === 'pending_review')
+                && (int) $this->alumni_id !== $myId
+                && $viewerIsGroupMod,
+            'can_delete'       => $myId && ((int) $this->alumni_id === $myId || $viewerIsGroupMod),
+            'can_edit'         => $myId && ((int) $this->alumni_id === $myId || $viewerIsGroupMod),
             'created_at'     => $this->created_at?->toISOString(),
             'created_human'  => $this->created_at?->diffForHumans(),
             'likes_count'    => $this->likes_count,
@@ -137,13 +148,15 @@ class Post extends Model
             'is_saved'       => $this->isSavedBy($myId),
             'is_mine'        => $myId && (int) $this->alumni_id === $myId,
             'author' => [
-                'id'        => $author?->id,
-                'name'      => $author?->full_name ?? 'Unknown',
-                'avatar'    => $author?->photo ? asset('storage/' . $author->photo) : null,
-                'initials'  => $author?->initials ?? '?',
-                'job_title' => $author?->current_job_title,
-                'company'   => $author?->current_company,
-                'batch'     => $author?->passing_year,
+                'id'          => $author?->id,
+                'name'        => $author?->full_name ?? 'Unknown',
+                'avatar'      => $author?->photo ? asset('storage/' . $author->photo) : null,
+                'initials'    => $author?->initials ?? '?',
+                'job_title'   => $author?->current_job_title,
+                'company'     => $author?->current_company,
+                'batch'       => $author?->passing_year,
+                'group_role'  => $this->groupRoleFor($author?->id),
+                'profile_url' => $author?->id ? url('/members/' . $author->id) : null,
             ],
             'media' => $this->media->map(fn($m) => $m->toApiArray())->values(),
         ];
@@ -158,5 +171,17 @@ class Post extends Model
         }
 
         return $base;
+    }
+    
+    public function groupRoleFor(?int $alumniId): ?string
+    {
+        if (!$this->group_id || !$alumniId) {
+            return null;
+        }
+
+        return CommunityGroupMember::where('group_id', $this->group_id)
+            ->where('alumni_id', $alumniId)
+            ->where('status', 'approved')
+            ->value('role');
     }
 }

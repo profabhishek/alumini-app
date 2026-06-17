@@ -110,11 +110,20 @@
 
                         <td class="mj-td-job">
                             <div class="ap-applicant">
-                                <div class="ap-avatar">
-                                    {{ strtoupper(substr($app->full_name, 0, 1)) }}
-                                </div>
+                                @php $applicantUser = $app->applicant; @endphp
+                                <a href="{{ $applicantUser ? url('/members/' . $applicantUser->id) : '#' }}"
+                                class="ap-avatar ap-avatar--link"
+                                title="View {{ $app->full_name }}'s profile">
+                                    @if($applicantUser?->photo)
+                                        <img src="{{ asset('storage/' . $applicantUser->photo) }}"
+                                            alt="{{ $app->full_name }}">
+                                    @else
+                                        {{ strtoupper(substr($app->full_name, 0, 1)) }}
+                                    @endif
+                                </a>
                                 <div>
-                                    <span class="mj-job-title">{{ $app->full_name }}</span>
+                                    <a href="{{ $applicantUser ? url('/members/' . $applicantUser->id) : '#' }}"
+                                    class="mj-job-title ap-name-link">{{ $app->full_name }}</a>
                                     <span class="mj-job-company">{{ $app->email }}</span>
                                 </div>
                             </div>

@@ -33,4 +33,5 @@ class JobApplication extends Model
     {
         return $this->belongsTo(AlumniUser::class, 'alumni_id');
     }
+    
 }

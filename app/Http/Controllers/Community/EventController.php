@@ -334,6 +334,7 @@ class EventController extends Controller
             ->firstOrFail();
 
         $registrations = \App\Models\EventRegistration::where('event_id', $event->id)
+            ->with('alumni')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -379,14 +380,17 @@ class EventController extends Controller
             'total'      => $registrations->sum('no_of_people'),
             'count'      => $registrations->count(),
             'registrations' => $registrations->map(fn($r) => [
-                'name'       => $r->full_name,
-                'email'      => $r->email,
-                'phone'      => $r->phone      ?? '—',
-                'country'    => $r->country    ?? '—',
-                'batch'      => $r->batch_year ?? '—',
-                'people'     => $r->no_of_people,
-                'message'    => $r->message    ?? '—',
-                'registered' => $r->created_at->format('d M Y, g:i A'),
+                'name'        => $r->full_name,
+                'email'       => $r->email,
+                'phone'       => $r->phone      ?? '—',
+                'country'     => $r->country    ?? '—',
+                'batch'       => $r->batch_year ?? '—',
+                'people'      => $r->no_of_people,
+                'message'     => $r->message    ?? '—',
+                'registered'  => $r->created_at->format('d M Y, g:i A'),
+                'photo'       => $r->alumni?->photo ? asset('storage/' . $r->alumni->photo) : null,
+                'profile_url' => $r->alumni?->id ? url('/members/' . $r->alumni->id) : null,
+                'initials'    => strtoupper(substr($r->full_name, 0, 1)),
             ])
         ]);
     }

@@ -97,14 +97,16 @@
         }, 3200);
     }
 
-    function avatarMarkup(entity, cls = "avatar avatar--sm") {
+    function avatarMarkup(entity, cls = "avatar avatar--sm", href = null) {
         const name = entity?.name || "?";
         const initials =
             entity?.initials || name.charAt(0).toUpperCase() || "?";
+        const tag = href ? "a" : "div";
+        const extra = href ? ` href="${escAttr(href)}"` : "";
         if (entity?.avatar) {
-            return `<div class="${cls}"><img src="${escAttr(entity.avatar)}" alt="${escAttr(name)}" loading="lazy"></div>`;
+            return `<${tag}${extra} class="${cls}"><img src="${escAttr(entity.avatar)}" alt="${escAttr(name)}" loading="lazy"></${tag}>`;
         }
-        return `<div class="${cls}"><span class="avatar-initials">${esc(initials)}</span></div>`;
+        return `<${tag}${extra} class="${cls}"><span class="avatar-initials">${esc(initials)}</span></${tag}>`;
     }
 
     // ── Icons ────────────────────────────────────────────────────────────
@@ -136,6 +138,74 @@
 
     function saveIconSvg(filled) {
         return `<svg width="18" height="18" viewBox="0 0 24 24" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>`;
+    }
+
+    function roleBadgeMarkup(groupRole) {
+        if (groupRole !== "admin" && groupRole !== "moderator") return "";
+        const label = groupRole === "admin" ? "Admin" : "Moderator";
+        return ` <span class="role-badge role-badge--${groupRole}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 4.86 5.36.78-3.88 3.78.92 5.34L12 14.27l-4.8 2.49.92-5.34-3.88-3.78 5.36-.78L12 2z"/></svg>${label}</span>`;
+    }
+
+    // Pending banner for the author's own post (while awaiting approval).
+    // Mods/admins see can_review_edit=true and get a link to the review page.
+    function pendingEditBannerMarkup(post) {
+        const clockIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
+
+        // Mod/admin reviewer nudge — link to review page
+        if (post.can_review_edit) {
+            const reviewUrl = config.routes?.pendingEdits || "#";
+            return `<div class="post-pending-banner post-pending-banner--review">
+                <div class="post-pending-banner__label">${clockIcon} This post is pending your review</div>
+                <div class="post-pending-banner__actions">
+                    <a href="${escAttr(reviewUrl)}" class="feed-btn feed-btn--primary" style="text-decoration:none;font-size:12.5px">Review</a>
+                </div>
+            </div>`;
+        }
+
+        // Author — new post awaiting approval
+        if (post.is_pending_review && post.is_mine) {
+            return `<div class="post-pending-banner">
+                <div class="post-pending-banner__label">${clockIcon} Your post is awaiting moderator approval before it appears to others</div>
+            </div>`;
+        }
+
+        // Author — edit awaiting approval
+        if (post.has_pending_edit && post.is_mine) {
+            return `<div class="post-pending-banner">
+                <div class="post-pending-banner__label">${clockIcon} Your edit is awaiting moderator approval — only you can see this post for now</div>
+                <p class="post-pending-banner__text">${esc(post.pending_body).replaceAll("\n", "<br>")}</p>
+            </div>`;
+        }
+
+        return "";
+    }
+
+    // Hidden-by-default inline editor for a post's text, toggled via the
+    // "Edit post" menu item.
+    function postEditComposerMarkup(post) {
+        const current = post.has_pending_edit ? post.pending_body : post.body;
+        return `<div class="post-edit-composer" hidden>
+            <textarea class="post-edit-textarea" maxlength="5000">${esc(current)}</textarea>
+            <div class="post-edit-actions">
+                <button class="feed-btn" data-action="cancel-edit-post" data-post-id="${post.id}">Cancel</button>
+                <button class="feed-btn feed-btn--primary" data-action="save-edit-post" data-post-id="${post.id}">Save</button>
+            </div>
+        </div>`;
+    }
+
+    // Shared confirm — uses CommunityConfirm (confirm-modal.js) if loaded,
+    // falls back to window.confirm() only as a last resort.
+    async function confirmAction({
+        title,
+        body = "",
+        confirmText = "Confirm",
+        danger = true,
+    }) {
+        const mod = window.CommunityConfirm || window.GroupsConfirm;
+        if (mod?.show) return mod.show({ title, body, confirmText, danger });
+        if (mod?.showConfirmModal)
+            return mod.showConfirmModal({ title, body, confirmText, danger });
+        return Promise.resolve(confirm(body ? `${title}\n\n${body}` : title));
     }
 
     // ── Markup renderers ─────────────────────────────────────────────────
@@ -199,20 +269,20 @@
         if (!shared) return "";
         const author = shared.author;
         return `<div class="feed-shared-inner" data-post-id="${shared.id}" data-navigable="true">
-            <div class="card-header">
-                <div class="post-meta">
-                    ${avatarMarkup(author, "avatar avatar--sm")}
-                    <div class="post-info">
-                        <span class="post-author">${esc(author.name)}</span>
-                        <span class="post-time">${esc(timeAgo(shared.created_at))}</span>
-                    </div>
+        <div class="card-header">
+            <div class="post-meta">
+                ${avatarMarkup(author, "avatar avatar--sm", author.profile_url)}
+                <div class="post-info">
+                    <span class="post-author"><a href="${escAttr(author.profile_url || "#")}" class="author-link">${esc(author.name)}</a>${roleBadgeMarkup(author.group_role)}</span>
+                    <span class="post-time">${esc(timeAgo(shared.created_at))}${author.job_title ? ` &middot; <span class="post-badge">${esc(author.job_title)}</span>` : ""}</span>
                 </div>
             </div>
-            <div class="card-body">
-                ${shared.body ? `<p class="post-text">${esc(shared.body).replaceAll("\n", "<br>")}</p>` : ""}
-                ${mediaGridMarkup(shared.media, shared.id)}
-            </div>
-        </div>`;
+        </div>
+        <div class="card-body">
+            ${shared.body ? `<p class="post-text">${esc(shared.body).replaceAll("\n", "<br>")}</p>` : ""}
+            ${mediaGridMarkup(shared.media, shared.id)}
+        </div>
+    </div>`;
     }
 
     /**
@@ -228,15 +298,24 @@
         const showMenu = opts.showMenu !== false;
         const openComments = Boolean(opts.openComments);
 
-        const menuItems = post.is_mine
+        const editMenuItem = post.can_edit
+            ? `<button class="card-menu-item" data-action="edit-post" data-post-id="${post.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit post
+            </button>`
+            : "";
+
+        const menuItems = post.can_delete
             ? `<button class="card-menu-item card-menu-item--danger" data-action="delete-post" data-post-id="${post.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6"/></svg>
                 Delete post
             </button>`
-            : `<button class="card-menu-item" data-action="report-post" data-post-id="${post.id}">
+            : !post.is_mine
+              ? `<button class="card-menu-item" data-action="report-post" data-post-id="${post.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14.18A2 2 0 003.93 21h16.14a2 2 0 001.82-2.96L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                 Report post
-            </button>`;
+            </button>`
+              : "";
 
         const extraMenu = opts.extraMenuItems || "";
 
@@ -253,9 +332,9 @@
             }
             <div class="card-header">
                 <div class="post-meta" ${!isShare ? `data-post-id="${post.id}" data-navigable="true"` : ""}>
-                    ${avatarMarkup(author, "avatar avatar--sm")}
+                    ${avatarMarkup(author, "avatar avatar--sm", author.profile_url)}
                     <div class="post-info">
-                        <span class="post-author">${esc(author.name)}</span>
+                        <span class="post-author"><a href="${escAttr(author.profile_url || "#")}" class="author-link">${esc(author.name)}</a>${roleBadgeMarkup(author.group_role)}</span>
                         <span class="post-time">${esc(timeAgo(post.created_at))}${author.job_title ? ` &middot; <span class="post-badge">${esc(author.job_title)}</span>` : ""}</span>
                     </div>
                 </div>
@@ -266,13 +345,17 @@
                     <button class="card-menu-btn" data-action="toggle-menu" title="More options">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
                     </button>
-                    <div class="card-menu-dropdown" hidden>${extraMenu}${menuItems}</div>
+                    <div class="card-menu-dropdown" hidden>${extraMenu}${editMenuItem}${menuItems}</div>
                 </div>`
                         : ""
                 }
             </div>
+
+            ${pendingEditBannerMarkup(post)}
+
             <div class="card-body" ${!isShare ? `data-post-id="${post.id}" data-navigable="body"` : ""}>
-                ${post.body ? `<p class="post-text">${esc(post.body).replaceAll("\n", "<br>")}</p>` : ""}
+                ${post.body && !(post.has_pending_edit && !post.can_review_edit) ? `<p class="post-text">${esc(post.body).replaceAll("\n", "<br>")}</p>` : ""}
+                ${post.is_mine ? postEditComposerMarkup(post) : ""}
                 ${isShare ? sharedPostMarkup(post.shared_post) : mediaGridMarkup(post.media, post.id)}
             </div>
 
@@ -334,10 +417,10 @@
     function replyMarkup(reply, postId, parentId) {
         const author = reply.author;
         return `<div class="reply-item" data-comment-id="${reply.id}">
-            ${avatarMarkup(author, "avatar avatar--sm")}
+            ${avatarMarkup(author, "avatar avatar--sm", author.profile_url)}
             <div class="comment-body-wrap">
                 <div class="comment-bubble">
-                    <span class="comment-author">${esc(author.name)}</span>
+                    <span class="comment-author"><a href="${escAttr(author.profile_url || "#")}" class="author-link">${esc(author.name)}</a>${roleBadgeMarkup(author.group_role)}</span>
                     <span class="comment-text">${esc(reply.body).replaceAll("\n", "<br>")}</span>
                 </div>
                 <div class="comment-meta">
@@ -358,10 +441,10 @@
             .join("");
 
         return `<div class="comment-item" data-comment-id="${comment.id}">
-            ${avatarMarkup(author, "avatar avatar--sm")}
+            ${avatarMarkup(author, "avatar avatar--sm", author.profile_url)}
             <div class="comment-body-wrap">
                 <div class="comment-bubble">
-                    <span class="comment-author">${esc(author.name)}</span>
+                    <span class="comment-author"><a href="${escAttr(author.profile_url || "#")}" class="author-link">${esc(author.name)}</a>${roleBadgeMarkup(author.group_role)}</span>
                     <span class="comment-text">${esc(comment.body).replaceAll("\n", "<br>")}</span>
                 </div>
                 <div class="comment-meta">
@@ -503,13 +586,99 @@
         }
 
         async function handleDeletePost(postId) {
-            if (!confirm("Delete this post? This cannot be undone.")) return;
+            const ok = await confirmAction({
+                title: "Delete this post?",
+                body: "This can't be undone.",
+                confirmText: "Delete",
+            });
+            if (!ok) return;
             try {
                 await api(route(config.routes.destroy, { __ID__: postId }), {
                     method: "DELETE",
                 });
                 removePostCard(postId);
                 toast("Post deleted.", "success");
+            } catch (err) {
+                toast(err.message, "error");
+            }
+        }
+
+        // ── Edit post ────────────────────────────────────────────────
+
+        function replacePostCard(postId, newPost) {
+            posts.set(postId, newPost);
+            const card = container.querySelector(
+                `[data-post-id="${postId}"].feed-card`,
+            );
+            if (card) card.outerHTML = postCardMarkup(newPost);
+        }
+
+        async function handleSaveEditPost(postId, card) {
+            const composer = card.querySelector(".post-edit-composer");
+            const textarea = composer.querySelector(".post-edit-textarea");
+            const saveBtn = composer.querySelector(
+                '[data-action="save-edit-post"]',
+            );
+            const body = textarea.value.trim();
+
+            if (!body) {
+                toast("Post can't be empty.", "error");
+                return;
+            }
+
+            saveBtn.disabled = true;
+            const originalLabel = saveBtn.textContent;
+            saveBtn.textContent = "Saving...";
+
+            try {
+                const data = await api(
+                    route(config.routes.update, { __ID__: postId }),
+                    {
+                        method: "PATCH",
+                        body: JSON.stringify({ body }),
+                    },
+                );
+
+                replacePostCard(postId, data.post);
+
+                toast(
+                    data.pending
+                        ? "Your edit was submitted for approval."
+                        : "Post updated.",
+                    "success",
+                );
+            } catch (err) {
+                toast(err.message, "error");
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalLabel;
+            }
+        }
+
+        async function handleEditDecision(postId, card, action) {
+            if (action === "reject") {
+                const ok = await confirmAction({
+                    title: "Reject this edit?",
+                    body: "The post will keep its original content and become visible to the group again.",
+                    confirmText: "Reject",
+                });
+                if (!ok) return;
+            }
+
+            const routeKey =
+                action === "approve" ? "editApprove" : "editReject";
+
+            try {
+                const data = await api(
+                    route(config.routes[routeKey], { __ID__: postId }),
+                    { method: "POST" },
+                );
+
+                replacePostCard(postId, data.post);
+
+                toast(
+                    action === "approve" ? "Edit approved." : "Edit rejected.",
+                    "success",
+                );
             } catch (err) {
                 toast(err.message, "error");
             }
@@ -696,7 +865,11 @@
         }
 
         async function handleDeleteComment(btn) {
-            if (!confirm("Delete this comment?")) return;
+            const ok = await confirmAction({
+                title: "Delete this comment?",
+                confirmText: "Delete",
+            });
+            if (!ok) return;
 
             const commentId = btn.dataset.commentId;
             const postId = btn.dataset.postId;
@@ -994,7 +1167,7 @@
             if (
                 navEl &&
                 !e.target.closest(
-                    "a, button, .photo-tile, .fv-player, .card-menu-wrap, .comments-section",
+                    "a, button, .photo-tile, .fv-player, .card-menu-wrap, .comments-section, .post-edit-composer",
                 )
             ) {
                 navigateToPost(navEl.dataset.postId);
@@ -1019,6 +1192,44 @@
             const delBtn = e.target.closest('[data-action="delete-post"]');
             if (delBtn) {
                 handleDeletePost(delBtn.dataset.postId);
+                return;
+            }
+
+            const editBtn = e.target.closest('[data-action="edit-post"]');
+            if (editBtn) {
+                const composer = card.querySelector(".post-edit-composer");
+                const textEl = card.querySelector(".post-text");
+                if (composer) {
+                    composer.hidden = false;
+                    if (textEl) textEl.hidden = true;
+                    const textarea = composer.querySelector(
+                        ".post-edit-textarea",
+                    );
+                    resizeTextarea(textarea);
+                    textarea.focus();
+                }
+                $$(".card-menu-dropdown", container).forEach(
+                    (d) => (d.hidden = true),
+                );
+                return;
+            }
+
+            const cancelEditBtn = e.target.closest(
+                '[data-action="cancel-edit-post"]',
+            );
+            if (cancelEditBtn) {
+                const composer = card.querySelector(".post-edit-composer");
+                const textEl = card.querySelector(".post-text");
+                if (composer) composer.hidden = true;
+                if (textEl) textEl.hidden = false;
+                return;
+            }
+
+            const saveEditBtn = e.target.closest(
+                '[data-action="save-edit-post"]',
+            );
+            if (saveEditBtn) {
+                handleSaveEditPost(postId, card);
                 return;
             }
 
@@ -1132,6 +1343,10 @@
         });
 
         container.addEventListener("input", (e) => {
+            if (e.target.classList.contains("post-edit-textarea")) {
+                resizeTextarea(e.target);
+                return;
+            }
             if (!e.target.classList.contains("comment-input")) return;
             resizeTextarea(e.target);
             const sendBtn = e.target.nextElementSibling;
@@ -1421,5 +1636,6 @@
         commentMarkup,
         replyMarkup,
         createFeedController,
+        roleBadgeMarkup,
     };
 })();

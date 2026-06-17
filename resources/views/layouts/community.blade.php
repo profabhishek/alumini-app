@@ -771,6 +771,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <script src="{{ asset('js/community/layout.js') }}"></script>
+    <script src="{{ asset('js/community/confirm-modal.js') }}"></script>
     @stack('scripts')
 
        @if(session('alumni_id'))

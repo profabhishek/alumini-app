@@ -1,3 +1,7 @@
+/* ============================================================
+   COMMUNITY GROUPS — groups-* / group-* namespace
+   ============================================================ */
+
 [hidden] {
     display: none !important;
 }
@@ -465,9 +469,9 @@
     text-transform: capitalize;
 }
 .group-role-badge--admin {
-    background: #f7ffee;
-    color: #16a34a;
-    border: 1px solid #74c20d;
+    background: #fff7f0;
+    color: #e8640c;
+    border: 1px solid #fbd0b0;
 }
 .group-role-badge--moderator {
     background: #f0f4ff;
@@ -575,76 +579,441 @@
         justify-content: flex-end;
     }
 }
-.about-btn {
-    background: #fff7f0;
+
+/* ============================================================
+   MEMBER MANAGEMENT
+   ============================================================ */
+
+.groups-page--medium {
+    max-width: 900px;
+}
+
+.gm-section {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+.gm-section__header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.gm-section__title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1c2331;
+}
+.gm-section__count {
+    font-size: 12px;
+    font-weight: 700;
     color: #e8640c;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-    border: 1px solid #ffc9a0;
+    background: #fff7f0;
+    border: 1px solid #fbd0b0;
     border-radius: 999px;
+    padding: 2px 10px;
 }
 
-.about-btn:hover {
-    transform: translateY(-2px);
+.gm-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    flex-wrap: wrap;
+}
+.gm-row:last-child {
+    border-bottom: none;
 }
 
-.custom-modal {
+.gm-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fde9d6, #fbd0b0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #e8640c;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.gm-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gm-info {
+    flex: 1;
+    min-width: 160px;
+}
+.gm-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1c2331;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.gm-meta {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+.gm-you-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #e8640c;
+    background: #fff7f0;
+    border: 1px solid #fbd0b0;
+    border-radius: 999px;
+    padding: 1px 8px;
+}
+
+.gm-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.gm-role-select {
+    padding: 7px 28px 7px 12px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    background: #f9fafb
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+        no-repeat right 8px center;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    cursor: pointer;
+}
+.gm-role-select:focus {
+    border-color: #e8640c;
+}
+
+.groups-btn--sm {
+    padding: 6px 14px;
+    font-size: 12.5px;
+}
+.groups-btn--danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.groups-btn--danger:hover {
+    background: #fecaca;
+    color: #b91c1c;
+}
+
+.gm-locked {
+    font-size: 12px;
+    color: #d1d5db;
+    font-style: italic;
+}
+
+.gm-empty {
+    padding: 28px 20px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.group-manage-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+/* WhatsApp-style notification bubble — used on both group action buttons */
+.notif-bubble {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #dc2626;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 5px rgba(220, 38, 38, 0.45);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   CONFIRM MODAL (shared — replaces window.confirm())
+   ============================================================ */
+
+.gcm-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(6px);
-    display: none;
-    justify-content: center;
+    background: rgba(17, 24, 39, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 2000;
+    display: flex;
     align-items: center;
-    z-index: 9999;
-    padding: 20px;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.gcm-backdrop.is-visible {
+    opacity: 1;
 }
 
-.custom-modal.active {
+/* Static (always-in-DOM) modals like the About modal use display:none by
+   default and toggle .is-visible to show — avoids the [hidden] vs
+   author-stylesheet display:flex conflict that dynamic modals don't have. */
+.gcm-backdrop.gcm-static {
+    display: none;
+}
+.gcm-backdrop.gcm-static.is-visible {
     display: flex;
 }
 
-.custom-modal-content {
+.gcm-box {
     background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 380px;
     width: 100%;
-    max-width: 700px;
-    max-height: 80vh;
-    overflow: hidden;
-    border-radius: 20px;
-    padding: 25px;
-    position: relative;
-    animation: modalFade 0.25s ease;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    transform: translateY(10px) scale(0.98);
+    transition: transform 0.15s ease;
+}
+.gcm-backdrop.is-visible .gcm-box {
+    transform: translateY(0) scale(1);
+}
+.gcm-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1c2331;
+    margin: 0 0 8px;
+}
+.gcm-body {
+    font-size: 13.5px;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 20px;
+}
+.gcm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
-.custom-modal-body {
-    max-height: 60vh;
-    overflow-y: auto;
-    line-height: 1.8;
-    margin-top: 15px;
+/* ---------- About modal (reuses .gcm-* base) ---------- */
+.gcm-box--about {
+    max-width: 480px;
+    text-align: left;
 }
-
-.custom-modal-close {
-    position: absolute;
-    top: 15px;
-    right: 15px;
+.gcm-box__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.gcm-box__header .gcm-title {
+    margin: 0;
+}
+.gcm-close {
+    background: #f3f4f6;
     border: none;
-    background: none;
-    font-size: 28px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 18px;
+    line-height: 1;
+    color: #6b7280;
     cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.gcm-close:hover {
+    background: #e5e7eb;
+    color: #1c2331;
 }
 
-@keyframes modalFade {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.gcm-about-text {
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.75;
+    white-space: pre-line;
+    margin: 0;
+}
+
+.group-about-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ============================================================
+   PENDING EDITS REVIEW PAGE
+   ============================================================ */
+
+.pe-card {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.pe-card__author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.pe-card__name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1c2331;
+}
+
+.pe-card__meta {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 1px;
+}
+
+.pe-diff {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 16px;
+}
+
+.pe-diff__col {
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.pe-diff__col--current {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.pe-diff__col--proposed {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.pe-diff__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+
+.pe-diff__col--current .pe-diff__label {
+    color: #dc2626;
+}
+.pe-diff__col--proposed .pe-diff__label {
+    color: #16a34a;
+}
+
+.pe-diff__body {
+    font-size: 13.5px;
+    color: #374151;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.pe-diff__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 38px;
+    color: #9ca3af;
+}
+
+.pe-card__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid #f3f4f6;
+    margin-top: 4px;
+    padding-top: 14px;
+}
+
+.pe-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.pe-empty p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Pending-edits badge on Manage Members button area */
+.pe-badge {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fff;
+    background: #dc2626;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(220, 38, 38, 0.4);
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* New-post pending preview box */
+.pe-new-post {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    font-size: 13.5px;
+    color: #374151;
+    line-height: 1.65;
 }
