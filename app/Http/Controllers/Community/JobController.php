@@ -148,6 +148,11 @@ class JobController extends Controller
 
     public function myJobs(Request $request)
     {
+        // Read last seen BEFORE updating it
+        $myJobsLastSeen = session('my_jobs_last_seen')
+            ? \Carbon\Carbon::parse(session('my_jobs_last_seen'))
+            : now()->subDays(7);
+
         $query = Job::with('creator')
             ->where('created_by', session('alumni_id'))
             ->latest();
@@ -156,18 +161,29 @@ class JobController extends Controller
             $search = trim($request->get('q'));
             $query->where(function ($q) use ($search) {
                 $q->where('title',        'like', "%{$search}%")
-                  ->orWhere('company_name', 'like', "%{$search}%")
-                  ->orWhere('location',     'like', "%{$search}%");
+                ->orWhere('company_name', 'like', "%{$search}%")
+                ->orWhere('location',     'like', "%{$search}%");
             });
         }
 
         $allowedStatuses = ['pending', 'published', 'rejected'];
-
         if ($request->filled('status') && in_array($request->status, $allowedStatuses)) {
             $query->where('status', $request->status);
         }
 
         $jobs = $query->paginate(10)->appends($request->query());
+
+        $jobIds = collect($jobs->items())->pluck('id')->toArray();
+
+        $newApplicantCounts = empty($jobIds)
+        ? collect()
+        : \App\Models\JobApplication::whereIn('job_id', $jobIds)
+            ->where('created_at', '>', $myJobsLastSeen)
+            ->selectRaw('job_id, count(*) as cnt')
+            ->groupBy('job_id')
+            ->pluck('cnt', 'job_id');
+
+        session(['my_jobs_last_seen' => now()->toDateTimeString()]);
 
         $stats = [
             'total'     => Job::where('created_by', session('alumni_id'))->count(),
@@ -176,9 +192,8 @@ class JobController extends Controller
             'rejected'  => Job::where('created_by', session('alumni_id'))->where('status', 'rejected')->count(),
         ];
 
-        return view('community.jobs.my-jobs', compact('jobs', 'stats'));
+        return view('community.jobs.my-jobs', compact('jobs', 'stats', 'newApplicantCounts'));
     }
-
     // ── Ownership guard ───────────────────────────────────────────────────
 
     private function ensureOwnership(Job $job): void

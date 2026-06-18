@@ -1289,3 +1289,33 @@ body {
         font-size: 18px;
     }
 }
+
+/* New registrations badge on card banner */
+.event-card__new-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #e8640c;
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(232, 100, 12, 0.5);
+    letter-spacing: 0.02em;
+    animation: badge-pulse 2s ease-in-out infinite;
+    z-index: 2;
+}
+
+@keyframes badge-pulse {
+    0%,
+    100% {
+        box-shadow: 0 2px 8px rgba(232, 100, 12, 0.5);
+    }
+    50% {
+        box-shadow: 0 2px 16px rgba(232, 100, 12, 0.8);
+    }
+}

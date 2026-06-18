@@ -1,6 +1,7 @@
-/* =============================================================
-   HEADER.CSS — Fixed Header, Logo, Search, Nav, User Menu
-============================================================= */
+.notif-item--unread {
+    background: rgba(232, 100, 12, 0.04);
+    border-left: 3px solid #e8640c;
+}
 
 .comm-header {
     position: fixed;

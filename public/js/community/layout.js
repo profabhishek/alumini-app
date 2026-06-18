@@ -132,13 +132,15 @@ function toggleSidebarMenu(key) {
     const keys = ["event", "job", "story"];
     const isOpen = document
         .getElementById("kids-" + key)
-        .classList.contains("open");
+        ?.classList.contains("open");
+
     keys.forEach((k) => {
-        document.getElementById("kids-" + k).classList.remove("open");
-        document.getElementById("chev-" + k).classList.remove("open");
+        document.getElementById("kids-" + k)?.classList.remove("open");
+        document.getElementById("chev-" + k)?.classList.remove("open");
     });
+
     if (!isOpen) {
-        document.getElementById("kids-" + key).classList.add("open");
-        document.getElementById("chev-" + key).classList.add("open");
+        document.getElementById("kids-" + key)?.classList.add("open");
+        document.getElementById("chev-" + key)?.classList.add("open");
     }
 }

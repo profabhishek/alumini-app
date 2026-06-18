@@ -37,7 +37,10 @@ class ApplicationStatusMail extends Mailable
         };
 
         return new Envelope(
-            subject: $subject
+            subject: $subject,
+            replyTo: [
+                new \Illuminate\Mail\Mailables\Address($this->posterEmail, $this->posterName),
+            ],
         );
     }
 

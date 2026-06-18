@@ -32,6 +32,11 @@
     $organizer = $event->creator;
     $organizerName     = $organizer->full_name ?? 'ICCR Alumni Community';
     $organizerInitials = $organizer->initials ?? 'IC';
+
+    $canRegister = $statusLabel !== 'Past'
+        && !$alreadyRegistered
+        && $event->registration_required
+        && $seatsLeft !== 0;
 @endphp
 
 <div class="ev-detail-page">
@@ -47,7 +52,7 @@
         </a>
     </div>
 
-    {{-- ── HERO ─────────────────────────────────────────────────── --}}
+    {{-- ── HERO ──────────────────────────────────────────────────────── --}}
     <div class="ev-detail-hero-wrap">
         <div class="ev-detail-hero ev-reveal">
             @if($event->banner_image)
@@ -66,7 +71,6 @@
                 @endif
             </div>
 
-            {{-- Signature date block --}}
             <div class="ev-detail-hero__date" aria-label="{{ $event->start_date->format('d F Y') }}">
                 <div class="ev-detail-hero__date-month">{{ $event->start_date->format('F') }}</div>
                 <div class="ev-detail-hero__date-day">{{ $event->start_date->format('d') }}</div>
@@ -75,10 +79,10 @@
         </div>
     </div>
 
-    {{-- ── LAYOUT ───────────────────────────────────────────────── --}}
+    {{-- ── LAYOUT ────────────────────────────────────────────────────── --}}
     <div class="ev-detail-layout">
 
-        {{-- Main --}}
+        {{-- Main content --}}
         <div class="ev-detail-main ev-reveal">
 
             @if($event->category)
@@ -91,10 +95,26 @@
             <h1 class="ev-detail-title">{{ $event->title }}</h1>
 
             <div class="ev-detail-organizer">
-                <span class="ev-detail-organizer__avatar">{{ $organizerInitials }}</span>
+                @if($organizer?->photo)
+                    <a href="{{ $organizer->id ? url('/members/' . $organizer->id) : '#' }}"
+                    class="ev-detail-organizer__avatar ev-detail-organizer__avatar--photo">
+                        <img src="{{ asset('storage/' . $organizer->photo) }}"
+                            alt="{{ $organizerName }}">
+                    </a>
+                @else
+                    <span class="ev-detail-organizer__avatar">{{ $organizerInitials }}</span>
+                @endif
+
                 <div>
                     <span class="ev-detail-organizer__label">Organised by</span>
-                    <span class="ev-detail-organizer__name">{{ $organizerName }}</span>
+                    @if($organizer?->id)
+                        <a href="{{ url('/members/' . $organizer->id) }}"
+                        class="ev-detail-organizer__name ev-detail-organizer__name--link">
+                            {{ $organizerName }}
+                        </a>
+                    @else
+                        <span class="ev-detail-organizer__name">{{ $organizerName }}</span>
+                    @endif
                 </div>
             </div>
 
@@ -109,7 +129,6 @@
         <aside class="ev-detail-sidebar ev-reveal ev-reveal--delay-1">
             <div class="ev-ticket-card">
 
-                {{-- Ticket header --}}
                 <div class="ev-ticket-card__header">
                     <div class="ev-ticket-card__price">
                         @if($event->event_type === 'Free')
@@ -123,12 +142,10 @@
                     </div>
                 </div>
 
-                {{-- Perforated tear --}}
                 <div class="ev-ticket-tear">
                     <span class="ev-ticket-tear__line"></span>
                 </div>
 
-                {{-- Ticket body --}}
                 <div class="ev-ticket-card__body">
                     <ul class="ev-ticket-facts">
                         <li>
@@ -166,7 +183,7 @@
 
                     @if($event->total_seats && $pct !== null)
                         <div class="ev-ticket-divider"></div>
-                        <div class="ev-seats" style="margin:0 0 0;">
+                        <div class="ev-seats">
                             <div class="ev-seats__track">
                                 <div class="ev-seats__fill {{ $pct >= 100 ? 'ev-seats__fill--full' : ($pct >= 80 ? 'ev-seats__fill--near' : '') }}"
                                      style="width:{{ $pct }}%"></div>
@@ -191,24 +208,29 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                                 Already Registered
                             </span>
+
                         @elseif($statusLabel === 'Past')
                             <span class="ev-ticket-register ev-ticket-register--closed">
                                 Registration Closed
                             </span>
+
                         @elseif($seatsLeft === 0)
                             <span class="ev-ticket-register ev-ticket-register--closed">
                                 Fully Booked
                             </span>
+
                         @elseif(!$event->registration_required)
                             <span class="ev-ticket-register ev-ticket-register--closed">
                                 No Registration Required
                             </span>
+
                         @else
+                            {{-- ✅ THE FIX: data-register triggers openRegModal() in events-registration.js --}}
                             <a href="#"
                                class="ev-ticket-register"
+                               data-register="true"
                                data-event-id="{{ $event->id }}"
-                               data-event-title="{{ $event->title }}"
-                               data-register="true">
+                               data-event-title="{{ $event->title }}">
                                 Register Now
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                             </a>
@@ -226,7 +248,7 @@
 
     </div>{{-- /ev-detail-layout --}}
 
-    {{-- ── MORE EVENTS ─────────────────────────────────────────── --}}
+    {{-- ── MORE EVENTS ──────────────────────────────────────────────── --}}
     @if($relatedEvents->isNotEmpty())
     <section class="ev-more">
         <div class="ev-more__inner">
@@ -295,7 +317,106 @@
 
 </div>{{-- /ev-detail-page --}}
 
-@include('events._registration_modal')
+{{-- ══════════════════════════════════════════════════════════════════
+     REGISTRATION MODAL
+     IDs must match exactly what events-registration.js expects:
+     registrationModal, regModalTitle, regForm, regEventId,
+     reg_full_name, reg_email, reg_phone, reg_country,
+     reg_batch_year, reg_no_of_people, reg_message,
+     regFormError, regSubmitBtn, regBtnText, regBtnSpinner,
+     regSuccess, regSuccessMsg, regSuccessEmail, regSuccessEmailAddr
+══════════════════════════════════════════════════════════════════ --}}
+<div id="registrationModal" class="ev-modal-overlay">
+    <div class="ev-modal">
+
+        {{-- Header --}}
+        <div class="ev-modal__header">
+            <div>
+                <p class="ev-modal__header-label">Register for</p>
+                <h2 class="ev-modal__header-title" id="regModalTitle">Event Name</h2>
+            </div>
+            <button class="ev-modal__close" id="regModalClose" aria-label="Close">&times;</button>
+        </div>
+
+        {{-- Success state --}}
+        <div id="regSuccess" class="ev-modal__success" style="display:none">
+            <div class="ev-modal__success-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3>You're Registered!</h3>
+            <p id="regSuccessMsg">You have successfully registered for this event.</p>
+            <div class="ev-modal__success-email" id="regSuccessEmail" style="display:none">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Confirmation sent to <strong id="regSuccessEmailAddr"></strong>
+            </div>
+            <button class="ev-modal__done" onclick="closeRegModal()">Done</button>
+        </div>
+
+        {{-- Form --}}
+        <form id="regForm" novalidate>
+            @csrf
+            <input type="hidden" id="regEventId" name="event_id" value="">
+
+            <div class="ev-modal__body">
+                <div class="ev-modal__grid">
+                    <div class="ev-field">
+                        <label for="reg_full_name">Full Name <span>*</span></label>
+                        <input type="text" id="reg_full_name" name="full_name"
+                               placeholder="Your full name" required>
+                        <span class="ev-field-error" id="err_full_name"></span>
+                    </div>
+
+                    <div class="ev-field">
+                        <label for="reg_email">Email <span>*</span></label>
+                        <input type="email" id="reg_email" name="email"
+                               placeholder="your@email.com" required>
+                        <span class="ev-field-error" id="err_email"></span>
+                    </div>
+
+                    <div class="ev-field">
+                        <label for="reg_phone">Phone Number</label>
+                        <input type="text" id="reg_phone" name="phone" placeholder="+91 98765 43210">
+                    </div>
+
+                    <div class="ev-field">
+                        <label for="reg_country">Country</label>
+                        <input type="text" id="reg_country" name="country" placeholder="India">
+                    </div>
+
+                    <div class="ev-field">
+                        <label for="reg_batch_year">Alumni Batch / Year</label>
+                        <input type="text" id="reg_batch_year" name="batch_year" placeholder="e.g. 2018–2020">
+                    </div>
+
+                    <div class="ev-field">
+                        <label for="reg_no_of_people">No. of People <span>*</span></label>
+                        <input type="number" id="reg_no_of_people" name="no_of_people"
+                               value="1" min="1" max="20" required>
+                        <span class="ev-field-error" id="err_no_of_people"></span>
+                    </div>
+                </div>
+
+                <div class="ev-field ev-field-full">
+                    <label for="reg_message">Message / Special Requirements</label>
+                    <textarea id="reg_message" name="message"
+                              placeholder="Any special requirements or message for the organiser…"
+                              rows="3"></textarea>
+                </div>
+
+                <div id="regFormError" class="ev-form-error" style="display:none"></div>
+            </div>
+
+            <div class="ev-modal__footer">
+                <button type="button" class="ev-modal__cancel" onclick="closeRegModal()">Cancel</button>
+                <button type="submit" class="ev-modal__submit" id="regSubmitBtn">
+                    <span id="regBtnText">Confirm Registration</span>
+                    <span id="regBtnSpinner" style="display:none">Submitting…</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
 
 @endsection
 
@@ -311,25 +432,34 @@
 <script src="{{ asset('js/events-registration.js') }}"></script>
 <script>
 (function () {
-    // Reading progress
+    // Reading progress — throttled with rAF
     const bar = document.getElementById('evProgress');
     if (bar) {
+        let ticking = false;
         window.addEventListener('scroll', function () {
-            const el = document.documentElement;
-            bar.style.width = Math.min(100, el.scrollTop / (el.scrollHeight - el.clientHeight) * 100) + '%';
+            if (!ticking) {
+                requestAnimationFrame(function () {
+                    const el = document.documentElement;
+                    const pct = el.scrollTop / (el.scrollHeight - el.clientHeight) * 100;
+                    bar.style.width = Math.min(100, pct) + '%';
+                    ticking = false;
+                });
+                ticking = true;
+            }
         }, { passive: true });
     }
-    // Scroll reveal
+
+    // Reveal — no staggered setTimeout, just immediate show
     const els = document.querySelectorAll('.ev-reveal');
     if (!els.length) return;
     const obs = new IntersectionObserver((entries) => {
-        entries.forEach((e, i) => {
+        entries.forEach((e) => {
             if (e.isIntersecting) {
-                setTimeout(() => e.target.classList.add('ev-reveal--show'), i * 90);
+                e.target.classList.add('ev-reveal--show');
                 obs.unobserve(e.target);
             }
         });
-    }, { threshold: 0.06 });
+    }, { threshold: 0.04, rootMargin: '0px 0px -40px 0px' });
     els.forEach(el => obs.observe(el));
 })();
 </script>

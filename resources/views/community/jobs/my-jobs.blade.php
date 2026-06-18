@@ -92,7 +92,27 @@
                     <tr id="mj-row-{{ $job->id }}">
                         <td class="mj-td-num">{{ $loop->iteration + ($jobs->currentPage() - 1) * $jobs->perPage() }}</td>
                         <td class="mj-td-job">
-                            <span class="mj-job-title">{{ $job->title }}</span>
+                            <span class="mj-job-title">
+                                {{ $job->title }}
+                                @if(($newApplicantCounts[$job->id] ?? 0) > 0)
+                                    <span style="
+                                        display:inline-flex;
+                                        align-items:center;
+                                        gap:3px;
+                                        background:rgba(232,100,12,0.1);
+                                        color:#e8640c;
+                                        font-size:10px;
+                                        font-weight:700;
+                                        padding:1px 7px;
+                                        border-radius:999px;
+                                        border:1px solid rgba(232,100,12,0.25);
+                                        margin-left:6px;
+                                        vertical-align:middle;
+                                    ">
+                                        🔔 {{ $newApplicantCounts[$job->id] }} new
+                                    </span>
+                                @endif
+                            </span>
                             <span class="mj-job-company">{{ $job->company_name }}</span>
                             @if($job->location)
                                 <span class="mj-job-location">
@@ -129,19 +149,40 @@
                         <td>
                             <div class="mj-actions">
 
-                                @if($job->status === 'published')
-                                    <a href="{{ route('jobs.applicants', $job) }}"
-                                    class="mj-icon-btn"
-                                    style="color:#E8640C; border-color:rgba(232,100,12,.25); background:rgba(232,100,12,.06);"
-                                    title="View Applicants ({{ $job->applications_count ?? $job->applications()->count() }})">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                                            <circle cx="9" cy="7" r="4"/>
-                                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                                            <path d="M16 3.13a4 4 0 010 7.75"/>
-                                        </svg>
-                                    </a>
-                                @endif
+                            @if($job->status === 'published')
+                                @php $newCount = $newApplicantCounts[$job->id] ?? 0; @endphp
+                                <a href="{{ route('jobs.applicants', $job) }}"
+                                class="mj-icon-btn"
+                                style="color:#E8640C; border-color:rgba(232,100,12,.25); background:rgba(232,100,12,.06); position:relative;"
+                                title="{{ $newCount > 0 ? $newCount . ' new applicant(s)' : 'View Applicants' }}">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                        <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                        <path d="M16 3.13a4 4 0 010 7.75"/>
+                                    </svg>
+                                    @if($newCount > 0)
+                                        <span style="
+                                            position:absolute;
+                                            top:-5px;
+                                            right:-5px;
+                                            background:#e8640c;
+                                            color:#fff;
+                                            font-size:9px;
+                                            font-weight:700;
+                                            min-width:16px;
+                                            height:16px;
+                                            border-radius:999px;
+                                            display:flex;
+                                            align-items:center;
+                                            justify-content:center;
+                                            padding:0 3px;
+                                            line-height:1;
+                                            border:1.5px solid #fff;
+                                        ">{{ $newCount > 9 ? '9+' : $newCount }}</span>
+                                    @endif
+                                </a>
+                            @endif
 
                                 {{-- View --}}
                                 @if($job->status === 'published')

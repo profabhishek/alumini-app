@@ -72,11 +72,19 @@
                 <span class="event-card__status event-card__status--{{ strtolower($event->status) }}">
                     {{ ucfirst($event->status) }}
                 </span>
+                @if(($newRegCounts[$event->id] ?? 0) > 0)
+                    <span class="event-new-reg-badge event-card__new-badge" data-for-event="{{ $event->id }}">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                        {{ ($newRegCounts[$event->id] ?? 0) > 9 ? '9+' : $newRegCounts[$event->id] }} new
+                    </span>
+                @endif
             </div>
 
             {{-- Body --}}
             <div class="event-card__body">
-                <h2 class="event-card__title" title="{{ $event->title }}">{{ $event->title }}</h2>
+                <h2 class="event-card__title" title="{{ $event->title }}">
+                    {{ $event->title }}
+                </h2>
 
                 <ul class="event-card__meta" aria-label="Event details">
                     <li>
@@ -127,12 +135,35 @@
 
             {{-- Footer Actions --}}
             <div class="event-card__footer">
-                <button type="button" class="me-btn me-btn--ghost" data-action="registrations"
+                <button type="button" class="me-btn me-btn--ghost" 
+                    data-action="registrations"
                     data-event-id="{{ $event->id }}"
                     data-event-title="{{ $event->title }}"
-                    aria-label="View registrations for {{ $event->title }}">
+                    aria-label="View registrations for {{ $event->title }}"
+                    style="position:relative;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     Registrations
+                    @if(($newRegCounts[$event->id] ?? 0) > 0)
+                        <span class="event-new-reg-badge" data-for-event="{{ $event->id }}" style="
+                            position:absolute;
+                            top:-7px;
+                            right:-7px;
+                            background:#e8640c;
+                            color:#fff;
+                            font-size:10px;
+                            font-weight:800;
+                            min-width:18px;
+                            height:18px;
+                            border-radius:999px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            padding:0 4px;
+                            border:2px solid #fff;
+                            box-shadow:0 2px 6px rgba(232,100,12,0.5);
+                            line-height:1;
+                        ">{{ ($newRegCounts[$event->id] ?? 0) > 9 ? '9+' : $newRegCounts[$event->id] }}</span>
+                    @endif
                 </button>
                 <button type="button" class="me-btn me-btn--ghost" data-action="view" data-event="{!! $eventData !!}" aria-label="View {{ $event->title }}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -962,9 +993,22 @@ document.querySelectorAll('[data-action="registrations"]').forEach(btn => {
     btn.addEventListener('click', () => {
         currentRegsEventId    = btn.dataset.eventId;
         currentRegsEventTitle = btn.dataset.eventTitle;
+
+        document.querySelectorAll(`.event-new-reg-badge[data-for-event="${currentRegsEventId}"]`)
+            .forEach(badge => badge.remove());
+
+        fetch(`/my-events/${currentRegsEventId}/mark-seen`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': CSRF,
+                'Accept': 'application/json',
+            },
+        }).catch(() => {});
+
         openRegsModal();
     });
 });
+
 
 function openRegsModal() {
     // Reset state

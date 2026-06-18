@@ -3,6 +3,91 @@
         ? \App\Models\AlumniUser::find(session('alumni_id'))
         : null;
 
+    $personalUnreadCount = 0;
+    if (session('alumni_id')) {
+        $personalUnreadCount = \App\Models\AlumniNotification::where('recipient_id', session('alumni_id'))
+            ->where('is_read', false)
+            ->count();
+    }
+
+    // ── Job sidebar badges ──────────────────────────────────────────────
+    $myApplicationsBadge  = 0;
+    $moderationQueueBadge = 0;
+    $myJobsNewApplicantsBadge = 0;
+
+    if (session('alumni_id')) {
+        $lastSeen = session('applications_last_seen')
+            ? \Carbon\Carbon::parse(session('applications_last_seen'))
+            : now()->subDays(7);
+
+        $myApplicationsBadge = \App\Models\JobApplication::where('alumni_id', session('alumni_id'))
+            ->where('status', '!=', 'submitted')
+            ->where('updated_at', '>', $lastSeen)
+            ->count();
+
+        $myJobsLastSeen = session('my_jobs_last_seen')
+            ? \Carbon\Carbon::parse(session('my_jobs_last_seen'))
+            : now()->subDays(7);
+
+        $myJobsNewApplicantsBadge = \App\Models\JobApplication::whereHas('job', function ($q) {
+            $q->where('created_by', session('alumni_id'));
+        })
+            ->where('created_at', '>', $myJobsLastSeen)
+            ->count();
+
+        if (in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator'])) {
+            $moderationQueueBadge = \App\Models\Job::where('status', 'pending')->count();
+        }
+    }
+
+    // ── Event sidebar badges ──────────────────────────────────────────────
+    $pendingEventsBadge   = 0;
+    $myEventsNewRegsBadge = 0;
+
+    if (session('alumni_id')) {
+        $myEventIds = \App\Models\Event::where('created_by', session('alumni_id'))
+            ->pluck('id');
+
+        if ($myEventIds->isNotEmpty()) {
+            $seenMap = session('events_regs_seen', []);
+
+            foreach ($myEventIds as $eid) {
+                $since = isset($seenMap[$eid])
+                    ? \Carbon\Carbon::parse($seenMap[$eid])
+                    : now()->subDays(7);
+
+                $myEventsNewRegsBadge += \App\Models\EventRegistration::where('event_id', $eid)
+                    ->where('created_at', '>', $since)
+                    ->count();
+            }
+        }
+
+        if (in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator'])) {
+            $pendingEventsBadge = \App\Models\Event::where('status', 'pending')->count();
+        }
+    }
+
+    // ── Story sidebar badges ──────────────────────────────────────────────
+    $pendingStoriesBadge     = 0;
+    $myStoriesUpdatesBadge   = 0;
+
+    if (session('alumni_id')) {
+        // My stories with status changes since last visit
+        $myStoriesLastSeen = session('my_stories_last_seen')
+            ? \Carbon\Carbon::parse(session('my_stories_last_seen'))
+            : now()->subDays(7);
+
+        $myStoriesUpdatesBadge = \App\Models\Story::where('created_by', session('alumni_id'))
+            ->where('status', '!=', 'pending')
+            ->where('updated_at', '>', $myStoriesLastSeen)
+            ->count();
+
+        // Pending stories for admin/moderator
+        if (in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator'])) {
+            $pendingStoriesBadge = \App\Models\Story::where('status', 'pending')->count();
+        }
+    }
+
     $emailPrefs = $currentAlumniUser?->email_notifications ?? [];
 
     $latestJobs = \App\Models\Job::where('status','published')
@@ -172,8 +257,9 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
                         </svg>
-                        @if($newNotificationsCount > 0)
-                            <span class="badge">{{ $newNotificationsCount > 9 ? '9+' : $newNotificationsCount }}</span>
+                        @php $totalBellCount = $newNotificationsCount + $personalUnreadCount; @endphp
+                        @if($totalBellCount > 0)
+                            <span class="badge">{{ $totalBellCount > 9 ? '9+' : $totalBellCount }}</span>
                         @endif
                     </button>
 
@@ -182,8 +268,14 @@
                             Recent Activity
                         </div>
 
-                        <div class="notif-dropdown__body">
-                            @forelse($notificationItems as $item)
+                            <div class="notif-dropdown__body">
+                                <div id="personalNotifList"></div>
+
+                                @if($notificationItems->isNotEmpty())
+                                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;padding:8px 16px 4px;border-top:1px solid #f3f4f6;margin-top:4px;">Recent Content</div>
+                                @endif
+
+                                @forelse($notificationItems as $item)
                                 <a href="{{ $item['url'] }}" class="notif-item">
                                     <span class="notif-item__icon notif-item__icon--{{ $item['type'] }}">
                                         @switch($item['type'])
@@ -278,8 +370,10 @@
                     </span>
                     <span class="nav-label">Home</span>
                 </a>
+
                 {{-- MY EVENT --}}
                 <div class="sidebar-expandable">
+                @php $eventTotalBadge = $myEventsNewRegsBadge + $pendingEventsBadge; @endphp
                     <div class="sidebar-nav__item sidebar-nav__item--expandable" onclick="toggleSidebarMenu('event')">
                         <span class="nav-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -289,6 +383,11 @@
                             </svg>
                         </span>
                         <span class="nav-label">My Event</span>
+                        @if($eventTotalBadge > 0)
+                            <span class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;">
+                                {{ $eventTotalBadge > 9 ? '9+' : $eventTotalBadge }}
+                            </span>
+                        @endif
                         <svg class="nav-chevron" id="chev-event" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <polyline points="9,18 15,12 9,6"/>
                         </svg>
@@ -307,6 +406,11 @@
                         @if($canApprove)
                             <a href="{{ route('admin.events.pending') }}" class="sidebar-child">
                                 <span class="sidebar-child-dot"></span>Pending Events
+                                @if($pendingEventsBadge > 0)
+                                    <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                        {{ $pendingEventsBadge > 9 ? '9+' : $pendingEventsBadge }}
+                                    </span>
+                                @endif
                             </a>
                         @endif
 
@@ -322,6 +426,11 @@
                         </a>
                         <a href="{{ route('events.my') }}" class="sidebar-child {{ request()->routeIs('events.my') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>My Events
+                            @if($myEventsNewRegsBadge > 0)
+                                <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                    {{ $myEventsNewRegsBadge > 9 ? '9+' : $myEventsNewRegsBadge }}
+                                </span>
+                            @endif
                         </a>
                         <a href="{{ route('events.index') }}" class="sidebar-child {{ request()->routeIs('events.index') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>Browse Events
@@ -340,18 +449,27 @@
 
                 {{-- JOB POST --}}
                 <div class="sidebar-expandable">
-                    <div class="sidebar-nav__item sidebar-nav__item--expandable" onclick="toggleSidebarMenu('job')">
-                        <span class="nav-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="7" width="20" height="14" rx="2"/>
-                                <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-                            </svg>
-                        </span>
-                        <span class="nav-label">Job Post</span>
-                        <svg class="nav-chevron" id="chev-job" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <polyline points="9,18 15,12 9,6"/>
+                @php
+                    $jobPostTotalBadge = $myApplicationsBadge + $moderationQueueBadge + $myJobsNewApplicantsBadge;
+                @endphp
+
+                <div class="sidebar-nav__item sidebar-nav__item--expandable" onclick="toggleSidebarMenu('job')">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2"/>
+                            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
                         </svg>
-                    </div>
+                    </span>
+                    <span class="nav-label">Job Post</span>
+                    @if($jobPostTotalBadge > 0)
+                        <span class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;">
+                            {{ $jobPostTotalBadge > 9 ? '9+' : $jobPostTotalBadge }}
+                        </span>
+                    @endif
+                    <svg class="nav-chevron" id="chev-job" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="9,18 15,12 9,6"/>
+                    </svg>
+                </div>
 
                     <div class="sidebar-children" id="kids-job">
                         <a href="{{ route('jobs.create') }}" class="sidebar-child">
@@ -360,6 +478,11 @@
 
                         <a href="{{ route('jobs.my') }}" class="sidebar-child">
                             <span class="sidebar-child-dot"></span>My Jobs
+                            @if($myJobsNewApplicantsBadge > 0)
+                                <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                    {{ $myJobsNewApplicantsBadge > 9 ? '9+' : $myJobsNewApplicantsBadge }}
+                                </span>
+                            @endif
                         </a>
 
                         <a href="{{ route('jobs.index') }}" class="sidebar-child">
@@ -369,12 +492,22 @@
                         <a href="{{ route('jobs.my-applications') }}"
                             class="sidebar-child {{ request()->routeIs('jobs.my-applications') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>My Applications
+                            @if($myApplicationsBadge > 0)
+                                <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                    {{ $myApplicationsBadge > 9 ? '9+' : $myApplicationsBadge }}
+                                </span>
+                            @endif
                         </a>
 
-                        @if(session('alumni_role') === 'admin')
-                            <a href="{{ route('admin.jobs.pending') }}" class="sidebar-child sidebar-child-admin">
-                                <span class="sidebar-child-dot"></span>Moderation Queue
-                            </a>
+                        @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
+                        <a href="{{ route('admin.jobs.pending') }}" class="sidebar-child sidebar-child-admin">
+                            <span class="sidebar-child-dot"></span>Moderation Queue
+                            @if($moderationQueueBadge > 0)
+                                <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                    {{ $moderationQueueBadge > 9 ? '9+' : $moderationQueueBadge }}
+                                </span>
+                            @endif
+                        </a>
 
                             <a href="{{ route('admin.jobs.index') }}" class="sidebar-child sidebar-child-admin">
                                 <span class="sidebar-child-dot"></span>Manage Jobs
@@ -382,8 +515,10 @@
                         @endif
                     </div>
                 </div>
+
                 {{-- STORIES --}}
                 <div class="sidebar-expandable">
+                @php $storiesTotalBadge = $myStoriesUpdatesBadge + $pendingStoriesBadge; @endphp
                     <div class="sidebar-nav__item sidebar-nav__item--expandable" onclick="toggleSidebarMenu('story')">
                         <span class="nav-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -392,47 +527,60 @@
                             </svg>
                         </span>
                         <span class="nav-label">Stories</span>
+                        @if($storiesTotalBadge > 0)
+                            <span class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;">
+                                {{ $storiesTotalBadge > 9 ? '9+' : $storiesTotalBadge }}
+                            </span>
+                        @endif
                         <svg class="nav-chevron" id="chev-story" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <polyline points="9,18 15,12 9,6"/>
                         </svg>
                     </div>
-                        <div class="sidebar-children" id="kids-story">
-                        
-                            {{-- Admin / Super Admin only --}}
-                            @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
-                                <a href="{{ route('admin.stories.pending') }}"
-                                class="sidebar-child {{ request()->routeIs('admin.stories.pending') ? 'active' : '' }}">
-                                    <span class="sidebar-child-dot" style="background:#e8640c;"></span>Pending Story
-                                </a>
+                    <div class="sidebar-children" id="kids-story">
+
+                        @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
+                            <a href="{{ route('admin.stories.pending') }}"
+                            class="sidebar-child {{ request()->routeIs('admin.stories.pending') ? 'active' : '' }}">
+                                <span class="sidebar-child-dot" style="background:#e8640c;"></span>Pending Story
+                                @if($pendingStoriesBadge > 0)
+                                    <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                        {{ $pendingStoriesBadge > 9 ? '9+' : $pendingStoriesBadge }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endif
+
+                        <a href="{{ route('stories.create') }}"
+                        class="sidebar-child {{ request()->routeIs('stories.create') ? 'active' : '' }}">
+                            <span class="sidebar-child-dot"></span>Create Story
+                        </a>
+
+                        <a href="{{ route('stories.my') }}"
+                        class="sidebar-child {{ request()->routeIs('stories.my') ? 'active' : '' }}">
+                            <span class="sidebar-child-dot"></span>My Story
+                            @if($myStoriesUpdatesBadge > 0)
+                                <span class="sidebar-child-badge sidebar-child-badge--notif">
+                                    {{ $myStoriesUpdatesBadge > 9 ? '9+' : $myStoriesUpdatesBadge }}
+                                </span>
                             @endif
-                        
-                            {{-- All authenticated users --}}
-                            <a href="{{ route('stories.create') }}"
-                            class="sidebar-child {{ request()->routeIs('stories.create') ? 'active' : '' }}">
-                                <span class="sidebar-child-dot"></span>Create Story
+                        </a>
+
+                        <a href="{{ route('stories.index') }}"
+                        class="sidebar-child {{ request()->routeIs('stories.index') ? 'active' : '' }}">
+                            <span class="sidebar-child-dot"></span>All Story
+                        </a>
+
+                        @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
+                            <a href="{{ route('admin.stories.index') }}"
+                            class="sidebar-child sidebar-child--admin {{ request()->routeIs('admin.stories.index') ? 'active' : '' }}">
+                                <span class="sidebar-child-dot"></span>Manage Stories
+                                <span class="sidebar-child-badge">Admin</span>
                             </a>
-                        
-                            <a href="{{ route('stories.my') }}"
-                            class="sidebar-child {{ request()->routeIs('stories.my') ? 'active' : '' }}">
-                                <span class="sidebar-child-dot"></span>My Story
-                            </a>
-                        
-                            <a href="{{ route('stories.index') }}"
-                            class="sidebar-child {{ request()->routeIs('stories.index') ? 'active' : '' }}">
-                                <span class="sidebar-child-dot"></span>All Story
-                            </a>
-                        
-                            {{-- Admin overview link --}}
-                            @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
-                                <a href="{{ route('admin.stories.index') }}"
-                                class="sidebar-child sidebar-child--admin {{ request()->routeIs('admin.stories.index') ? 'active' : '' }}">
-                                    <span class="sidebar-child-dot"></span>Manage Stories
-                                    <span class="sidebar-child-badge">Admin</span>
-                                </a>
-                            @endif
-                        </div>
-                        
+                        @endif
+                    </div>
                 </div>
+
+
                 <a href="{{ route('alumni.directory') }}" class="sidebar-nav__item">
                     <span class="nav-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -824,27 +972,10 @@
                 if (!menu || !dropdown) return;
 
                 const toggleBtn = menu.querySelector('.comm-icon-btn');
-                let marked = false;
 
                 toggleBtn.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    const opening = !menu.classList.contains('open');
                     menu.classList.toggle('open');
-
-                    if (opening && !marked) {
-                        marked = true;
-                        const badge = toggleBtn.querySelector('.badge');
-                        if (badge) badge.remove();
-
-                        fetch('{{ route('notifications.mark-read') }}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                'Accept': 'application/json',
-                            },
-                            credentials: 'same-origin',
-                        }).catch(() => { /* silent */ });
-                    }
                 });
 
                 document.addEventListener('click', function (e) {
@@ -1002,6 +1133,62 @@
             
                 document.addEventListener('click', function (e) {
                     if (!wrap.contains(e.target)) closeDropdown();
+                });
+            })();
+        </script>
+
+        <script>
+            (function () {
+                const menu     = document.getElementById('notifMenuToggle');
+                const list     = document.getElementById('personalNotifList');
+                if (!menu || !list) return;
+
+                let loaded = false;
+
+                menu.querySelector('.comm-icon-btn').addEventListener('click', function () {
+                    if (loaded) return;
+                    loaded = true;
+
+                    fetch('{{ route('notifications.personal') }}', {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.notifications?.length) return;
+
+                        list.innerHTML = data.notifications.map(n => {
+                            const avatarHtml = n.avatar
+                                ? `<img src="${n.avatar}" alt="${n.actor}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+                                : `<span style="font-size:11px;font-weight:700;color:#e8640c;">${n.initials}</span>`;
+
+                            const label = n.type === 'reply'
+                                ? `<strong>${n.actor}</strong> replied to your comment`
+                                : `<strong>${n.actor}</strong> commented on your post`;
+
+                            return `<a href="${n.post_url}" class="notif-item ${n.is_read ? '' : 'notif-item--unread'}">
+                                <span class="notif-item__icon" style="background:rgba(232,100,12,.1);color:#e8640c;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                                    ${avatarHtml}
+                                </span>
+                                <span class="notif-item__body">
+                                    <span class="notif-item__title">${label}</span>
+                                    ${n.preview ? `<span class="notif-item__label" style="color:#6b7280;">"${n.preview}"</span>` : ''}
+                                    <span class="notif-item__time">${n.time}</span>
+                                </span>
+                            </a>`;
+                        }).join('');
+
+                        // Mark as read after viewing
+                        fetch('{{ route('notifications.personal.mark-read') }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                            },
+                            credentials: 'same-origin',
+                        }).catch(() => {});
+                    })
+                    .catch(() => {});
                 });
             })();
         </script>

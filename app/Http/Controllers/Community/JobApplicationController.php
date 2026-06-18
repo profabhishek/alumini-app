@@ -81,6 +81,8 @@ class JobApplicationController extends Controller
             ->latest()
             ->paginate(10);
 
+        session(['applications_last_seen' => now()->toDateTimeString()]);
+
         return view('community.jobs.my-applications', compact('applications'));
     }
 
@@ -160,20 +162,28 @@ class JobApplicationController extends Controller
                 : null,
         ]);
 
-        // Send email notification to applicant if status actually changed
         if ($oldStatus !== $request->status) {
             try {
+                // Fresh reload with job relation — don't rely on route-bound instance
+                $freshApplication = \App\Models\JobApplication::with('job')
+                    ->findOrFail($application->id);
+
                 $poster = \App\Models\AlumniUser::find(session('alumni_id'));
-                Mail::to($application->email)->send(
-                    new ApplicationStatusMail(
-                        $application->load('job'),
-                        $poster->full_name,
-                        $poster->email,
-                    )
-                );
+
+                if ($poster && $freshApplication->job) {
+                    Mail::to($freshApplication->email)->send(
+                        new ApplicationStatusMail(
+                            $freshApplication,
+                            $poster->full_name,
+                            $poster->email,
+                        )
+                    );
+                    \Illuminate\Support\Facades\Log::info('ApplicationStatusMail sent to ' . $freshApplication->email . ' status=' . $request->status);
+                } else {
+                    \Illuminate\Support\Facades\Log::warning('ApplicationStatusMail skipped: poster=' . ($poster ? 'found' : 'null') . ' job=' . ($freshApplication->job ? 'found' : 'null'));
+                }
             } catch (\Throwable $e) {
-                // Don't fail the request if mail fails — log it silently
-                \Illuminate\Support\Facades\Log::error('ApplicationStatusMail failed: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('ApplicationStatusMail failed: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             }
         }
 

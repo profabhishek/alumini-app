@@ -31,6 +31,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Admin\AdminNewsletterController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Community\GroupController;
+use App\Http\Controllers\ContactController;
 
 /*
 |==========================================================================
@@ -74,8 +75,8 @@ Route::get('/news/{news:slug}', [NewsPublicController::class, 'show'])->name('ne
 Route::get('/notice', [NoticePublicController::class, 'index'])->name('notice');
 Route::get('/notice/{notice:slug}', [NoticePublicController::class, 'show'])->name('notice.show');
 
-Route::get('/contact', fn() => view('contact.index'))
-    ->name('contact');
+Route::get('/contact',  [ContactController::class, 'index'])->name('contact');
+Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
 
 
 /*
@@ -269,6 +270,16 @@ Route::middleware('alumni.auth')->group(function () {
 
     Route::get('/my-events/{event}/registrations', [EventController::class, 'registrations'])
         ->name('events.registrations');
+
+    Route::post('/my-events/{eventId}/mark-seen', function ($eventId) {
+        $seen = session('events_regs_seen', []);
+        $seen[$eventId] = now()->toDateTimeString();
+        session(['events_regs_seen' => $seen]);
+        return response()->json(['ok' => true]);
+    })->name('events.registrations.mark-seen');
+
+    Route::post('/my-events/{eventId}/mark-seen', [EventController::class, 'markRegistrationsSeen'])
+    ->name('events.registrations.mark-seen');
 
     /*
     |----------------------------------------------------------------
@@ -505,8 +516,17 @@ Route::middleware('alumni.auth')->group(function () {
         ->name('stories.show');
 
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])
-    ->name('notifications.mark-read');
+        ->name('notifications.mark-read');
 
+    Route::get('/notifications/personal', [\App\Http\Controllers\Community\NotificationController::class, 'personal'])
+        ->name('notifications.personal');
+
+    Route::post('/notifications/personal/mark-read', [\App\Http\Controllers\Community\NotificationController::class, 'markPersonalRead'])
+        ->name('notifications.personal.mark-read');
+
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\Community\NotificationController::class, 'markOneRead'])
+        ->where('id', '[0-9]+')
+        ->name('notifications.mark-one-read');
 
     // ── Community Groups ────────────────────────────────────────────────
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');

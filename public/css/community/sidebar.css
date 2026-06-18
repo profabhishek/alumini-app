@@ -262,3 +262,33 @@
 .widget-job-title:hover {
     color: #e8640c;
 }
+
+/* Notification badges on sidebar child links */
+.sidebar-child {
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-child-badge--notif {
+    background: #e8640c;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    margin-left: auto;
+    line-height: 1.6;
+    flex-shrink: 0;
+    min-width: 18px;
+    text-align: center;
+}
+
+.sidebar-nav__item--expandable {
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-nav__item--expandable .sidebar-child-badge--notif {
+    margin-left: 6px;
+    margin-right: auto;
+}

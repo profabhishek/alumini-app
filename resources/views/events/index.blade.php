@@ -381,17 +381,17 @@
 <script src="{{ asset('js/events-registration.js') }}"></script>
 <script>
 (function () {
-    // Scroll reveal
+    // Batch reveal — one observer, fire-and-forget
     const els = document.querySelectorAll('.ev-reveal');
     if (!els.length) return;
     const obs = new IntersectionObserver((entries) => {
-        entries.forEach((e, i) => {
+        entries.forEach((e) => {
             if (e.isIntersecting) {
-                setTimeout(() => e.target.classList.add('ev-reveal--show'), i * 75);
+                e.target.classList.add('ev-reveal--show');
                 obs.unobserve(e.target);
             }
         });
-    }, { threshold: 0.06 });
+    }, { threshold: 0.04, rootMargin: '0px 0px -40px 0px' });
     els.forEach(el => obs.observe(el));
 })();
 </script>

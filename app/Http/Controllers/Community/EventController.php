@@ -131,9 +131,9 @@ class EventController extends Controller
             'description'           => $validated['description'],
             'event_type'            => $validated['event_type'],
             'ticket_price'          => $validated['ticket_price'] ?? 0,
-            'total_seats'           => $validated['total_seats'] ?? null,
-            'registration_deadline' => $validated['registration_deadline'] ?? null,
-            'registration_required' => $validated['registration_required'],
+            'total_seats'           => !empty($validated['total_seats']) ? (int) $validated['total_seats'] : null,
+            'registration_deadline' => !empty($validated['registration_deadline']) ? $validated['registration_deadline'] : null,
+            'registration_required' => (bool) $validated['registration_required'],
             'banner_image'          => $bannerPath,
             'status'                => 'pending',
         ]);
@@ -141,7 +141,6 @@ class EventController extends Controller
         return redirect()->route('events.my')->with('success', 'Event created successfully.');
     }
 
-    // ── My Events (community dashboard) ──────────────────────────────────
     public function myEvents(Request $request)
     {
         $query = Event::with('creator')
@@ -152,18 +151,37 @@ class EventController extends Controller
             $search = trim($request->get('q'));
             $query->where(function ($q) use ($search) {
                 $q->where('title',    'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%");
+                ->orWhere('category', 'like', "%{$search}%")
+                ->orWhere('location', 'like', "%{$search}%");
             });
         }
 
         $allowedStatuses = ['pending','published','draft','cancelled','completed','rejected'];
-
         if ($request->filled('status') && in_array($request->status, $allowedStatuses)) {
             $query->where('status', $request->status);
         }
 
         $events = $query->paginate(10)->appends($request->query());
+
+        $eventIds = collect($events->items())->pluck('id')->toArray();
+
+        // Per-event seen map — only cleared when user clicks Registrations button
+        $seenMap = session('events_regs_seen', []);
+
+        $newRegCounts = collect();
+        foreach ($eventIds as $id) {
+            $since = isset($seenMap[$id])
+                ? \Carbon\Carbon::parse($seenMap[$id])
+                : now()->subDays(7);
+
+            $count = \App\Models\EventRegistration::where('event_id', $id)
+                ->where('created_at', '>', $since)
+                ->count();
+
+            if ($count > 0) {
+                $newRegCounts[$id] = $count;
+            }
+        }
 
         $stats = [
             'total'     => Event::where('created_by', session('alumni_id'))->count(),
@@ -173,9 +191,18 @@ class EventController extends Controller
             'upcoming'  => Event::where('created_by', session('alumni_id'))->whereDate('start_date', '>=', now()->toDateString())->count(),
         ];
 
-        return view('community.events.my-events', compact('events', 'stats'));
+        return view('community.events.my-events', compact('events', 'stats', 'newRegCounts'));
     }
 
+    public function markRegistrationsSeen(Request $request, $eventId)
+    {
+        $seenMap = session('events_regs_seen', []);
+        $seenMap[$eventId] = now()->toDateTimeString();
+        session(['events_regs_seen' => $seenMap]);
+
+        return response()->json(['ok' => true]);
+    }
+    
     // ── Ownership guard ───────────────────────────────────────────────────
     private function ensureOwnership(Event $event)
     {
@@ -250,8 +277,8 @@ class EventController extends Controller
             'description'           => $validated['description'],
             'event_type'            => $validated['event_type'],
             'ticket_price'          => $validated['ticket_price'] ?? 0,
-            'total_seats'           => $validated['total_seats'] ?? null,
-            'registration_deadline' => $validated['registration_deadline'] ?? null,
+            'total_seats'           => !empty($validated['total_seats']) ? (int) $validated['total_seats'] : null,
+            'registration_deadline' => !empty($validated['registration_deadline']) ? $validated['registration_deadline'] : null,
             'registration_required' => $validated['registration_required'],
             'banner_image'          => $validated['banner_image'] ?? $event->banner_image,
         ]);

@@ -108,34 +108,43 @@ class StoryController extends Controller
 
     public function myStories(Request $request)
     {
-        $query = Story::with('creator')
-            ->ownedBy(session('alumni_id'))
-            ->latest();
+        $myStoriesLastSeen = session('my_stories_last_seen')
+            ? \Carbon\Carbon::parse(session('my_stories_last_seen'))
+            : now()->subDays(7);
+
+        // Update last seen AFTER reading
+        $query = \App\Models\Story::where('created_by', session('alumni_id'))->latest();
 
         if ($request->filled('q')) {
-            $search = trim($request->q);
-            $query->where(function ($q) use ($search) {
-                $q->where('title',    'like', "%{$search}%")
-                  ->orWhere('category','like', "%{$search}%");
-            });
+            $search = trim($request->get('q'));
+            $query->where('title', 'like', "%{$search}%");
         }
 
-        $allowed = ['draft', 'pending', 'published', 'rejected'];
-
-        if ($request->filled('status') && in_array($request->status, $allowed)) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $stories = $query->paginate(9)->appends($request->query());
+        $stories = $query->paginate(12)->appends($request->query());
+
+        // Stories with status changes since last visit
+        $storyIds = collect($stories->items())->pluck('id')->toArray();
+        $updatedStoryIds = empty($storyIds) ? [] : \App\Models\Story::whereIn('id', $storyIds)
+            ->where('status', '!=', 'pending')
+            ->where('updated_at', '>', $myStoriesLastSeen)
+            ->pluck('id')
+            ->toArray();
+
+        // Update last seen after counting
+        session(['my_stories_last_seen' => now()->toDateTimeString()]);
 
         $stats = [
-            'total'     => Story::ownedBy(session('alumni_id'))->count(),
-            'pending'   => Story::ownedBy(session('alumni_id'))->where('status', 'pending')->count(),
-            'published' => Story::ownedBy(session('alumni_id'))->where('status', 'published')->count(),
-            'rejected'  => Story::ownedBy(session('alumni_id'))->where('status', 'rejected')->count(),
+            'total'     => \App\Models\Story::where('created_by', session('alumni_id'))->count(),
+            'pending'   => \App\Models\Story::where('created_by', session('alumni_id'))->where('status', 'pending')->count(),
+            'published' => \App\Models\Story::where('created_by', session('alumni_id'))->where('status', 'published')->count(),
+            'rejected'  => \App\Models\Story::where('created_by', session('alumni_id'))->where('status', 'rejected')->count(),
         ];
 
-        return view('community.stories.my-stories', compact('stories', 'stats'));
+        return view('community.stories.my-stories', compact('stories', 'stats', 'updatedStoryIds'));
     }
 
     // ── Auth: Edit form (owner only) ──────────────────────────────────────

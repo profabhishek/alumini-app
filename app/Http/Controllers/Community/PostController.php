@@ -637,10 +637,52 @@ class PostController extends Controller
         });
 
         $comment->load('author');
+        $this->fireCommentNotification($comment, $post, $parentId);
 
         return response()->json([
             'comment' => $comment->toApiArray($myId, false, $post->group_id),
         ], 201);
+    }
+
+    private function fireCommentNotification(PostComment $comment, Post $post, ?int $parentId): void
+    {
+        $actorId = (int) session('alumni_id');
+
+        try {
+            if ($parentId) {
+                // Reply — notify the parent comment author
+                $parent = PostComment::find($parentId);
+                $recipientId = $parent?->alumni_id;
+
+                // Don't notify yourself
+                if ($recipientId && $recipientId !== $actorId) {
+                    \App\Models\AlumniNotification::create([
+                        'recipient_id' => $recipientId,
+                        'actor_id'     => $actorId,
+                        'type'         => 'reply',
+                        'post_id'      => $post->id,
+                        'comment_id'   => $comment->id,
+                        'preview'      => \Illuminate\Support\Str::limit($comment->body, 80),
+                    ]);
+                }
+            } else {
+                // Top-level comment — notify the post author
+                $recipientId = $post->alumni_id;
+
+                if ($recipientId && $recipientId !== $actorId) {
+                    \App\Models\AlumniNotification::create([
+                        'recipient_id' => $recipientId,
+                        'actor_id'     => $actorId,
+                        'type'         => 'comment',
+                        'post_id'      => $post->id,
+                        'comment_id'   => $comment->id,
+                        'preview'      => \Illuminate\Support\Str::limit($comment->body, 80),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AlumniNotification failed: ' . $e->getMessage());
+        }
     }
 
     /**
