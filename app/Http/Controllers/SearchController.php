@@ -71,9 +71,7 @@ class SearchController extends Controller
         }
 
         // ── Stories ──────────────────────────────────────────────
-        // NOTE: assumes 'approved' is the "visible to everyone" status
-        // value for stories (mirrors the pending/approve/reject flow).
-        $stories = Story::where('status', 'approved')
+        $stories = Story::where('status', 'published')
             ->where('title', 'like', "%{$q}%")
             ->latest()
             ->limit(3)
