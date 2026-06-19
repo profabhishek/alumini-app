@@ -100,6 +100,8 @@ Route::post('/contact', [ContactController::class, 'send'])->name('contact.send'
 Route::get('/gallery', function () {
     $allPhotos = \App\Models\GalleryItem::published()
         ->orderByDesc('created_at')
+        ->select(['id', 'title', 'image_path', 'created_at'])
+        ->limit(200)
         ->get();
     return view('gallery.index', ['allPhotos' => $allPhotos]);
 })->name('gallery');
@@ -871,8 +873,6 @@ Route::middleware('admin.auth')->group(function () {
 
 
 /*
-|==========================================================================
-| JOB MODERATION (Admin / Moderator with approve_jobs)
 |==========================================================================
 */
 

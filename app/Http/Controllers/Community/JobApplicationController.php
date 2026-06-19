@@ -151,12 +151,23 @@ class JobApplicationController extends Controller
 
         $applications = $query->latest()->paginate(15)->appends($request->query());
 
+        // One aggregate query instead of 5 separate COUNTs
+        $rawStats = JobApplication::where('job_id', $job->id)
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(status = 'submitted')   as submitted,
+                SUM(status = 'shortlisted') as shortlisted,
+                SUM(status = 'hired')       as hired,
+                SUM(status = 'rejected')    as rejected
+            ")
+            ->first();
+
         $stats = [
-            'total'       => JobApplication::where('job_id', $job->id)->count(),
-            'submitted'   => JobApplication::where('job_id', $job->id)->where('status', 'submitted')->count(),
-            'shortlisted' => JobApplication::where('job_id', $job->id)->where('status', 'shortlisted')->count(),
-            'hired'       => JobApplication::where('job_id', $job->id)->where('status', 'hired')->count(),
-            'rejected'    => JobApplication::where('job_id', $job->id)->where('status', 'rejected')->count(),
+            'total'       => (int) ($rawStats->total ?? 0),
+            'submitted'   => (int) ($rawStats->submitted ?? 0),
+            'shortlisted' => (int) ($rawStats->shortlisted ?? 0),
+            'hired'       => (int) ($rawStats->hired ?? 0),
+            'rejected'    => (int) ($rawStats->rejected ?? 0),
         ];
 
         return view('community.jobs.applicants', compact('job', 'applications', 'stats'));
@@ -196,17 +207,6 @@ class JobApplicationController extends Controller
             'rejection_reason' => $request->status === 'rejected'
                 ? $request->rejection_reason
                 : null,
-        ]);
-
-        if ($oldStatus !== $request->status) {
-            try {
-                // Fresh reload with job relation — don't rely on route-bound instance
-                $freshApplication = \App\Models\JobApplication::with('job')
-                    ->findOrFail($application->id);
-
-                $poster = \App\Models\AlumniUser::find(session('alumni_id'));
-
-                if ($poster && $freshApplication->job) {
                     Mail::to($freshApplication->email)->send(
                         new ApplicationStatusMail(
                             $freshApplication,

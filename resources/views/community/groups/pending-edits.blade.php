@@ -51,7 +51,7 @@
                         <div class="pe-card__author">
                             <div class="gm-avatar">
                                 @if(!empty($author?->photo))
-                                    <img src="{{ asset('storage/' . $author->photo) }}" alt="{{ $author->full_name }}">
+                                    <img loading="lazy" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $author->full_name }}">
                                 @else
                                     {{ $author?->initials ?? '?' }}
                                 @endif
@@ -111,7 +111,7 @@
                         <div class="pe-card__author">
                             <div class="gm-avatar">
                                 @if(!empty($author?->photo))
-                                    <img src="{{ asset('storage/' . $author->photo) }}" alt="{{ $author->full_name }}">
+                                    <img loading="lazy" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $author->full_name }}">
                                 @else
                                     {{ $author?->initials ?? '?' }}
                                 @endif

@@ -115,7 +115,7 @@
                                 class="ap-avatar ap-avatar--link"
                                 title="View {{ $app->full_name }}'s profile">
                                     @if($applicantUser?->photo)
-                                        <img src="{{ asset('storage/' . $applicantUser->photo) }}"
+                                        <img loading="lazy" src="{{ asset('storage/' . $applicantUser->photo) }}"
                                             alt="{{ $app->full_name }}">
                                     @else
                                         {{ strtoupper(substr($app->full_name, 0, 1)) }}

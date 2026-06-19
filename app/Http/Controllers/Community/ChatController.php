@@ -72,7 +72,16 @@ class ChatController extends Controller
             })
             ->get();
 
-        $data = $conversations->map(fn($c) => $this->serializeConversation($c, $myId));
+        // Pre-compute participant counts in one query to avoid N+1
+        $convIds = $conversations->pluck('id')->all();
+        $participantCountMap = empty($convIds) ? [] : ChatParticipant::whereIn('conversation_id', $convIds)
+            ->whereNull('left_at')
+            ->selectRaw('conversation_id, COUNT(*) as cnt')
+            ->groupBy('conversation_id')
+            ->pluck('cnt', 'conversation_id')
+            ->all();
+
+        $data = $conversations->map(fn($c) => $this->serializeConversation($c, $myId, $participantCountMap));
 
         return response()->json(['conversations' => $data]);
     }
@@ -170,9 +179,17 @@ class ChatController extends Controller
 
         $conversations = $query->get();
 
+        $convIds = $conversations->pluck('id')->all();
+        $participantCountMap = empty($convIds) ? [] : ChatParticipant::whereIn('conversation_id', $convIds)
+            ->whereNull('left_at')
+            ->selectRaw('conversation_id, COUNT(*) as cnt')
+            ->groupBy('conversation_id')
+            ->pluck('cnt', 'conversation_id')
+            ->all();
+
         return response()->json([
             'conversations' => $conversations->map(
-                fn($c) => $this->serializeConversation($c, $myId)
+                fn($c) => $this->serializeConversation($c, $myId, $participantCountMap)
             ),
             'server_time' => now()->toISOString(),
         ]);
@@ -511,19 +528,34 @@ class ChatController extends Controller
             'member_ids.*' => 'integer|exists:alumni_users,id',
         ]);
 
+        $requestedIds = collect($request->input('member_ids'))
+            ->map(fn($id) => (int) $id)
+            ->filter(fn($id) => $id !== $myId)
+            ->unique()
+            ->values();
+
+        // Bulk-load approved users — one query instead of N
+        $approvedUsers = AlumniUser::whereIn('id', $requestedIds)
+            ->where('is_approved', true)
+            ->get()
+            ->keyBy('id');
+
+        // Bulk-load existing participant rows — one query instead of N
+        $existingParticipants = ChatParticipant::where('conversation_id', $id)
+            ->whereIn('alumni_id', $requestedIds)
+            ->get()
+            ->keyBy('alumni_id');
+
+        // Hoist adder lookup out of loop
+        $adder = AlumniUser::find($myId);
+
         $added = 0;
-        foreach ($request->input('member_ids') as $memberId) {
-            $memberId = (int) $memberId;
-            if ($memberId === $myId) continue;
-
-            $user = AlumniUser::where('id', $memberId)->where('is_approved', true)->first();
+        foreach ($requestedIds as $memberId) {
+            $user = $approvedUsers->get($memberId);
             if (!$user) continue;
-            $wasAdded = false;
 
-            // Re-add if they left, otherwise create
-            $existing = ChatParticipant::where('conversation_id', $id)
-                ->where('alumni_id', $memberId)
-                ->first();
+            $wasAdded = false;
+            $existing = $existingParticipants->get($memberId);
 
             if ($existing) {
                 if ($existing->left_at !== null) {
@@ -543,7 +575,6 @@ class ChatController extends Controller
             }
 
             if ($wasAdded) {
-                $adder = AlumniUser::find($myId);
                 ChatMessage::create([
                     'conversation_id' => $id,
                     'sender_id'       => $myId,
@@ -880,7 +911,7 @@ class ChatController extends Controller
         }
     }
 
-    private function serializeConversation(ChatConversation $c, int $myId): array
+    private function serializeConversation(ChatConversation $c, int $myId, ?array $participantCountMap = null): array
     {
         $latest     = $c->latestMessage;
         $unread     = $c->unreadCountFor($myId);
@@ -920,7 +951,7 @@ class ChatController extends Controller
             'invite_url'   => $c->isGroup() && $c->isAdmin($myId) && $c->invite_token
                 ? route('chat.join', ['token' => $c->invite_token])
                 : null,
-            'participant_count' => $c->participants()->count(),
+            'participant_count' => $participantCountMap[$c->id] ?? $c->participants->count(),
             'latest_message' => $latest ? [
                 'id'         => $latest->id,
                 'preview'    => $this->messagePreview($latest),
@@ -1031,24 +1062,27 @@ class ChatController extends Controller
             return response()->json(['count' => 0]);
         }
 
-        // For each conversation, count messages after the user's last read message
-        $total = 0;
-
+        // Build a map of last-read message IDs per conversation (one query)
         $reads = ChatMessageRead::where('alumni_id', $myId)
             ->whereIn('conversation_id', $conversationIds)
             ->pluck('last_read_message_id', 'conversation_id');
 
+        // Fetch all unread messages across all conversations in ONE query,
+        // then sum up in PHP — avoids N COUNT queries.
+        $unreadRows = ChatMessage::whereIn('conversation_id', $conversationIds)
+            ->where('sender_id', '!=', $myId)
+            ->whereNull('deleted_at')
+            ->where('type', '!=', 'system')
+            ->select('conversation_id', 'id')
+            ->get();
+
+        $total = 0;
         foreach ($conversationIds as $convId) {
             $lastReadId = $reads->get($convId, 0);
-
-            $count = ChatMessage::where('conversation_id', $convId)
-                ->where('sender_id', '!=', $myId)
-                ->whereNull('deleted_at')
-                ->where('type', '!=', 'system')
-                ->when($lastReadId, fn($q) => $q->where('id', '>', $lastReadId))
+            $total += $unreadRows
+                ->where('conversation_id', $convId)
+                ->when($lastReadId, fn($c) => $c->where('id', '>', $lastReadId))
                 ->count();
-
-            $total += $count;
         }
 
         return response()->json(['count' => min($total, 99)]);
@@ -1056,40 +1090,6 @@ class ChatController extends Controller
 
 
         public function tickUpdates(Request $request, int $id): JsonResponse
-    {
-        $myId = session('alumni_id');
- 
-        $this->findConversationForUser($id, $myId);
- 
-        $messageIds = collect($request->input('message_ids', []))
-            ->map(fn($mid) => (int) $mid)   
-            ->filter(fn($mid) => $mid > 0)
-            ->unique()
-            ->take(100)
-            ->values()
-            ->all();
- 
-        if (empty($messageIds)) {
-            return response()->json(['ticks' => []]);
-        }
- 
-        $messages = ChatMessage::whereIn('id', $messageIds)
-            ->where('conversation_id', $id)
-            ->where('sender_id', $myId)  // only own messages
-            ->whereNull('deleted_at')
-            ->get(['id', 'conversation_id', 'sender_id', 'delivered_at', 'created_at']);
- 
-        $ticks = $messages->map(function ($m) use ($myId) {
-            $tick = $m->tickState($myId);
-            return [
-                'id'           => $m->id,
-                'tick_state'   => $tick['state'],
-                'delivered_at' => $m->delivered_at?->toISOString(),
-                'read_at'      => $tick['read_at']?->toISOString(),
-            ];
-        });
- 
-        return response()->json(['ticks' => $ticks]);
     }
 
     public function markOffline(): JsonResponse

@@ -307,7 +307,7 @@
             <div class="jg-avatar-wrap">
                 <div class="jg-avatar">
                     @if($conversation->avatar)
-                        <img src="{{ asset('storage/' . $conversation->avatar) }}"
+                        <img loading="lazy" src="{{ asset('storage/' . $conversation->avatar) }}"
                              alt="{{ $conversation->name }}">
                     @else
                         {{ strtoupper(substr($conversation->name ?? 'G', 0, 1)) }}

@@ -59,7 +59,7 @@
                 <div class="nr-byline">
                     @if($author?->photo)
                         <a href="{{ $profileUrl ?? '#' }}" class="nd-author-photo-wrap">
-                            <img src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}" class="nr-byline__photo">
+                            <img loading="lazy" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}" class="nr-byline__photo">
                         </a>
                     @else
                         <a href="{{ $profileUrl ?? '#' }}" class="nr-byline__initial">{{ $initials }}</a>
@@ -96,7 +96,7 @@
                 <div class="nd-author-card__avatar">
                     @if($author->photo)
                         <a href="{{ $profileUrl ?? '#' }}">
-                            <img src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}">
+                            <img loading="lazy" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}">
                         </a>
                     @else
                         <a href="{{ $profileUrl ?? '#' }}" class="nd-author-card__initial">{{ $initials }}</a>
@@ -192,7 +192,7 @@
                             <div class="nr-card__footer">
                                 <div class="nr-byline nr-byline--card">
                                     @if($relAuthor?->photo)
-                                        <img class="nr-byline__photo nr-byline__photo--sm" src="{{ asset('storage/' . $relAuthor->photo) }}" alt="{{ $relAuthor->full_name }}">
+                                        <img loading="lazy" class="nr-byline__photo nr-byline__photo--sm" src="{{ asset('storage/' . $relAuthor->photo) }}" alt="{{ $relAuthor->full_name }}">
                                     @else
                                         <span class="nr-byline__initial nr-byline__initial--sm">{{ strtoupper(substr($relAuthor?->full_name ?? 'A', 0, 1)) }}</span>
                                     @endif

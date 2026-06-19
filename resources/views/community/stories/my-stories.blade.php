@@ -82,7 +82,7 @@
             {{-- Cover --}}
             <div class="story-card__cover">
                 @if($story->cover_image)
-                    <img src="{{ asset('storage/'.$story->cover_image) }}"
+                    <img loading="lazy" src="{{ asset('storage/'.$story->cover_image) }}"
                          alt="{{ $story->title }}" loading="lazy">
                 @else
                     <div class="story-card__cover-placeholder">

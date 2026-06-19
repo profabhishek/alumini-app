@@ -100,7 +100,7 @@
                 @if($organizer?->photo)
                     <a href="{{ $organizer->id ? url('/members/' . $organizer->id) : '#' }}"
                     class="ev-detail-organizer__avatar ev-detail-organizer__avatar--photo">
-                        <img src="{{ asset('storage/' . $organizer->photo) }}"
+                        <img loading="lazy" src="{{ asset('storage/' . $organizer->photo) }}"
                             alt="{{ $organizerName }}">
                     </a>
                 @else

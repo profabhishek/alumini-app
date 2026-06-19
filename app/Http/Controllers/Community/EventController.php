@@ -176,27 +176,56 @@ class EventController extends Controller
         // Per-event seen map — only cleared when user clicks Registrations button
         $seenMap = session('events_regs_seen', []);
 
+        // ── Single aggregate query instead of N COUNT queries ─────────────
+        // Build a per-event "since" map, then fetch all new reg counts in one query
         $newRegCounts = collect();
-        foreach ($eventIds as $id) {
-            $since = isset($seenMap[$id])
-                ? \Carbon\Carbon::parse($seenMap[$id])
-                : now();
+        if (!empty($eventIds)) {
+            // Find the earliest "since" date across all events to bound the query
+            $earliestSince = now();
+            foreach ($eventIds as $id) {
+                $since = isset($seenMap[$id]) ? \Carbon\Carbon::parse($seenMap[$id]) : now()->subYears(10);
+                if ($since->lt($earliestSince)) {
+                    $earliestSince = $since;
+                }
+            }
 
-            $count = \App\Models\EventRegistration::where('event_id', $id)
-                ->where('created_at', '>', $since)
-                ->count();
+            // One query: get counts grouped by event_id since earliest window
+            $rawCounts = \App\Models\EventRegistration::whereIn('event_id', $eventIds)
+                ->where('created_at', '>', $earliestSince)
+                ->selectRaw('event_id, created_at')
+                ->get()
+                ->groupBy('event_id');
 
-            if ($count > 0) {
-                $newRegCounts[$id] = $count;
+            foreach ($eventIds as $id) {
+                $since = isset($seenMap[$id]) ? \Carbon\Carbon::parse($seenMap[$id]) : now()->subYears(10);
+                $count = isset($rawCounts[$id])
+                    ? $rawCounts[$id]->filter(fn($r) => $r->created_at->gt($since))->count()
+                    : 0;
+                if ($count > 0) {
+                    $newRegCounts[$id] = $count;
+                }
             }
         }
 
+        // ── Single aggregate query for stats (replaces 5 separate COUNTs) ─
+        $userId   = session('alumni_id');
+        $today    = now()->toDateString();
+        $rawStats = Event::where('created_by', $userId)
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(status = 'pending')   as pending,
+                SUM(status = 'published') as published,
+                SUM(status = 'draft')     as draft,
+                SUM(start_date >= ?)      as upcoming
+            ", [$today])
+            ->first();
+
         $stats = [
-            'total'     => Event::where('created_by', session('alumni_id'))->count(),
-            'pending'   => Event::where('created_by', session('alumni_id'))->where('status', 'pending')->count(),
-            'published' => Event::where('created_by', session('alumni_id'))->where('status', 'published')->count(),
-            'draft'     => Event::where('created_by', session('alumni_id'))->where('status', 'draft')->count(),
-            'upcoming'  => Event::where('created_by', session('alumni_id'))->whereDate('start_date', '>=', now()->toDateString())->count(),
+            'total'     => (int) ($rawStats->total ?? 0),
+            'pending'   => (int) ($rawStats->pending ?? 0),
+            'published' => (int) ($rawStats->published ?? 0),
+            'draft'     => (int) ($rawStats->draft ?? 0),
+            'upcoming'  => (int) ($rawStats->upcoming ?? 0),
         ];
 
         return view('community.events.my-events', compact('events', 'stats', 'newRegCounts'));
@@ -384,35 +413,6 @@ class EventController extends Controller
             $filename = 'registrations-' . $event->slug . '.csv';
             $headers  = [
                 'Content-Type'        => 'text/csv',
-                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            ];
-
-            $callback = function () use ($registrations, $event) {
-                $handle = fopen('php://output', 'w');
-
-                // CSV heading row
-                fputcsv($handle, [
-                    'Full Name', 'Email', 'Phone', 'Country',
-                    'Batch/Year', 'No. of People', 'Message', 'Registered At'
-                ]);
-
-                foreach ($registrations as $reg) {
-                    fputcsv($handle, [
-                        $reg->full_name,
-                        $reg->email,
-                        $reg->phone,
-                        $reg->country,
-                        $reg->batch_year,
-                        $reg->no_of_people,
-                        $reg->message,
-                        $reg->created_at->format('d M Y, g:i A'),
-                    ]);
-                }
-
-                fclose($handle);
-            };
-
-            return response()->stream($callback, 200, $headers);
         }
 
         return response()->json([

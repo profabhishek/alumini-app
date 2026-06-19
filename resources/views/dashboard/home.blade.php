@@ -23,7 +23,7 @@
             <div class="composer-row">
                 <div class="avatar avatar--md">
                     @if(session('alumni_avatar'))
-                        <img src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
+                        <img loading="lazy" src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
                     @else
                         <span class="avatar-initials">{{ strtoupper(substr(session('alumni_name', 'A'), 0, 1)) }}</span>
                     @endif
@@ -109,7 +109,7 @@
             <div class="composer-row">
                 <div class="avatar avatar--md">
                     @if(session('alumni_avatar'))
-                        <img src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
+                        <img loading="lazy" src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
                     @else
                         <span class="avatar-initials">{{ strtoupper(substr(session('alumni_name', 'A'), 0, 1)) }}</span>
                     @endif

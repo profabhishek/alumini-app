@@ -84,7 +84,7 @@
                 <div class="sd-byline-author">
                     @if($creator?->photo)
                         <a href="{{ $profileUrl ?? '#' }}" class="sd-byline-author__photo-wrap">
-                            <img src="{{ asset('storage/' . $creator->photo) }}" alt="{{ $authorName }}" class="sd-byline-author__photo">
+                            <img loading="lazy" src="{{ asset('storage/' . $creator->photo) }}" alt="{{ $authorName }}" class="sd-byline-author__photo">
                         </a>
                     @else
                         <a href="{{ $profileUrl ?? '#' }}" class="sd-byline-author__initial">{{ $initials }}</a>
@@ -133,7 +133,7 @@
                 <div class="sd-author-card__avatar">
                     @if($creator->photo)
                         <a href="{{ $profileUrl ?? '#' }}">
-                            <img src="{{ asset('storage/' . $creator->photo) }}" alt="{{ $authorName }}">
+                            <img loading="lazy" src="{{ asset('storage/' . $creator->photo) }}" alt="{{ $authorName }}">
                         </a>
                     @else
                         <a href="{{ $profileUrl ?? '#' }}" class="sd-author-card__initial">{{ $initials }}</a>
@@ -232,7 +232,7 @@
                             <div class="sr-card__footer">
                                 <div class="sr-author">
                                     @if($relCreator?->photo)
-                                        <img class="sr-author__photo" src="{{ asset('storage/' . $relCreator->photo) }}" alt="{{ $relCreator->full_name }}" style="border:none">
+                                        <img loading="lazy" class="sr-author__photo" src="{{ asset('storage/' . $relCreator->photo) }}" alt="{{ $relCreator->full_name }}" style="border:none">
                                     @else
                                         <span class="sr-author__initial" style="text-decoration:none">{{ strtoupper(substr($relCreator?->full_name ?? 'A', 0, 1)) }}</span>
                                     @endif

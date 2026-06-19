@@ -94,7 +94,7 @@
                             <div class="job-header">
                                 @if($job->banner_image)
                                     <div class="company-logo" style="background: #f3f4f6; padding: 0; overflow: hidden;">
-                                        <img src="{{ asset('storage/' . $job->banner_image) }}"
+                                        <img loading="lazy" src="{{ asset('storage/' . $job->banner_image) }}"
                                              alt="{{ $job->company_name }}"
                                              style="width:100%; height:100%; object-fit:cover; border-radius:18px;">
                                     </div>

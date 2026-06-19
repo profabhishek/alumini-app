@@ -232,7 +232,7 @@
 
                         <div class="alumni-avatar av-{{ ($i % 8) + 1 }}">
                             @if($alum->photo)
-                                <img src="{{ asset('storage/' . $alum->photo) }}" alt="{{ $alum->full_name }}">
+                                <img loading="lazy" src="{{ asset('storage/' . $alum->photo) }}" alt="{{ $alum->full_name }}">
                             @else
                                 {{ $alum->initials }}
                             @endif
@@ -514,7 +514,7 @@
                 {{-- Featured: spans 2 cols × 2 rows --}}
                 <div style="grid-column:1/3;grid-row:1/3;position:relative;overflow:hidden;cursor:pointer;"
                      onclick="homeLbOpen(0)">
-                    <img src="{{ asset('storage/' . $featuredPhoto->image) }}"
+                    <img loading="lazy" src="{{ asset('storage/' . $featuredPhoto->image) }}"
                          alt="{{ $featuredPhoto->title ?? 'Gallery' }}"
                          loading="lazy"
                          style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.5s ease;"
@@ -535,7 +535,7 @@
                 @foreach($thumbPhotos as $idx => $photo)
                 <div style="position:relative;overflow:hidden;cursor:pointer;"
                      onclick="homeLbOpen({{ $idx + 1 }})">
-                    <img src="{{ asset('storage/' . $photo->image) }}"
+                    <img loading="lazy" src="{{ asset('storage/' . $photo->image) }}"
                          alt="{{ $photo->title ?? 'Gallery' }}"
                          loading="lazy"
                          style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease;"
@@ -634,7 +634,7 @@
                                  style="background: linear-gradient(135deg, {{ $theme['grad'] }});"
                              @endif>
                             @if($story->cover_image)
-                                <img src="{{ asset('storage/' . $story->cover_image) }}" alt="{{ $story->title }}">
+                                <img loading="lazy" src="{{ asset('storage/' . $story->cover_image) }}" alt="{{ $story->title }}">
                             @else
                                 <div class="story-img-inner">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">{!! $theme['icon'] !!}</svg>

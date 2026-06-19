@@ -337,7 +337,7 @@
                  data-date="{{ $photo->created_at->timestamp }}"
                  data-index="{{ $i }}"
                  onclick="openLightbox({{ $i }})">
-                <img src="{{ asset('storage/' . $photo->image) }}"
+                <img loading="lazy" src="{{ asset('storage/' . $photo->image) }}"
                      alt="{{ $photo->title ?? 'Gallery photo' }}"
                      loading="lazy">
                 <div class="gal-card-overlay">

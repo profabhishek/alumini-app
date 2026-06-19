@@ -1,141 +1,136 @@
 @php
-    $currentAlumniUser = session('alumni_id')
-        ? \App\Models\AlumniUser::find(session('alumni_id'))
+    $alumniId   = session('alumni_id');
+    $alumniRole = session('alumni_role');
+
+    $currentAlumniUser = $alumniId
+        ? \App\Models\AlumniUser::find($alumniId)
         : null;
 
+    // ── Personal unread notification count ───────────────────────────────
     $personalUnreadCount = 0;
-    if (session('alumni_id')) {
-        $personalUnreadCount = \App\Models\AlumniNotification::where('recipient_id', session('alumni_id'))
+    if ($alumniId) {
+        $personalUnreadCount = \App\Models\AlumniNotification::where('recipient_id', $alumniId)
             ->where('is_read', false)
             ->count();
     }
 
-    // ── Job sidebar badges ──────────────────────────────────────────────
-    $myApplicationsBadge  = 0;
-    $moderationQueueBadge = 0;
+    // ── Job sidebar badges ───────────────────────────────────────────────
+    $myApplicationsBadge      = 0;
+    $moderationQueueBadge     = 0;
     $myJobsNewApplicantsBadge = 0;
 
-    if (session('alumni_id')) {
-        $lastSeen = session('applications_last_seen')
+    if ($alumniId) {
+        $appLastSeen = session('applications_last_seen')
             ? \Carbon\Carbon::parse(session('applications_last_seen'))
             : now();
 
-        $myApplicationsBadge = \App\Models\JobApplication::where('alumni_id', session('alumni_id'))
+        $myApplicationsBadge = \App\Models\JobApplication::where('alumni_id', $alumniId)
             ->where('status', '!=', 'submitted')
-            ->where('updated_at', '>', $lastSeen)
+            ->where('updated_at', '>', $appLastSeen)
             ->count();
 
         $myJobsLastSeen = session('my_jobs_last_seen')
             ? \Carbon\Carbon::parse(session('my_jobs_last_seen'))
             : now();
 
-        $myJobsNewApplicantsBadge = \App\Models\JobApplication::whereHas('job', function ($q) {
-            $q->where('created_by', session('alumni_id'));
-        })
-            ->where('created_at', '>', $myJobsLastSeen)
+        // Use a join instead of whereHas to avoid correlated subquery
+        $myJobsNewApplicantsBadge = \App\Models\JobApplication::join('jobs', 'jobs.id', '=', 'job_applications.job_id')
+            ->where('jobs.created_by', $alumniId)
+            ->where('job_applications.created_at', '>', $myJobsLastSeen)
             ->count();
 
-        if (in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator'])) {
-            $moderationQueueBadge = \App\Models\Job::where('status', 'pending')->count();
+        if (in_array($alumniRole, ['admin', 'super_admin', 'moderator'])) {
+            $moderationQueueBadge = \Cache::remember('pending_jobs_count', 60, fn() =>
+                \App\Models\Job::where('status', 'pending')->count()
+            );
         }
     }
 
-    // ── Event sidebar badges ──────────────────────────────────────────────
+    // ── Event sidebar badges ─────────────────────────────────────────────
     $pendingEventsBadge   = 0;
     $myEventsNewRegsBadge = 0;
 
-    if (session('alumni_id')) {
-        $myEventIds = \App\Models\Event::where('created_by', session('alumni_id'))
-            ->pluck('id');
+    if ($alumniId) {
+        $myEventIds = \App\Models\Event::where('created_by', $alumniId)->pluck('id');
 
         if ($myEventIds->isNotEmpty()) {
             $seenMap = session('events_regs_seen', []);
 
+            // Find the earliest "since" across all events to bound one query
+            $earliestSince = now();
             foreach ($myEventIds as $eid) {
-                $since = isset($seenMap[$eid])
-                    ? \Carbon\Carbon::parse($seenMap[$eid])
-                    : now();
+                $s = isset($seenMap[$eid]) ? \Carbon\Carbon::parse($seenMap[$eid]) : now()->subYears(10);
+                if ($s->lt($earliestSince)) $earliestSince = $s;
+            }
 
-                $myEventsNewRegsBadge += \App\Models\EventRegistration::where('event_id', $eid)
-                    ->where('created_at', '>', $since)
-                    ->count();
+            // ONE query instead of N queries
+            $regsGrouped = \App\Models\EventRegistration::whereIn('event_id', $myEventIds)
+                ->where('created_at', '>', $earliestSince)
+                ->selectRaw('event_id, created_at')
+                ->get()
+                ->groupBy('event_id');
+
+            foreach ($myEventIds as $eid) {
+                $since = isset($seenMap[$eid]) ? \Carbon\Carbon::parse($seenMap[$eid]) : now()->subYears(10);
+                if (isset($regsGrouped[$eid])) {
+                    $myEventsNewRegsBadge += $regsGrouped[$eid]->filter(fn($r) => $r->created_at->gt($since))->count();
+                }
             }
         }
 
-        if (in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator'])) {
-            $pendingEventsBadge = \App\Models\Event::where('status', 'pending')->count();
+        if (in_array($alumniRole, ['admin', 'super_admin', 'moderator'])) {
+            $pendingEventsBadge = \Cache::remember('pending_events_count', 60, fn() =>
+                \App\Models\Event::where('status', 'pending')->count()
+            );
         }
     }
 
-    // ── Story sidebar badges ──────────────────────────────────────────────
-    $pendingStoriesBadge     = 0;
-    $myStoriesUpdatesBadge   = 0;
+    // ── Story sidebar badges ─────────────────────────────────────────────
+    $pendingStoriesBadge   = 0;
+    $myStoriesUpdatesBadge = 0;
 
-    if (session('alumni_id')) {
-        // My stories with status changes since last visit
+    if ($alumniId) {
         $myStoriesLastSeen = session('my_stories_last_seen')
             ? \Carbon\Carbon::parse(session('my_stories_last_seen'))
             : now();
 
-        $myStoriesUpdatesBadge = \App\Models\Story::where('created_by', session('alumni_id'))
+        $myStoriesUpdatesBadge = \App\Models\Story::where('created_by', $alumniId)
             ->where('status', '!=', 'pending')
             ->where('updated_at', '>', $myStoriesLastSeen)
             ->count();
 
-        // Pending stories for admin/moderator
-        if (in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator'])) {
-            $pendingStoriesBadge = \App\Models\Story::where('status', 'pending')->count();
+        if (in_array($alumniRole, ['admin', 'super_admin', 'moderator'])) {
+            $pendingStoriesBadge = \Cache::remember('pending_stories_count', 60, fn() =>
+                \App\Models\Story::where('status', 'pending')->count()
+            );
         }
     }
 
     $emailPrefs = $currentAlumniUser?->email_notifications ?? [];
 
-    $latestJobs = \App\Models\Job::where('status','published')
-        ->latest()
-        ->take(1)
-        ->get();
+    // ── Sidebar content — cached for 60 seconds (non-user-specific) ──────
+    $sidebarContent = \Cache::remember('sidebar_content', 60, function () {
+        return [
+            'latestJobs'           => \App\Models\Job::where('status', 'published')->latest()->take(1)->get(),
+            'latestNotices'        => \App\Models\Notice::published()->latest('published_at')->take(1)->get(),
+            'sidebarUpcomingEvents'=> \App\Models\Event::where('status', 'published')
+                                        ->whereDate('start_date', '>=', now()->toDateString())
+                                        ->orderBy('start_date')->take(2)->get(),
+            'notifNews'            => \App\Models\News::published()->latest('published_at')->take(3)->get(),
+            'notifEvents'          => \App\Models\Event::where('status', 'published')->latest()->take(3)->get(),
+            'notifStories'         => \App\Models\Story::published()->latest()->take(3)->get(),
+            'notifJobs'            => \App\Models\Job::where('status', 'published')->latest()->take(3)->get(),
+        ];
+    });
 
-    $latestNotices = \App\Models\Notice::published()
-        ->latest('published_at')
-        ->take(1)
-        ->get();
+    $latestJobs            = $sidebarContent['latestJobs'];
+    $latestNotices         = $sidebarContent['latestNotices'];
+    $sidebarUpcomingEvents = $sidebarContent['sidebarUpcomingEvents'];
+    $notifNews             = $sidebarContent['notifNews'];
 
-    $sidebarUpcomingEvents = \App\Models\Event::where('status', 'published')
-        ->whereDate('start_date', '>=', now()->toDateString())
-        ->orderBy('start_date')
-        ->take(2)
-        ->get();
-
-
-    $notifNews = \App\Models\News::published()
-        ->latest('published_at')
-        ->take(3)
-        ->get();
-
-    // ── Notification feed items, gated by the user's email_notifications
-    //    preferences (Settings > Notifications). News & Notices have no
-    //    corresponding toggle, so they're always included.
-
-    $notifEvents = ($emailPrefs['events'] ?? true)
-        ? \App\Models\Event::where('status', 'published')
-            ->latest()
-            ->take(3)
-            ->get()
-        : collect();
-
-    $notifStories = ($emailPrefs['stories'] ?? true)
-        ? \App\Models\Story::published()
-            ->latest()
-            ->take(3)
-            ->get()
-        : collect();
-
-    $notifJobs = ($emailPrefs['jobs'] ?? true)
-        ? \App\Models\Job::where('status', 'published')
-            ->latest()
-            ->take(3)
-            ->get()
-        : collect();
+    $notifEvents  = ($emailPrefs['events']  ?? true) ? $sidebarContent['notifEvents']  : collect();
+    $notifStories = ($emailPrefs['stories'] ?? true) ? $sidebarContent['notifStories'] : collect();
+    $notifJobs    = ($emailPrefs['jobs']    ?? true) ? $sidebarContent['notifJobs']    : collect();
 
     $notificationItems = collect()
         ->merge($notifNews->map(fn($n) => [
@@ -179,10 +174,6 @@
         ->take(8)
         ->values();
 
-
-    // Content items (news/events/jobs/stories) are not real per-user notifications.
-    // They have no per-user read state in the DB, so they never contribute to the badge.
-    // Only personal notifications (alumni_notifications table) drive the badge count.
     $newNotificationsCount = 0;
 @endphp
 
@@ -201,10 +192,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Community') – ICCR Alumni</title>
 
-    {{-- Google Fonts --}}
+    {{-- Google Fonts — non-render-blocking --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap"></noscript>
 
     {{-- Community base styles --}}
     <link rel="stylesheet" href="{{ asset('css/community/base.css') }}">
@@ -225,7 +218,7 @@
 
             {{-- Logo --}}
             <a href="{{ url('/home') }}" class="comm-logo">
-                <img src="https://iccr.hialumni.com/storage/uploads/Setting/7881769241382.png" alt="ICCR" class="comm-logo__img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img loading="lazy" src="https://iccr.hialumni.com/storage/uploads/Setting/7881769241382.png" alt="ICCR" class="comm-logo__img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="comm-logo__fallback" style="display:none;">
                     <span class="comm-logo__abbr">ICCR</span>
                     <span class="comm-logo__full">Alumni Portal</span>
@@ -311,7 +304,7 @@
                 <div class="comm-user-menu" id="userMenuToggle">
                     <div class="avatar avatar--sm">
                         @if(session('alumni_avatar'))
-                            <img src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
+                            <img loading="lazy" src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
                         @else
                             <span class="avatar-initials">{{ strtoupper(substr(session('alumni_name', 'A'), 0, 1)) }}</span>
                         @endif
@@ -833,7 +826,7 @@
                                 <a href="{{ route('notice.show', $notice->slug) }}" class="widget-notice-item">
                                     <div class="widget-notice-thumb">
                                         @if($notice->image)
-                                            <img src="{{ asset('storage/' . $notice->image) }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                                            <img loading="lazy" src="{{ asset('storage/' . $notice->image) }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
                                         @else
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
                                         @endif
@@ -1429,6 +1422,13 @@
 
             const URL_MARK_ALL = '{{ route('notifications.personal.mark-read') }}';
 
+            function markAllRead() {
+                // Zero badge immediately in UI
+                setBadgeCount(0);
+                // Mark all read on server
+                fetch(URL_MARK_ALL, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
             function markAllRead() {
                 // Zero badge immediately in UI
                 setBadgeCount(0);

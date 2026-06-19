@@ -187,11 +187,21 @@ class JobController extends Controller
         session(['my_jobs_last_seen' => $now]);
         \App\Models\AlumniUser::where('id', session('alumni_id'))->update(['my_jobs_last_seen' => $now]);
 
+        // One aggregate query instead of 4 separate COUNTs
+        $rawStats = Job::where('created_by', session('alumni_id'))
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(status = 'pending')   as pending,
+                SUM(status = 'published') as published,
+                SUM(status = 'rejected')  as rejected
+            ")
+            ->first();
+
         $stats = [
-            'total'     => Job::where('created_by', session('alumni_id'))->count(),
-            'pending'   => Job::where('created_by', session('alumni_id'))->where('status', 'pending')->count(),
-            'published' => Job::where('created_by', session('alumni_id'))->where('status', 'published')->count(),
-            'rejected'  => Job::where('created_by', session('alumni_id'))->where('status', 'rejected')->count(),
+            'total'     => (int) ($rawStats->total ?? 0),
+            'pending'   => (int) ($rawStats->pending ?? 0),
+            'published' => (int) ($rawStats->published ?? 0),
+            'rejected'  => (int) ($rawStats->rejected ?? 0),
         ];
 
         return view('community.jobs.my-jobs', compact('jobs', 'stats', 'newApplicantCounts'));

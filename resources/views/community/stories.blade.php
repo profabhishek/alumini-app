@@ -105,7 +105,7 @@
                         <div class="sr-author sr-author--light">
                             @php $fCreator = $featured->creator; @endphp
                             @if($fCreator?->photo)
-                                <img class="sr-author__photo" src="{{ asset('storage/' . $fCreator->photo) }}" alt="{{ $fCreator->full_name }}">
+                                <img loading="lazy" class="sr-author__photo" src="{{ asset('storage/' . $fCreator->photo) }}" alt="{{ $fCreator->full_name }}">
                             @else
                                 <span class="sr-author__initial">{{ strtoupper(substr($fCreator?->full_name ?? 'A', 0, 1)) }}</span>
                             @endif
@@ -184,7 +184,7 @@
                             <div class="sr-author">
                                 @if($creator?->photo)
                                     <a href="{{ $creator?->id ? url('/members/' . $creator->id) : '#' }}">
-                                        <img class="sr-author__photo" src="{{ asset('storage/' . $creator->photo) }}" alt="{{ $creator->full_name }}">
+                                        <img loading="lazy" class="sr-author__photo" src="{{ asset('storage/' . $creator->photo) }}" alt="{{ $creator->full_name }}">
                                     </a>
                                 @else
                                     <a href="{{ $creator?->id ? url('/members/' . $creator->id) : '#' }}" class="sr-author__initial">

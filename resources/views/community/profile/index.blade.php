@@ -32,7 +32,7 @@
         <div class="profile-header-body">
             <div class="profile-avatar-wrap" id="avatarTrigger">
                 @if($user->photo)
-                    <img src="{{ asset('storage/' . $user->photo) }}"
+                    <img loading="lazy" src="{{ asset('storage/' . $user->photo) }}"
                          alt="{{ $user->full_name }}"
                          class="profile-avatar-img"
                          id="currentAvatarImg">
@@ -508,7 +508,7 @@
             <div class="composer-row">
                 <div class="avatar avatar--md">
                     @if(session('alumni_avatar'))
-                        <img src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
+                        <img loading="lazy" src="{{ asset('storage/' . session('alumni_avatar')) }}" alt="{{ session('alumni_name') }}">
                     @else
                         <span class="avatar-initials">{{ strtoupper(substr(session('alumni_name', 'A'), 0, 1)) }}</span>
                     @endif

@@ -97,7 +97,7 @@
 
                             <div class="ma-logo">
                                 @if($job->banner_image)
-                                    <img src="{{ asset('storage/'.$job->banner_image) }}" alt="{{ $job->company_name }}">
+                                    <img loading="lazy" src="{{ asset('storage/'.$job->banner_image) }}" alt="{{ $job->company_name }}">
                                 @else
                                     {{ strtoupper(substr($job->company_name,0,1)) }}
                                 @endif

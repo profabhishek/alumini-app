@@ -93,7 +93,7 @@
                         <div class="nr-byline">
                             @php $fAuthor = $featured->author; @endphp
                             @if($fAuthor?->photo)
-                                <img class="nr-byline__photo" src="{{ asset('storage/' . $fAuthor->photo) }}" alt="{{ $fAuthor->full_name }}">
+                                <img loading="lazy" class="nr-byline__photo" src="{{ asset('storage/' . $fAuthor->photo) }}" alt="{{ $fAuthor->full_name }}">
                             @else
                                 <span class="nr-byline__initial">{{ strtoupper(substr($fAuthor?->full_name ?? 'A', 0, 1)) }}</span>
                             @endif
@@ -172,7 +172,7 @@
                             <div class="nr-byline nr-byline--card">
                                 @if($author?->photo)
                                     <a href="{{ $author->id ? url('/members/' . $author->id) : '#' }}">
-                                        <img class="nr-byline__photo nr-byline__photo--sm" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $author->full_name }}">
+                                        <img loading="lazy" class="nr-byline__photo nr-byline__photo--sm" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $author->full_name }}">
                                     </a>
                                 @else
                                     <a href="{{ $author?->id ? url('/members/' . $author->id) : '#' }}" class="nr-byline__initial nr-byline__initial--sm">

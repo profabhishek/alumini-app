@@ -55,7 +55,7 @@
             <div class="gm-row">
                 <div class="gm-avatar">
                     @if(!empty($alumni?->photo))
-                        <img src="{{ asset('storage/' . $alumni->photo) }}" alt="{{ $alumni->full_name }}">
+                        <img loading="lazy" src="{{ asset('storage/' . $alumni->photo) }}" alt="{{ $alumni->full_name }}">
                     @else
                         {{ $alumni?->initials ?? '?' }}
                     @endif
@@ -101,7 +101,7 @@
             <div class="gm-row">
                 <div class="gm-avatar">
                     @if(!empty($alumni?->photo))
-                        <img src="{{ asset('storage/' . $alumni->photo) }}" alt="{{ $alumni->full_name }}">
+                        <img loading="lazy" src="{{ asset('storage/' . $alumni->photo) }}" alt="{{ $alumni->full_name }}">
                     @else
                         {{ $alumni?->initials ?? '?' }}
                     @endif

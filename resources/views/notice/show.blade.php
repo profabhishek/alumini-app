@@ -73,7 +73,7 @@
             <div class="nb-detail-byline">
                 <div class="nb-detail-byline__avatar" style="overflow:hidden;padding:0;">
                     @if($author?->photo)
-                        <img src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">
+                        <img loading="lazy" src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">
                     @else
                         {{ $authorInitials }}
                     @endif
