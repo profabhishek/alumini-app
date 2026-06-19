@@ -3,8 +3,10 @@
 @section('title', 'Alumni Stories')
 
 @push('styles')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="{{ asset('css/stories-redesign.css') }}">
 @endpush
 
@@ -79,7 +81,7 @@
             <a href="{{ route('stories.show', $featured) }}" class="sr-feature__link">
                 <div class="sr-feature__image">
                     @if($featured->cover_image)
-                        <img src="{{ asset('storage/' . $featured->cover_image) }}" alt="{{ $featured->title }}">
+                        <img src="{{ asset('storage/' . $featured->cover_image) }}" alt="{{ $featured->title }}" loading="lazy">
                     @else
                         <div class="sr-feature__placeholder" style="background: {{ $storyThemes[0] }}">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6Z"/></svg>

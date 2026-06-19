@@ -40,7 +40,6 @@
                         <th>Department</th>
                         <th>Passing Year</th>
                         <th>Registered</th>
-                        <th>Attachment</th>
                         <th class="admin-table__actions-col">Actions</th>
                     </tr>
                 </thead>
@@ -61,15 +60,6 @@
                             <td>{{ $user->department }}</td>
                             <td>{{ $user->passing_year }}</td>
                             <td>{{ $user->created_at->format('d M Y, H:i') }}</td>
-                            <td>
-                                @if($user->attachment && $user->attachment !== 'none')
-                                    <a href="{{ asset('storage/alumni-documents/' . $user->attachment) }}" target="_blank" class="admin-link">
-                                        View PDF
-                                    </a>
-                                @else
-                                    <span class="admin-table__meta">&mdash;</span>
-                                @endif
-                            </td>
                             <td>
                                 <div class="admin-table__actions">
                                     <form action="{{ route('admin.users.approve', $user) }}" method="POST">

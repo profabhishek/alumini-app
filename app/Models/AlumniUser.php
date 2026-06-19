@@ -23,9 +23,6 @@ class AlumniUser extends Authenticatable
         'country',
         'photo',
         'password',
-        'is_approved',
-        'role',
-        'permissions',
         'bio',
         'linkedin_url',
         'twitter_url',
@@ -47,6 +44,17 @@ class AlumniUser extends Authenticatable
         'events_regs_seen_at',
         'pending_users_last_seen',
         'newsletter_last_seen',
+        'nationality',
+        'is_iccr_alumni',
+        'current_position',
+    ];
+
+    // Sensitive fields explicitly excluded from mass-assignment.
+    // These must only be set via direct attribute assignment: $user->role = ...
+    protected $guarded = [
+        'role',
+        'is_approved',
+        'permissions',
     ];
 
     protected $hidden = ['password'];
@@ -63,6 +71,7 @@ class AlumniUser extends Authenticatable
         'my_jobs_last_seen'     => 'datetime',
         'my_stories_last_seen'     => 'datetime',
         'events_regs_seen_at'      => 'datetime',
+        'is_iccr_alumni'           => 'boolean',
         'pending_users_last_seen'  => 'datetime',
         'newsletter_last_seen'     => 'datetime',
     ];

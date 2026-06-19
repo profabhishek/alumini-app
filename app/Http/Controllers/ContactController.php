@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendContactEmail;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
@@ -29,7 +29,7 @@ class ContactController extends Controller
             'message.min'      => 'Your message must be at least 10 characters.',
         ]);
 
-        $to      = env('CONTACT_EMAIL', 'jhaabhishek910@gmail.com');
+        $to      = config('services.contact_email');
         $subject = '[ICCR Alumni] ' . $validated['subject'];
         $name    = e($validated['name']);
         $email   = e($validated['email']);
@@ -57,24 +57,17 @@ class ContactController extends Controller
             </div>
         </body></html>";
 
-        try {
-            Mail::html($html, function ($message) use ($to, $subject, $validated) {
-                $message->to($to)
-                        ->subject($subject)
-                        ->replyTo($validated['email'], $validated['name']);
-            });
+        SendContactEmail::dispatch(
+            $to,
+            $subject,
+            $html,
+            $validated['email'],
+            $validated['name'],
+        );
 
-            Log::info('Contact form sent to ' . $to);
+        Log::info('Contact email queued for ' . $to);
 
-            return redirect()->route('contact')
-                ->with('success', 'Your message has been sent! We\'ll get back to you within 24–48 hours.');
-
-        } catch (\Exception $e) {
-            Log::error('Contact form FAILED: ' . $e->getMessage());
-
-            return redirect()->route('contact')
-                ->withInput()
-                ->with('error', 'Failed to send: ' . $e->getMessage());
-        }
+        return redirect()->route('contact')
+            ->with('success', 'Your message has been sent! We\'ll get back to you within 24–48 hours.');
     }
 }

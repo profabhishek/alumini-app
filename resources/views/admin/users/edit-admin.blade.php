@@ -32,14 +32,14 @@
                 <div class="admin-form-group">
                     <label>Full Name <span class="req">*</span></label>
                     <input type="text" name="full_name" value="{{ old('full_name', $user->full_name) }}"
-                           class="admin-input @error('full_name') is-error @enderror">
+                           required maxlength="255" class="admin-input @error('full_name') is-error @enderror">
                     @error('full_name')<span class="admin-form-error">{{ $message }}</span>@enderror
                 </div>
 
                 <div class="admin-form-group">
                     <label>Email Address <span class="req">*</span></label>
                     <input type="email" name="email" value="{{ old('email', $user->email) }}"
-                           class="admin-input @error('email') is-error @enderror">
+                           required maxlength="255" class="admin-input @error('email') is-error @enderror">
                     @error('email')<span class="admin-form-error">{{ $message }}</span>@enderror
                 </div>
 

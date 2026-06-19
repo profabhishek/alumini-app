@@ -12,6 +12,9 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        '/chat/mark-offline',
+        // No exemptions — all POST routes are CSRF protected.
+        // /chat/mark-offline was previously exempt but the JS already sends
+        // X-CSRF-TOKEN in headers (and _token in the sendBeacon Blob), so
+        // the exemption was unnecessary.
     ];
 }

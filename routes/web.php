@@ -13,12 +13,14 @@ use App\Http\Middleware\AlumniAuth;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Community\StoryController;
 use App\Http\Controllers\Community\Admin\AdminStoryController;
+use App\Http\Controllers\Community\Admin\StoryCategoryController;
 use App\Http\Controllers\Community\AlumniDirectoryController;
 use App\Http\Controllers\Community\AlumniProfileController;
 use App\Http\Controllers\Community\ChatController;
 use App\Http\Controllers\Admin\AlumniDataController;
 use App\Http\Controllers\Community\PostController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NewsCategoryController;
 use App\Http\Controllers\Admin\NoticeController;
@@ -40,6 +42,11 @@ use App\Http\Controllers\ContactController;
 */
 
 Route::get('/', function () {
+    $totalAlumni    = \App\Models\AlumniUser::where('role', 'alumni')->where('is_approved', true)->count();
+    $totalCountries = \App\Models\AlumniUser::where('role', 'alumni')->where('is_approved', true)->whereNotNull('nationality')->distinct('nationality')->count('nationality');
+    $totalEvents    = \App\Models\Event::count();
+    $totalGallery   = \App\Models\GalleryItem::published()->count();
+
     return view('home.index', [
         'latestNews' => \App\Models\News::published()
             ->with(['category', 'author'])
@@ -64,6 +71,18 @@ Route::get('/', function () {
             ->orderByDesc('created_at')
             ->take(6)
             ->get(),
+
+        // 7 most recent for the home-page mini gallery widget
+        'recentPhotos' => \App\Models\GalleryItem::published()
+            ->orderByDesc('created_at')
+            ->take(7)
+            ->get(),
+
+        // Stats for the banner
+        'statAlumni'    => $totalAlumni,
+        'statCountries' => $totalCountries ?: 120,   // fallback if no nationality data yet
+        'statEvents'    => $totalEvents,
+        'statGallery'   => $totalGallery,
     ]);
 })->name('home');
 
@@ -77,6 +96,17 @@ Route::get('/notice/{notice:slug}', [NoticePublicController::class, 'show'])->na
 
 Route::get('/contact',  [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
+
+Route::get('/gallery', function () {
+    $allPhotos = \App\Models\GalleryItem::published()
+        ->orderByDesc('created_at')
+        ->get();
+    return view('gallery.index', ['allPhotos' => $allPhotos]);
+})->name('gallery');
+
+Route::get('/privacy-policy', fn() => view('legal.privacy-policy'))->name('privacy-policy');
+Route::get('/terms-and-conditions', fn() => view('legal.terms'))->name('terms');
+Route::get('/disclaimer', fn() => view('legal.disclaimer'))->name('disclaimer');
 
 
 /*
@@ -119,12 +149,14 @@ Route::get('/signup', [AuthController::class, 'showRegister'])
     ->name('register');
 
 Route::post('/signup', [AuthController::class, 'register'])
+    ->middleware('throttle:register')
     ->name('register.store');
 
 Route::get('/login', [AuthController::class, 'showLogin'])
     ->name('login');
 
 Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login')
     ->name('login.authenticate');
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -140,6 +172,7 @@ Route::get('/verify-otp', [AuthController::class, 'showOtpVerify'])
     ->name('otp.verify.show');
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])
+    ->middleware('throttle:10,1')
     ->name('otp.verify');
 
 Route::post('/resend-otp', [AuthController::class, 'resendOtp'])
@@ -149,12 +182,14 @@ Route::get('/forgot-password', [PasswordController::class, 'showForgotForm'])
     ->name('password.forgot');
 
 Route::post('/forgot-password', [PasswordController::class, 'sendResetLink'])
+    ->middleware('throttle:5,1')
     ->name('password.email');
 
 Route::get('/reset-password/{token}', [PasswordController::class, 'showResetForm'])
     ->name('password.reset');
 
 Route::post('/reset-password', [PasswordController::class, 'resetPassword'])
+    ->middleware('throttle:5,1')
     ->name('password.update');
 
 
@@ -325,6 +360,9 @@ Route::middleware('alumni.auth')->group(function () {
 
     Route::get('/my-applications', [JobApplicationController::class, 'myApplications'])
         ->name('jobs.my-applications');
+
+    Route::get('/applications/{application}/resume', [JobApplicationController::class, 'downloadResume'])
+        ->name('jobs.application.resume');
 
     /*
     |----------------------------------------------------------------
@@ -576,6 +614,11 @@ Route::middleware('admin.auth')->group(function () {
     Route::get('/admin/users/pending', [AdminController::class, 'pendingUsers'])
         ->name('admin.users.pending');
 
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])
+        ->name('admin.dashboard');
+    Route::get('/admin/dashboard/stats', [AdminDashboardController::class, 'stats'])
+        ->name('admin.dashboard.stats');
+
     Route::get('/admin/badge-counts', [AdminController::class, 'adminBadgeCounts'])
         ->name('admin.badge-counts');
     Route::post('/admin/mark-pending-users-seen', [AdminController::class, 'markPendingUsersSeen'])
@@ -774,6 +817,14 @@ Route::middleware('admin.auth')->group(function () {
 
     Route::delete('/admin/stories/{story}', [AdminStoryController::class, 'destroy'])
         ->name('admin.stories.destroy');
+
+    // Story Categories CRUD
+    Route::get('/admin/story-categories',                       [StoryCategoryController::class, 'index'])  ->name('admin.story-categories.index');
+    Route::post('/admin/story-categories',                      [StoryCategoryController::class, 'store'])  ->name('admin.story-categories.store');
+    Route::get('/admin/story-categories/{storyCategory}',       [StoryCategoryController::class, 'show'])   ->name('admin.story-categories.show');
+    Route::put('/admin/story-categories/{storyCategory}',       [StoryCategoryController::class, 'update']) ->name('admin.story-categories.update');
+    Route::patch('/admin/story-categories/{storyCategory}/toggle', [StoryCategoryController::class, 'toggle'])->name('admin.story-categories.toggle');
+    Route::delete('/admin/story-categories/{storyCategory}',    [StoryCategoryController::class, 'destroy'])->name('admin.story-categories.destroy');
 });
 
 

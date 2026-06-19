@@ -294,7 +294,7 @@ class AdminController extends Controller
             'institute'    => 'required|string|max:255',
             'roll_number'  => 'required|string|max:100',
             'gender'       => 'required|in:Male,Female,Other',
-            'birth_date'   => 'required|date',
+            'birth_date'   => 'required|date|before:today',
             'country'      => 'nullable|string|max:100',
             'current_city' => 'nullable|string|max:100',
             'is_approved'  => 'boolean',

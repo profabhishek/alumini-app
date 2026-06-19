@@ -59,15 +59,22 @@
 
                             <div class="form-group">
                                 <label for="category">Category *</label>
+                                @if($categories->isEmpty())
+                                    <div style="padding:10px 12px;border:1px solid #fecaca;background:#fff5f5;border-radius:8px;font-size:13px;color:#c53030;">
+                                        No active categories found. Please ask an admin to add categories at
+                                        <a href="{{ route('admin.event-categories.index') }}" style="color:#e8640c;font-weight:600;">Event Categories</a>.
+                                    </div>
+                                @else
                                 <select id="category" name="category" required>
                                     <option value="">Select Category</option>
-                                    <option value="Conference">Conference</option>
-                                    <option value="Seminar">Seminar</option>
-                                    <option value="Cultural Program">Cultural Program</option>
-                                    <option value="Workshop">Workshop</option>
-                                    <option value="Networking Event">Networking Event</option>
-                                    <option value="Alumni Meet">Alumni Meet</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat }}" {{ old('category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                                    @endforeach
                                 </select>
+                                @error('category')
+                                    <span style="font-size:12px;color:#c53030;margin-top:4px;display:block;">{{ $message }}</span>
+                                @enderror
+                                @endif
                             </div>
 
                             <div class="form-group">

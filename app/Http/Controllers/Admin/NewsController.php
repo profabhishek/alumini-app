@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Sanitizer;
 use App\Models\News;
 use App\Models\NewsCategory;
 use Illuminate\Http\Request;
@@ -55,6 +56,9 @@ class NewsController extends Controller
 
         $validated['author_id'] = session('alumni_id');
         $validated['published_at'] = $this->resolvePublishedAt($request, null);
+        if (isset($validated['body'])) {
+            $validated['body'] = Sanitizer::richText($validated['body']);
+        }
 
         News::create($validated);
 
@@ -92,6 +96,9 @@ class NewsController extends Controller
         }
 
         $validated['published_at'] = $this->resolvePublishedAt($request, $news);
+        if (isset($validated['body'])) {
+            $validated['body'] = Sanitizer::richText($validated['body']);
+        }
 
         $news->update($validated);
 

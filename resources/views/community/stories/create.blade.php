@@ -39,13 +39,20 @@
             </div>
             <div class="st-form-group" style="margin-bottom:0;">
                 <label class="st-label" for="category">Category <span class="st-required">*</span></label>
+                @if($categories->isEmpty())
+                    <div style="padding:10px 12px;border:1px solid #fecaca;background:#fff5f5;border-radius:8px;font-size:13px;color:#c53030;">
+                        No active categories found. Please ask an admin to add categories at
+                        <a href="{{ route('admin.story-categories.index') }}" style="color:#e8640c;font-weight:600;">Story Categories</a>.
+                    </div>
+                @else
                 <select id="category" name="category" class="st-input st-select @error('category') st-input--error @enderror" required>
                     <option value="">Select category</option>
-                    @foreach(['Career', 'Cultural Exchange', 'Education', 'Entrepreneurship', 'Research', 'Social Impact', 'Other'] as $cat)
+                    @foreach($categories as $cat)
                         <option value="{{ $cat }}" {{ old('category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
                     @endforeach
                 </select>
                 @error('category') <span class="st-field-error">{{ $message }}</span> @enderror
+                @endif
             </div>
         </div>
 

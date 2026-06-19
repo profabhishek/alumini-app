@@ -27,7 +27,7 @@ class ProfileController extends Controller
 
         $request->validate([
             'full_name'         => 'required|max:255',
-            'phone'             => 'required|min:10|max:15',
+            'phone'             => ['required', 'min:7', 'max:20', 'regex:/^[+\d\s\-()]{7,20}$/'],
             'bio'               => 'nullable|max:1000',
             'current_job_title' => 'nullable|max:255',
             'current_company'   => 'nullable|max:255',
@@ -81,11 +81,10 @@ class ProfileController extends Controller
             return back()->with('error', 'Invalid image format.');
         }
 
-        $extension  = strtolower($matches[1]) === 'png' ? 'png' : 'jpg';
-        $imageData  = substr($data, strpos($data, ',') + 1);
-        $decoded    = base64_decode($imageData);
+        $imageData = substr($data, strpos($data, ',') + 1);
+        $decoded   = base64_decode($imageData, true);
 
-        if (!$decoded) {
+        if ($decoded === false || $decoded === '') {
             return back()->with('error', 'Could not process the image.');
         }
 
@@ -94,6 +93,28 @@ class ProfileController extends Controller
             return back()->with('error', 'Image is too large. Max 3 MB.');
         }
 
+        // ── Security: verify bytes are a real image via GD, then re-encode ──
+        // This strips any embedded payloads (e.g. PHP tags in EXIF data).
+        $gdImage = @imagecreatefromstring($decoded);
+        if ($gdImage === false) {
+            return back()->with('error', 'Invalid image. Please upload a valid JPG or PNG.');
+        }
+
+        // Always output as JPEG (safe, strips metadata); use PNG only if transparency needed
+        $mimeHint = strtolower($matches[1]);
+        if ($mimeHint === 'png') {
+            $extension = 'png';
+            ob_start();
+            imagepng($gdImage, null, 6); // compression 6
+            $safeBytes = ob_get_clean();
+        } else {
+            $extension = 'jpg';
+            ob_start();
+            imagejpeg($gdImage, null, 90); // quality 90
+            $safeBytes = ob_get_clean();
+        }
+        imagedestroy($gdImage);
+
         $filename = 'alumni-photos/' . session('alumni_id') . '_' . time() . '.' . $extension;
 
         // Delete old photo if exists
@@ -101,7 +122,7 @@ class ProfileController extends Controller
             Storage::disk('public')->delete($user->photo);
         }
 
-        Storage::disk('public')->put($filename, $decoded);
+        Storage::disk('public')->put($filename, $safeBytes);
 
         $user->update(['photo' => $filename]);
 

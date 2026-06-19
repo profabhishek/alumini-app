@@ -9,10 +9,9 @@
                 abhishek@ardhas.com
             </a>
             <span class="topbar-divider">|</span>
-            <a href="tel:+918800040728" class="topbar-link">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.94 2 2 0 0 1 3.59 2.77h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.1a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 17.5z" /></svg>
-                +91-99998 32703
-            </a>
+            <span class="topbar-link" style="cursor:default;font-style:italic;">
+                Connecting ICCR Scholars Across the World
+            </span>
         </div>
         <div class="topbar-right">
 

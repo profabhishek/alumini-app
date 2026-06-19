@@ -8,6 +8,7 @@ use App\Models\Job;
 use App\Models\JobApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class JobApplicationController extends Controller
 {
@@ -54,7 +55,9 @@ class JobApplicationController extends Controller
             'cover_letter' => 'nullable|string|max:5000',
         ]);
 
-        $resumePath = $request->file('resume')->store('job-resumes', 'public');
+        // Store in private (non-public) disk so the file is NOT web-accessible directly.
+        // Use the 'downloadResume' route to serve it through an authenticated controller.
+        $resumePath = $request->file('resume')->store('job-resumes', 'local');
 
         JobApplication::create([
             'job_id'       => $job->id,
@@ -70,6 +73,37 @@ class JobApplicationController extends Controller
         return redirect()
             ->route('jobs.my-applications')
             ->with('success', 'Application submitted successfully.');
+    }
+
+    // ── Secure Resume Download ────────────────────────────────────────────
+    // Only the applicant themselves OR the job owner can download a resume.
+
+    public function downloadResume(JobApplication $application)
+    {
+        $alumniId = session('alumni_id');
+
+        // Allow: applicant themselves
+        $isApplicant = $application->alumni_id === $alumniId;
+
+        // Allow: job owner
+        $isJobOwner = $application->job && $application->job->created_by === $alumniId;
+
+        // Allow: admin / super_admin
+        $isAdmin = in_array(session('alumni_role'), ['admin', 'super_admin']);
+
+        if (!$isApplicant && !$isJobOwner && !$isAdmin) {
+            abort(403, 'You do not have permission to download this resume.');
+        }
+
+        if (!$application->resume || !Storage::disk('local')->exists($application->resume)) {
+            abort(404, 'Resume not found.');
+        }
+
+        $originalName = basename($application->resume);
+        $extension    = pathinfo($originalName, PATHINFO_EXTENSION);
+        $downloadName = 'resume_' . $application->full_name . '.' . $extension;
+
+        return Storage::disk('local')->download($application->resume, $downloadName);
     }
 
     // ── My Applications ───────────────────────────────────────────────────

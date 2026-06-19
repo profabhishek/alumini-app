@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Community;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Sanitizer;
 use App\Models\Event;
+use App\Models\EventCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Mail\EventRegistrationConfirmationMail;
@@ -86,7 +88,8 @@ class EventController extends Controller
     // ── Create form ───────────────────────────────────────────────────────
     public function create()
     {
-        return view('community.events.create');
+        $categories = EventCategory::active()->orderBy('name')->pluck('name');
+        return view('community.events.create', compact('categories'));
     }
 
     // ── Store new event ───────────────────────────────────────────────────
@@ -94,10 +97,10 @@ class EventController extends Controller
     {
         $validated = $request->validate([
             'title'                 => 'required|string|max:255',
-            'category'              => 'required|string|max:255',
-            'event_mode'            => 'required|string|max:255',
+            'category'              => 'required|string|exists:event_categories,name',
+            'event_mode'            => 'required|string|in:Physical,Online,Hybrid',
             'location'              => 'nullable|string|max:255',
-            'start_date'            => 'required|date',
+            'start_date'            => 'required|date|after_or_equal:today',
             'end_date'              => 'nullable|date|after_or_equal:start_date',
             'start_time'            => 'required',
             'end_time'              => 'nullable',
@@ -105,9 +108,14 @@ class EventController extends Controller
             'event_type'            => 'required|in:Free,Paid',
             'ticket_price'          => 'nullable|numeric|min:0',
             'total_seats'           => 'nullable|integer|min:1',
-            'registration_deadline' => 'nullable|date',
+            'registration_deadline' => 'nullable|date|before_or_equal:start_date',
             'registration_required' => 'required|boolean',
             'banner_image'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'category.exists'                  => 'The selected category is invalid. Please choose from the available categories.',
+            'event_mode.in'                    => 'Event mode must be Physical, Online, or Hybrid.',
+            'start_date.after_or_equal'        => 'Start date cannot be in the past.',
+            'registration_deadline.before_or_equal' => 'Registration deadline must be on or before the start date.',
         ]);
 
         $bannerPath = null;
@@ -128,7 +136,7 @@ class EventController extends Controller
             'end_date'              => $validated['end_date'] ?? null,
             'start_time'            => $validated['start_time'],
             'end_time'              => $validated['end_time'] ?? null,
-            'description'           => $validated['description'],
+            'description'           => Sanitizer::richText($validated['description']),
             'event_type'            => $validated['event_type'],
             'ticket_price'          => $validated['ticket_price'] ?? 0,
             'total_seats'           => !empty($validated['total_seats']) ? (int) $validated['total_seats'] : null,
@@ -238,8 +246,8 @@ class EventController extends Controller
 
         $validated = $request->validate([
             'title'                 => 'required|string|max:255',
-            'category'              => 'required|string|max:255',
-            'event_mode'            => 'required|string|max:255',
+            'category'              => 'required|string|exists:event_categories,name',
+            'event_mode'            => 'required|string|in:Physical,Online,Hybrid',
             'location'              => 'nullable|string|max:255',
             'start_date'            => 'required|date',
             'end_date'              => 'nullable|date|after_or_equal:start_date',
@@ -249,9 +257,12 @@ class EventController extends Controller
             'event_type'            => 'required|in:Free,Paid',
             'ticket_price'          => 'nullable|numeric|min:0',
             'total_seats'           => 'nullable|integer|min:1',
-            'registration_deadline' => 'nullable|date',
+            'registration_deadline' => 'nullable|date|before_or_equal:start_date',
             'registration_required' => 'required|boolean',
             'banner_image'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'event_mode.in'                    => 'Event mode must be Physical, Online, or Hybrid.',
+            'registration_deadline.before_or_equal' => 'Registration deadline must be on or before the start date.',
         ]);
 
         if (
@@ -277,7 +288,7 @@ class EventController extends Controller
             'end_date'              => $validated['end_date'] ?? null,
             'start_time'            => $validated['start_time'],
             'end_time'              => $validated['end_time'] ?? null,
-            'description'           => $validated['description'],
+            'description'           => Sanitizer::richText($validated['description']),
             'event_type'            => $validated['event_type'],
             'ticket_price'          => $validated['ticket_price'] ?? 0,
             'total_seats'           => !empty($validated['total_seats']) ? (int) $validated['total_seats'] : null,

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/footer.css') }}" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    <style>.req { color: #e53e3e !important; margin-left: 2px; font-weight: 700; }</style>
     @stack ('styles')
 </head>
 <body>

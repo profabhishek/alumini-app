@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Community;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Sanitizer;
 use App\Models\Story;
+use App\Models\StoryCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -64,7 +66,8 @@ class StoryController extends Controller
 
     public function create()
     {
-        return view('community.stories.create');
+        $categories = StoryCategory::active()->orderBy('name')->pluck('name');
+        return view('community.stories.create', compact('categories'));
     }
 
     // ── Auth: Store new story ─────────────────────────────────────────────
@@ -73,7 +76,7 @@ class StoryController extends Controller
     {
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'category'    => 'required|string|max:100',
+            'category'    => 'required|string|exists:story_categories,name',
             'body'        => 'required|string|min:100',
             'excerpt'     => 'nullable|string|max:400',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -86,15 +89,17 @@ class StoryController extends Controller
                 ->store('stories', 'public');
         }
 
+        $cleanBody = Sanitizer::richText($validated['body']);
+
         Story::create([
             'created_by'   => session('alumni_id'),
             'creator_role' => session('alumni_role'),
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']) . '-' . time(),
             'category'     => $validated['category'],
-            'body'         => $validated['body'],
+            'body'         => $cleanBody,
             'excerpt'      => $validated['excerpt']
-                                ?? Story::makeExcerpt($validated['body']),
+                                ?? Story::makeExcerpt($cleanBody),
             'cover_image'  => $coverPath,
             'status'       => 'pending',  // always goes to moderation queue
         ]);
@@ -173,7 +178,7 @@ class StoryController extends Controller
 
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'category'    => 'required|string|max:100',
+            'category'    => 'required|string|exists:story_categories,name',
             'body'        => 'required|string|min:100',
             'excerpt'     => 'nullable|string|max:400',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -186,13 +191,15 @@ class StoryController extends Controller
                 ->store('stories', 'public');
         }
 
+        $cleanBody = Sanitizer::richText($validated['body']);
+
         $story->update([
             'title'       => $validated['title'],
             'slug'        => Str::slug($validated['title']) . '-' . time(),
             'category'    => $validated['category'],
-            'body'        => $validated['body'],
+            'body'        => $cleanBody,
             'excerpt'     => $validated['excerpt']
-                                ?? Story::makeExcerpt($validated['body']),
+                                ?? Story::makeExcerpt($cleanBody),
             'cover_image' => $coverPath,
             'status'      => 'pending',  // re-submit for approval on every edit
         ]);

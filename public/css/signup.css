@@ -311,3 +311,29 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ── Required asterisk ─────────────────────────────────────── */
+.req { color: #e53e3e; margin-left: 2px; font-weight: 700; }
+
+/* ── Field errors ──────────────────────────────────────────── */
+.field-error { display: block; color: #e53e3e; font-size: 12px; margin-top: 5px; }
+.input-error  { border-color: #e53e3e !important; box-shadow: 0 0 0 3px rgba(229,62,62,.12) !important; }
+
+/* ── Alert box ─────────────────────────────────────────────── */
+.alert { padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; }
+.alert-danger  { background: #fff5f5; border: 1px solid #fed7d7; color: #c53030; }
+.alert-danger ul { margin: 0; padding-left: 18px; }
+.alert-danger li { margin-top: 4px; }
+
+/* ── Password strength bar ─────────────────────────────────── */
+.pw-strength { margin-top: 6px; height: 4px; border-radius: 4px; background: #e2e8f0; overflow: hidden; }
+.pw-strength__bar { height: 100%; width: 0; border-radius: 4px; transition: width .3s, background .3s; }
+.pw-hint { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+/* ── Password show/hide toggle ─────────────────────────────── */
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 44px !important; }
+.toggle-pw {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: #64748b; padding: 4px;
+}

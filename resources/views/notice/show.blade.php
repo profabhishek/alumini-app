@@ -2,8 +2,10 @@
 @section('title', $notice->title . ' — ICCR Alumni Notices')
 
 @push('styles')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="{{ asset('css/index.css') }}">
 <link rel="stylesheet" href="{{ asset('css/public-content.css') }}?v=2">
 @endpush
@@ -69,7 +71,13 @@
             <h1 class="nb-detail-title">{{ $notice->title }}</h1>
 
             <div class="nb-detail-byline">
-                <div class="nb-detail-byline__avatar">{{ $authorInitials }}</div>
+                <div class="nb-detail-byline__avatar" style="overflow:hidden;padding:0;">
+                    @if($author?->photo)
+                        <img src="{{ asset('storage/' . $author->photo) }}" alt="{{ $authorName }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">
+                    @else
+                        {{ $authorInitials }}
+                    @endif
+                </div>
                 <div class="nb-detail-byline__text">
                     <div class="nb-detail-byline__label">Issued by</div>
                     <div class="nb-detail-byline__name">{{ $authorName }}</div>
@@ -230,16 +238,4 @@
     }
     // Reveal
     const els = document.querySelectorAll('.nb-reveal');
-    if (!els.length) return;
-    const obs = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-            if (e.isIntersecting) {
-                e.target.classList.add('nb-reveal--show');
-                obs.unobserve(e.target);
-            }
-        });
-    }, { threshold: 0.06 });
-    els.forEach(el => obs.observe(el));
-})();
-</script>
-@endpush
+    if (!els.length) ret

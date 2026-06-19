@@ -41,6 +41,7 @@
                         <label>Title <span class="req">*</span></label>
                         <input type="text" name="title" value="{{ old('title', $news->title) }}"
                                placeholder="e.g. India Africa Forum Summit Highlights & Details"
+                               required maxlength="255"
                                class="admin-input @error('title') is-error @enderror">
                         @error('title')<span class="admin-form-error">{{ $message }}</span>@enderror
                     </div>

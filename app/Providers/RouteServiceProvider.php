@@ -28,6 +28,24 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Login: max 5 attempts per minute per IP
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip())
+                ->response(function () {
+                    return redirect()->back()
+                        ->with('error', 'Too many login attempts. Please wait a minute and try again.');
+                });
+        });
+
+        // Register: max 3 submissions per 10 minutes per IP
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinutes(10, 3)->by($request->ip())
+                ->response(function () {
+                    return redirect()->back()
+                        ->with('error', 'Too many registration attempts. Please wait and try again.');
+                });
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

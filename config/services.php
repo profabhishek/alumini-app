@@ -31,4 +31,6 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'contact_email' => env('CONTACT_EMAIL', 'jhaabhishek910@gmail.com'),
+
 ];

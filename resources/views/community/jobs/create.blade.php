@@ -42,7 +42,7 @@
                         <label class="cj-label" for="title">Job Title <span class="cj-req">*</span></label>
                         <input type="text" id="title" name="title" value="{{ old('title') }}"
                                class="cj-input @error('title') cj-input--error @enderror"
-                               placeholder="e.g. Senior Software Engineer">
+                               placeholder="e.g. Senior Software Engineer" required maxlength="255">
                         @error('title')<span class="cj-error">{{ $message }}</span>@enderror
                     </div>
 
@@ -50,14 +50,14 @@
                         <label class="cj-label" for="company_name">Company Name <span class="cj-req">*</span></label>
                         <input type="text" id="company_name" name="company_name" value="{{ old('company_name') }}"
                                class="cj-input @error('company_name') cj-input--error @enderror"
-                               placeholder="e.g. Tata Consultancy Services">
+                               placeholder="e.g. Tata Consultancy Services" required maxlength="255">
                         @error('company_name')<span class="cj-error">{{ $message }}</span>@enderror
                     </div>
 
                     <div class="cj-form-row">
                         <div class="cj-form-group">
                             <label class="cj-label" for="job_type">Job Type <span class="cj-req">*</span></label>
-                            <select id="job_type" name="job_type"
+                            <select id="job_type" name="job_type" required
                                     class="cj-input cj-select @error('job_type') cj-input--error @enderror">
                                 <option value="">Select type</option>
                                 @foreach(['Full-Time','Part-Time','Contract','Internship'] as $type)
@@ -69,7 +69,7 @@
 
                         <div class="cj-form-group">
                             <label class="cj-label" for="work_mode">Work Mode <span class="cj-req">*</span></label>
-                            <select id="work_mode" name="work_mode"
+                            <select id="work_mode" name="work_mode" required
                                     class="cj-input cj-select @error('work_mode') cj-input--error @enderror">
                                 <option value="">Select mode</option>
                                 @foreach(['Remote','On-site','Hybrid'] as $mode)
@@ -118,7 +118,7 @@
                     <h2 class="cj-card-title">Job Description <span class="cj-req">*</span></h2>
 
                     <div class="cj-form-group">
-                        <textarea id="description" name="description" rows="8"
+                        <textarea id="description" name="description" rows="8" required
                                   class="cj-input cj-textarea @error('description') cj-input--error @enderror"
                                   placeholder="Describe the role, responsibilities, and what the candidate will be doing...">{{ old('description') }}</textarea>
                         @error('description')<span class="cj-error">{{ $message }}</span>@enderror
@@ -155,15 +155,6 @@
                         @error('application_deadline')<span class="cj-error">{{ $message }}</span>@enderror
                     </div>
 
-                    <div class="cj-form-group">
-                        <label class="cj-label" for="application_link">Application Link</label>
-                        <input type="url" id="application_link" name="application_link"
-                               value="{{ old('application_link') }}"
-                               class="cj-input @error('application_link') cj-input--error @enderror"
-                               placeholder="https://...">
-                        <span class="cj-hint">External link where candidates can apply</span>
-                        @error('application_link')<span class="cj-error">{{ $message }}</span>@enderror
-                    </div>
                 </div>
 
                 {{-- Banner Image --}}

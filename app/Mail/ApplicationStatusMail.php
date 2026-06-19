@@ -4,14 +4,18 @@ namespace App\Mail;
 
 use App\Models\JobApplication;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ApplicationStatusMail extends Mailable
+class ApplicationStatusMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
+
+    public int $tries   = 3;
+    public int $timeout = 60;
 
     public JobApplication $application;
     public string $posterName;

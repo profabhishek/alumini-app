@@ -212,6 +212,7 @@
     <link rel="stylesheet" href="{{ asset('css/community/sidebar.css') }}">
     <link rel="stylesheet" href="{{ asset('css/community/header.css') }}">
 
+    <style>.req { color: #e53e3e !important; margin-left: 2px; font-weight: 700; }</style>
     @stack('styles')
 </head>
 <body class="community-body">
@@ -361,6 +362,14 @@
 
             {{-- Nav items --}}
             <nav class="sidebar-nav">
+                @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
+                <a href="{{ route('admin.dashboard') }}" class="sidebar-nav__item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    </span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                @endif
                 <a href="{{ url('/home') }}" class="sidebar-nav__item {{ request()->is('home') ? 'active' : '' }}">
                     <span class="nav-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
@@ -508,6 +517,13 @@
                             class="sidebar-child {{ request()->routeIs('admin.stories.pending') ? 'active' : '' }}">
                                 <span class="sidebar-child-dot" style="background:#e8640c;"></span>Pending Story
                                 <span id="sb-badge-pending-stories" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $pendingStoriesBadge > 0 ? '' : 'display:none;' }}">{{ $pendingStoriesBadge > 9 ? '9+' : $pendingStoriesBadge }}</span>
+                            </a>
+                        @endif
+
+                        @if(in_array(session('alumni_role'), ['admin', 'super_admin', 'moderator']))
+                            <a href="{{ route('admin.story-categories.index') }}"
+                            class="sidebar-child {{ request()->routeIs('admin.story-categories.*') ? 'active' : '' }}">
+                                <span class="sidebar-child-dot"></span>Story Categories
                             </a>
                         @endif
 

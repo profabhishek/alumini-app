@@ -29,7 +29,7 @@
                 <div class="admin-form-group">
                     <label>Full Name <span class="req">*</span></label>
                     <input type="text" name="full_name" value="{{ old('full_name') }}"
-                           placeholder="e.g. Priya Sharma"
+                           placeholder="e.g. Priya Sharma" required maxlength="255"
                            class="admin-input @error('full_name') is-error @enderror">
                     @error('full_name')<span class="admin-form-error">{{ $message }}</span>@enderror
                 </div>
@@ -37,7 +37,7 @@
                 <div class="admin-form-group">
                     <label>Email Address <span class="req">*</span></label>
                     <input type="email" name="email" value="{{ old('email') }}"
-                           placeholder="admin@example.com"
+                           placeholder="admin@example.com" required maxlength="255"
                            class="admin-input @error('email') is-error @enderror">
                     @error('email')<span class="admin-form-error">{{ $message }}</span>@enderror
                 </div>
@@ -56,7 +56,7 @@
                 <div class="admin-form-group">
                     <label>Password <span class="req">*</span></label>
                     <input type="password" name="password"
-                           placeholder="At least 8 characters"
+                           placeholder="At least 8 characters" required minlength="8"
                            class="admin-input @error('password') is-error @enderror">
                     @error('password')<span class="admin-form-error">{{ $message }}</span>@enderror
                 </div>
@@ -64,7 +64,7 @@
                 <div class="admin-form-group">
                     <label>Confirm Password <span class="req">*</span></label>
                     <input type="password" name="password_confirmation"
-                           placeholder="Re-enter password"
+                           placeholder="Re-enter password" required minlength="8"
                            class="admin-input">
                 </div>
 

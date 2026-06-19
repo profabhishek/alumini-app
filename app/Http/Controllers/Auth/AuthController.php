@@ -16,9 +16,41 @@ class AuthController extends Controller
 {
     // ── Remember Me config ────────────────────────────────────────────────
 
-    // 90 days in minutes (for cookie lifetime)
-    private const REMEMBER_LIFETIME_DAYS   = 90;
-    private const REMEMBER_COOKIE_NAME     = 'alumni_remember';
+    private const REMEMBER_LIFETIME_DAYS = 90;
+    private const REMEMBER_COOKIE_NAME   = 'alumni_remember';
+
+    // ── All 195 UN-recognised nationalities ──────────────────────────────
+    private const VALID_NATIONALITIES = [
+        'Afghan','Albanian','Algerian','American','Andorran','Angolan','Antiguans',
+        'Argentinean','Armenian','Australian','Austrian','Azerbaijani','Bahamian',
+        'Bahraini','Bangladeshi','Barbadian','Barbudans','Batswana','Belarusian',
+        'Belgian','Belizean','Beninese','Bhutanese','Bolivian','Bosnian','Brazilian',
+        'British','Bruneian','Bulgarian','Burkinabe','Burmese','Burundian','Cambodian',
+        'Cameroonian','Canadian','Cape Verdean','Central African','Chadian','Chilean',
+        'Chinese','Colombian','Comoran','Congolese','Costa Rican','Croatian','Cuban',
+        'Cypriot','Czech','Danish','Djibouti','Dominican','Dutch','East Timorese',
+        'Ecuadorean','Egyptian','Emirian','Equatorial Guinean','Eritrean','Estonian',
+        'Ethiopian','Fijian','Filipino','Finnish','French','Gabonese','Gambian',
+        'Georgian','German','Ghanaian','Greek','Grenadian','Guatemalan','Guinea-Bissauan',
+        'Guinean','Guyanese','Haitian','Herzegovinian','Honduran','Hungarian','I-Kiribati',
+        'Icelander','Indian','Indonesian','Iranian','Iraqi','Irish','Israeli','Italian',
+        'Ivorian','Jamaican','Japanese','Jordanian','Kazakhstani','Kenyan','Kittian and Nevisian',
+        'Kuwaiti','Kyrgyz','Laotian','Latvian','Lebanese','Liberian','Libyan',
+        'Liechtensteiner','Lithuanian','Luxembourger','Macedonian','Malagasy','Malawian',
+        'Malaysian','Maldivian','Malian','Maltese','Marshallese','Mauritanian','Mauritian',
+        'Mexican','Micronesian','Moldovan','Monacan','Mongolian','Moroccan','Mosotho',
+        'Motswana','Mozambican','Namibian','Nauruan','Nepali','New Zealander','Ni-Vanuatu',
+        'Nicaraguan','Nigerian','Nigerien','North Korean','Norwegian','Omani','Pakistani',
+        'Palauan','Palestinian','Panamanian','Papua New Guinean','Paraguayan','Peruvian',
+        'Polish','Portuguese','Qatari','Romanian','Russian','Rwandan','Saint Lucian',
+        'Salvadoran','Samoan','San Marinese','Sao Tomean','Saudi','Senegalese','Serbian',
+        'Seychellois','Sierra Leonean','Singaporean','Slovakian','Slovenian','Solomon Islander',
+        'Somali','South African','South Korean','South Sudanese','Spanish','Sri Lankan',
+        'Sudanese','Surinamer','Swazi','Swedish','Swiss','Syrian','Taiwanese','Tajik',
+        'Tanzanian','Thai','Togolese','Tongan','Trinidadian and Tobagonian','Tunisian',
+        'Turkish','Tuvaluan','Ugandan','Ukrainian','Uruguayan','Uzbekistani','Venezuelan',
+        'Vietnamese','Yemenite','Zambian','Zimbabwean',
+    ];
 
     // ── Login ─────────────────────────────────────────────────────────────
 
@@ -30,11 +62,12 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
+            'email'    => 'required|email|max:255',
+            'password' => 'required|string|max:128',
             'captcha'  => 'required|captcha',
         ], [
-            'captcha.captcha' => 'The CAPTCHA code is incorrect.',
+            'captcha.required' => 'Please enter the CAPTCHA code.',
+            'captcha.captcha'  => 'The CAPTCHA code is incorrect.',
         ]);
 
         $user = AlumniUser::where('email', $request->email)->first();
@@ -62,7 +95,14 @@ class AuthController extends Controller
 
         $redirect = $request->input('redirect');
 
-        if ($redirect && str_starts_with($redirect, '/')) {
+        // Validate the redirect is a safe relative path on this site:
+        // - must start with exactly one '/' (not '//' which is protocol-relative)
+        // - must not contain ':' (blocks 'javascript:' and similar schemes)
+        if (
+            $redirect &&
+            preg_match('#^/[^/]#', $redirect) &&
+            strpos($redirect, ':') === false
+        ) {
             return redirect($redirect);
         }
 
@@ -111,52 +151,64 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        $validNationalities = self::VALID_NATIONALITIES;
+        $currentYear = (int) date('Y');
+
         $request->validate([
-            'full_name'    => 'required|max:255',
-            'batch_name'   => 'required',
-            'phone'        => 'required|min:10|max:15',
-            'email'        => 'required|email|unique:alumni_users,email',
-            'department'   => 'required',
-            'passing_year' => 'required',
-            'roll_number'  => 'required',
-            'birth_date'   => 'required',
-            'gender'       => 'required',
-            'institute'    => 'required',
-            'attachment'   => 'required|mimes:pdf|max:2048',
-            'password'     => 'required|confirmed|min:8',
-            'terms'        => 'accepted',
-            'captcha'      => 'required|captcha',
+            'full_name'        => 'required|string|max:150|regex:/^[\pL\s\-\'\.]+$/u',
+            'batch_name'       => "required|integer|min:1980|max:{$currentYear}",
+            'phone'            => 'required|string|min:7|max:20|regex:/^\+?[0-9\s\-\(\)]+$/',
+            'email'            => 'required|email:rfc,dns|max:255|unique:alumni_users,email',
+            'department'       => 'required|in:STEM,Non-STEM',
+            'passing_year'     => "required|integer|min:1980|max:{$currentYear}",
+            'roll_number'      => 'nullable|string|max:50',
+            'birth_date'       => 'nullable|date|before:today',
+            'gender'           => 'required|in:Male,Female,Other',
+            'institute'        => 'required|string|max:255',
+            'nationality'      => ['required', 'string', 'in:' . implode(',', $validNationalities)],
+            'is_iccr_alumni'   => 'required|in:yes,no',
+            'current_position' => 'nullable|string|max:255',
+            'password'         => 'required|confirmed|min:8|max:128',
+            'terms'            => 'accepted',
+            'captcha'          => 'required|captcha',
         ], [
-            'captcha.required' => 'Please enter the CAPTCHA code.',
-            'captcha.captcha'  => 'The CAPTCHA code is incorrect. Please try again.',
-            'terms.accepted'   => 'You must accept the Terms & Conditions.',
-            'email.unique'     => 'This email address is already registered.',
-            'attachment.mimes' => 'Only PDF files are allowed.',
-            'attachment.max'   => 'PDF file size must not exceed 2 MB.',
+            'captcha.required'        => 'Please enter the CAPTCHA code.',
+            'captcha.captcha'         => 'The CAPTCHA code is incorrect. Please try again.',
+            'terms.accepted'          => 'You must accept the Terms & Conditions.',
+            'email.unique'            => 'This email address is already registered.',
+            'email.email'             => 'Please enter a valid email address.',
+            'department.in'           => 'Department must be STEM or Non-STEM.',
+            'nationality.required'    => 'Nationality is required.',
+            'nationality.in'          => 'Please select a valid nationality from the list.',
+            'is_iccr_alumni.required' => 'Please indicate whether you are an ICCR Alumni.',
+            'is_iccr_alumni.in'       => 'Please select Yes or No for ICCR Alumni.',
+            'full_name.regex'         => 'Full name may only contain letters, spaces, hyphens, apostrophes, and dots.',
+            'phone.regex'             => 'Phone number contains invalid characters.',
+            'batch_name.min'          => 'Batch year must be 1980 or later.',
+            'batch_name.max'          => "Batch year cannot exceed {$currentYear}.",
+            'passing_year.min'        => 'Passing year must be 1980 or later.',
+            'passing_year.max'        => "Passing year cannot exceed {$currentYear}.",
+            'birth_date.before'       => 'Birth date must be in the past.',
+            'gender.in'               => 'Please select a valid gender.',
+            'password.max'            => 'Password must not exceed 128 characters.',
         ]);
-
-        $tmpFileName = null;
-
-        if ($request->hasFile('attachment')) {
-            $file        = $request->file('attachment');
-            $tmpFileName = 'tmp_' . time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('tmp-uploads', $tmpFileName, 'public');
-        }
 
         session([
             'otp_signup_data' => [
-                'full_name'    => $request->full_name,
-                'batch_name'   => $request->batch_name,
-                'phone'        => $request->phone,
-                'email'        => $request->email,
-                'department'   => $request->department,
-                'passing_year' => $request->passing_year,
-                'roll_number'  => $request->roll_number,
-                'tmp_file'     => $tmpFileName,
-                'birth_date'   => $request->birth_date,
-                'gender'       => $request->gender,
-                'institute'    => $request->institute,
-                'password'     => Hash::make($request->password),
+                'full_name'        => $request->full_name,
+                'batch_name'       => $request->batch_name,
+                'phone'            => $request->phone,
+                'email'            => $request->email,
+                'department'       => $request->department,
+                'passing_year'     => $request->passing_year,
+                'roll_number'      => $request->roll_number ?? null,
+                'birth_date'       => $request->birth_date,
+                'gender'           => $request->gender,
+                'institute'        => $request->institute,
+                'nationality'      => $request->nationality,
+                'is_iccr_alumni'   => $request->is_iccr_alumni === 'yes',
+                'current_position' => $request->current_position,
+                'password'         => Hash::make($request->password),
             ],
         ]);
 
@@ -214,36 +266,23 @@ class AuthController extends Controller
             return back()->withErrors(['otp' => 'This OTP has expired. Please request a new one.']);
         }
 
-        $finalFileName = null;
-
-        if ($signupData['tmp_file']) {
-            $finalFileName = ltrim(str_replace('tmp_', '', $signupData['tmp_file']), '_');
-
-            \Illuminate\Support\Facades\Storage::disk('public')->copy(
-                'tmp-uploads/' . $signupData['tmp_file'],
-                'alumni-documents/' . $finalFileName,
-            );
-
-            \Illuminate\Support\Facades\Storage::disk('public')->delete(
-                'tmp-uploads/' . $signupData['tmp_file']
-            );
-        }
-
         AlumniUser::create([
-            'full_name'    => $signupData['full_name'],
-            'batch_name'   => $signupData['batch_name'],
-            'phone'        => $signupData['phone'],
-            'email'        => $signupData['email'],
-            'department'   => $signupData['department'],
-            'passing_year' => $signupData['passing_year'],
-            'roll_number'  => $signupData['roll_number'],
-            'attachment'   => $finalFileName,
-            'birth_date'   => $signupData['birth_date'],
-            'gender'       => $signupData['gender'],
-            'institute'    => $signupData['institute'],
-            'password'     => $signupData['password'],
-            'role'         => 'alumni',
-            'is_approved'  => 0,
+            'full_name'        => $signupData['full_name'],
+            'batch_name'       => $signupData['batch_name'],
+            'phone'            => $signupData['phone'],
+            'email'            => $signupData['email'],
+            'department'       => $signupData['department'],
+            'passing_year'     => $signupData['passing_year'],
+            'roll_number'      => $signupData['roll_number'],
+            'birth_date'       => $signupData['birth_date'] ?: null,
+            'gender'           => $signupData['gender'],
+            'institute'        => $signupData['institute'],
+            'nationality'      => $signupData['nationality'],
+            'is_iccr_alumni'   => $signupData['is_iccr_alumni'],
+            'current_position' => $signupData['current_position'] ?? null,
+            'password'         => $signupData['password'],
+            'role'             => 'alumni',
+            'is_approved'      => 0,
         ]);
 
         $record->delete();

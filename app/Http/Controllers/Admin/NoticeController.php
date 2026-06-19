@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\Sanitizer;
 use App\Models\Notice;
 use App\Models\NoticeCategory;
 use Illuminate\Http\Request;
@@ -54,6 +55,9 @@ class NoticeController extends Controller
 
         $validated['author_id'] = session('alumni_id');
         $validated['published_at'] = $this->resolvePublishedAt($request, null);
+        if (isset($validated['description'])) {
+            $validated['description'] = Sanitizer::richText($validated['description']);
+        }
 
         Notice::create($validated);
 
@@ -91,6 +95,9 @@ class NoticeController extends Controller
         }
 
         $validated['published_at'] = $this->resolvePublishedAt($request, $notice);
+        if (isset($validated['description'])) {
+            $validated['description'] = Sanitizer::richText($validated['description']);
+        }
 
         $notice->update($validated);
 
