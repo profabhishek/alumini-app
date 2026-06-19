@@ -5,8 +5,8 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/community/profile.css') }}">
-<link rel="stylesheet" href="{{ asset('css/community/home.css') }}?v=4">
-<link rel="stylesheet" href="{{ asset('css/community/feed.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('css/community/home.css') }}?v=5">
+<link rel="stylesheet" href="{{ asset('css/community/feed.css') }}?v=5">
 @endpush
 
 @section('content')
@@ -568,15 +568,16 @@ window.FeedConfig = {!! json_encode([
         'commentDestroy' => url('/posts/__POST_ID__/comments/__ID__'),
         'commentLike'    => url('/comments/__ID__/like'),
         'postShow'       => url('/posts/__ID__'),
+        'batchCounts'    => route('posts.batch-counts'),
         'saved'          => route('posts.saved'),
         'myPosts'        => route('posts.my'),
     ],
 ]) !!};
 </script>
-<script src="{{ asset('js/community/feed-core.js') }}?v=4"></script>
-<script src="{{ asset('js/community/my-posts.js') }}?v=4"></script>
-<script src="{{ asset('js/community/saved-feed.js') }}?v=4"></script>
-<script src="{{ asset('js/community/profile.js') }}?v=4"></script>
+<script src="{{ asset('js/community/feed-core.js') }}?v=5"></script>
+<script src="{{ asset('js/community/my-posts.js') }}?v=5"></script>
+<script src="{{ asset('js/community/saved-feed.js') }}?v=5"></script>
+<script src="{{ asset('js/community/profile.js') }}?v=5"></script>
 
 @if(session('tab'))
 <script>

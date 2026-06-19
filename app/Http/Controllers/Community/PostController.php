@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\CommunityGroupMember;
+use App\Services\NotificationHelper;
+use Illuminate\Support\Facades\Cache;
 
 class PostController extends Controller
 {
@@ -224,6 +226,44 @@ class PostController extends Controller
         });
 
         $post->load(['author', 'media']);
+
+        // Notify group admins/moderators when a post needs review
+        if ($postStatus === 'pending_review' && $group) {
+            $modIds = CommunityGroupMember::where('group_id', $group->id)
+                ->where('status', 'approved')
+                ->whereIn('role', ['admin', 'moderator'])
+                ->pluck('alumni_id');
+
+            foreach ($modIds as $modId) {
+                NotificationHelper::fire(
+                    recipientId: (int) $modId,
+                    actorId:     $myId,
+                    type:        'group_post_pending',
+                    postId:      $post->id,
+                    preview:     Str::limit($body, 80),
+                    groupId:     $group->id,
+                );
+            }
+        }
+
+        // Notify group members when a post goes live (not pending)
+        if ($postStatus === 'active' && $group) {
+            $memberIds = CommunityGroupMember::where('group_id', $group->id)
+                ->where('status', 'approved')
+                ->where('alumni_id', '!=', $myId)
+                ->pluck('alumni_id');
+
+            foreach ($memberIds as $memberId) {
+                NotificationHelper::fire(
+                    recipientId: (int) $memberId,
+                    actorId:     $myId,
+                    type:        'group_new_post',
+                    postId:      $post->id,
+                    preview:     Str::limit($body, 80),
+                    groupId:     $group->id,
+                );
+            }
+        }
 
         return response()->json([
             'post'    => $post->toFeedArray($myId, false),
@@ -432,6 +472,15 @@ class PostController extends Controller
             PostLike::create(['post_id' => $id, 'alumni_id' => $myId]);
             $post->increment('likes_count');
             $liked = true;
+
+            // Notify post owner (grouped)
+            NotificationHelper::fire(
+                recipientId: (int) $post->alumni_id,
+                actorId:     $myId,
+                type:        'post_like',
+                postId:      $post->id,
+                groupId:     $post->group_id ?? null,
+            );
         }
 
         return response()->json([
@@ -647,41 +696,35 @@ class PostController extends Controller
     private function fireCommentNotification(PostComment $comment, Post $post, ?int $parentId): void
     {
         $actorId = (int) session('alumni_id');
+        $preview = Str::limit($comment->body, 80);
 
-        try {
-            if ($parentId) {
-                // Reply — notify the parent comment author
-                $parent = PostComment::find($parentId);
-                $recipientId = $parent?->alumni_id;
-
-                // Don't notify yourself
-                if ($recipientId && $recipientId !== $actorId) {
-                    \App\Models\AlumniNotification::create([
-                        'recipient_id' => $recipientId,
-                        'actor_id'     => $actorId,
-                        'type'         => 'reply',
-                        'post_id'      => $post->id,
-                        'comment_id'   => $comment->id,
-                        'preview'      => \Illuminate\Support\Str::limit($comment->body, 80),
-                    ]);
-                }
-            } else {
-                // Top-level comment — notify the post author
-                $recipientId = $post->alumni_id;
-
-                if ($recipientId && $recipientId !== $actorId) {
-                    \App\Models\AlumniNotification::create([
-                        'recipient_id' => $recipientId,
-                        'actor_id'     => $actorId,
-                        'type'         => 'comment',
-                        'post_id'      => $post->id,
-                        'comment_id'   => $comment->id,
-                        'preview'      => \Illuminate\Support\Str::limit($comment->body, 80),
-                    ]);
-                }
+        if ($parentId) {
+            // Reply — notify parent comment author (always individual, not grouped)
+            $parent = PostComment::find($parentId);
+            if ($parent && (int) $parent->alumni_id !== $actorId) {
+                NotificationHelper::fire(
+                    recipientId: (int) $parent->alumni_id,
+                    actorId:     $actorId,
+                    type:        'reply',
+                    postId:      $post->id,
+                    commentId:   $comment->id,
+                    preview:     $preview,
+                    groupId:     $post->group_id ?? null,
+                );
             }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('AlumniNotification failed: ' . $e->getMessage());
+        } else {
+            // Top-level comment — notify post author (grouped)
+            if ((int) $post->alumni_id !== $actorId) {
+                NotificationHelper::fire(
+                    recipientId: (int) $post->alumni_id,
+                    actorId:     $actorId,
+                    type:        'comment',
+                    postId:      $post->id,
+                    commentId:   $comment->id,
+                    preview:     $preview,
+                    groupId:     $post->group_id ?? null,
+                );
+            }
         }
     }
 
@@ -749,6 +792,30 @@ class PostController extends Controller
             CommentLike::create(['comment_id' => $id, 'alumni_id' => $myId]);
             $comment->increment('likes_count');
             $liked = true;
+
+            $post = $comment->post;
+
+            // Notify comment author (comment_like groups by post_id only)
+            NotificationHelper::fire(
+                recipientId: (int) $comment->alumni_id,
+                actorId:     $myId,
+                type:        'comment_like',
+                postId:      $comment->post_id,
+                commentId:   null,
+                groupId:     $post?->group_id ?? null,
+            );
+
+            // Also notify post owner if different from comment author
+            if ($post && (int) $post->alumni_id !== (int) $comment->alumni_id) {
+                NotificationHelper::fire(
+                    recipientId: (int) $post->alumni_id,
+                    actorId:     $myId,
+                    type:        'comment_like',
+                    postId:      $comment->post_id,
+                    commentId:   null,
+                    groupId:     $post->group_id ?? null,
+                );
+            }
         }
 
         return response()->json([
@@ -762,22 +829,61 @@ class PostController extends Controller
 
     public function show(Post $post)
     {
-        if ($post->trashed()) {
-            abort(404);
-        }
-
-        if (!$this->canAccessGroupPost($post->group_id)) {
-            abort(404);
-        }
+        if ($post->trashed()) abort(404);
+        if (!$this->canAccessGroupPost($post->group_id)) abort(404);
 
         $myId = (int) session('alumni_id');
-
         $post->load(['author', 'media', 'sharedPost.author', 'sharedPost.media']);
-
         $isGroupMod = $this->isGroupModOrSiteAdmin($post->group_id, $myId);
 
         return view('community.posts.show', [
             'post' => $post->toFeedArray($myId, $isGroupMod),
         ]);
+    }
+
+    // ── Batch counts (for live sync — cached in Redis 5s) ─────────────────
+
+    public function batchCounts(Request $request): JsonResponse
+    {
+        $ids = array_filter(
+            array_map('intval', (array) $request->input('ids', [])),
+            fn($id) => $id > 0
+        );
+
+        // Cap at 50 IDs per request
+        $ids = array_slice(array_unique($ids), 0, 50);
+
+        if (empty($ids)) {
+            return response()->json([]);
+        }
+
+        $myId = (int) session('alumni_id');
+
+        // Cache per user so liked state is personalised; TTL 5s
+        $cacheKey = 'post_counts:' . $myId . ':' . md5(implode(',', $ids));
+
+        $result = Cache::remember($cacheKey, 5, function () use ($ids, $myId) {
+            $rows = Post::whereIn('id', $ids)
+                ->select('id', 'likes_count', 'comments_count', 'shares_count')
+                ->get();
+
+            $liked = PostLike::whereIn('post_id', $ids)
+                ->where('alumni_id', $myId)
+                ->pluck('post_id')
+                ->flip();
+
+            $out = [];
+            foreach ($rows as $row) {
+                $out[$row->id] = [
+                    'likes_count'    => $row->likes_count,
+                    'comments_count' => $row->comments_count,
+                    'shares_count'   => $row->shares_count,
+                    'is_liked'       => isset($liked[$row->id]),
+                ];
+            }
+            return $out;
+        });
+
+        return response()->json($result);
     }
 }

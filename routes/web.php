@@ -503,6 +503,9 @@ Route::middleware('alumni.auth')->group(function () {
     Route::delete('/posts/{postId}/comments/{commentId}', [PostController::class, 'destroyComment'])
         ->name('posts.comments.destroy');
 
+    Route::post('/posts/batch-counts', [PostController::class, 'batchCounts'])
+        ->name('posts.batch-counts');
+
     Route::post('/comments/{id}/like', [PostController::class, 'toggleCommentLike'])
         ->name('comments.like');
 
@@ -528,9 +531,15 @@ Route::middleware('alumni.auth')->group(function () {
         ->where('id', '[0-9]+')
         ->name('notifications.mark-one-read');
 
+    Route::get('/notifications/sidebar-badges', [\App\Http\Controllers\Community\NotificationController::class, 'sidebarBadges'])
+        ->name('notifications.sidebar-badges');
+
     // ── Community Groups ────────────────────────────────────────────────
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');
     Route::get('/groups/create', [GroupController::class, 'create'])->name('groups.create');
+    Route::get('/groups/invitations', [GroupController::class, 'myInvitations'])->name('groups.invitations');
+    Route::get('/groups/unread-counts', [GroupController::class, 'unreadCounts'])->name('groups.unread-counts');
+    Route::get('/groups/join/{token}', [GroupController::class, 'acceptInviteLink'])->name('groups.join-link');
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
     Route::get('/groups/{group:slug}', [GroupController::class, 'show'])->name('groups.show');
     Route::post('/groups/{group:slug}/join', [GroupController::class, 'join'])->name('groups.join');
@@ -547,6 +556,12 @@ Route::middleware('alumni.auth')->group(function () {
     Route::post('/posts/{id}/edit/approve', [PostController::class, 'approveEdit'])->name('posts.edit.approve');
     Route::post('/posts/{id}/edit/reject', [PostController::class, 'rejectEdit'])->name('posts.edit.reject');
     Route::get('/groups/{group:slug}/pending-edits', [GroupController::class, 'pendingEdits'])->name('groups.pending-edits');
+
+    // ── Group invite links & invitations ─────────────────────────────────
+    Route::post('/groups/{group:slug}/invite-link', [GroupController::class, 'generateInviteLink'])->name('groups.invite-link.generate');
+    Route::post('/groups/{group:slug}/invite-user', [GroupController::class, 'sendInvitation'])->name('groups.invite-user');
+    Route::post('/groups/{group:slug}/mark-read', [GroupController::class, 'markRead'])->name('groups.mark-read');
+    Route::post('/groups/invitations/{invitation}/respond', [GroupController::class, 'respondInvitation'])->name('groups.invitations.respond');
 });
 
 
@@ -560,6 +575,13 @@ Route::middleware('admin.auth')->group(function () {
 
     Route::get('/admin/users/pending', [AdminController::class, 'pendingUsers'])
         ->name('admin.users.pending');
+
+    Route::get('/admin/badge-counts', [AdminController::class, 'adminBadgeCounts'])
+        ->name('admin.badge-counts');
+    Route::post('/admin/mark-pending-users-seen', [AdminController::class, 'markPendingUsersSeen'])
+        ->name('admin.mark-pending-users-seen');
+    Route::post('/admin/mark-newsletter-seen', [AdminController::class, 'markNewsletterSeen'])
+        ->name('admin.mark-newsletter-seen');
 
     Route::patch('/admin/users/{user}/approve', [AdminController::class, 'approveUser'])
         ->name('admin.users.approve');

@@ -151,7 +151,7 @@ class JobController extends Controller
         // Read last seen BEFORE updating it
         $myJobsLastSeen = session('my_jobs_last_seen')
             ? \Carbon\Carbon::parse(session('my_jobs_last_seen'))
-            : now()->subDays(7);
+            : now();
 
         $query = Job::with('creator')
             ->where('created_by', session('alumni_id'))
@@ -183,7 +183,9 @@ class JobController extends Controller
             ->groupBy('job_id')
             ->pluck('cnt', 'job_id');
 
-        session(['my_jobs_last_seen' => now()->toDateTimeString()]);
+        $now = now()->toDateTimeString();
+        session(['my_jobs_last_seen' => $now]);
+        \App\Models\AlumniUser::where('id', session('alumni_id'))->update(['my_jobs_last_seen' => $now]);
 
         $stats = [
             'total'     => Job::where('created_by', session('alumni_id'))->count(),

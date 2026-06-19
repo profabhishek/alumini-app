@@ -83,6 +83,10 @@
                         <span class="notif-bubble">{{ $pendingEditsCount > 99 ? '99+' : $pendingEditsCount }}</span>
                     @endif
                 </a>
+                <button type="button" class="groups-btn groups-btn--ghost" id="inviteLinkBtn"
+                        onclick="generateInviteLink('{{ $group->slug }}')">
+                    🔗 Invite Link
+                </button>
             @endif
 
             @if($isApproved)
@@ -278,6 +282,92 @@ document.addEventListener('keydown', function (e) {
         document.getElementById('groupAboutModal')?.classList.remove('is-visible');
     }
 });
+
+// ── Scroll to highlighted post from notification ─────────────────────────
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('highlight');
+    if (!highlightId) return;
+
+    // Remove param from URL without reload
+    const clean = window.location.pathname;
+    history.replaceState(null, '', clean);
+
+    // Wait for feed JS to render posts, then scroll
+    let attempts = 0;
+    const tryScroll = setInterval(() => {
+        const el = document.querySelector(`[data-post-id="${highlightId}"]`);
+        if (el) {
+            clearInterval(tryScroll);
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.outline = '3px solid #e8640c';
+            el.style.borderRadius = '10px';
+            setTimeout(() => el.style.outline = '', 2500);
+        }
+        if (++attempts > 30) clearInterval(tryScroll);
+    }, 300);
+})();
+
+// ── Invite link generator ────────────────────────────────────────────────
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+function generateInviteLink(slug) {
+    const btn = document.getElementById('inviteLinkBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+
+    fetch(`/groups/${slug}/invite-link`, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        credentials: 'same-origin',
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.url) {
+            showInviteLinkModal(data.url, data.expires_at);
+        }
+    })
+    .catch(() => alert('Could not generate invite link.'))
+    .finally(() => {
+        if (btn) { btn.disabled = false; btn.textContent = '🔗 Invite Link'; }
+    });
+}
+
+function showInviteLinkModal(url, expiresAt) {
+    // Remove old if exists
+    document.getElementById('inviteLinkModal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'inviteLinkModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:28px 30px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.18);">
+            <h3 style="margin:0 0 6px;font-size:17px;color:#1a3a5c;font-weight:700;">One-Time Invite Link</h3>
+            <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">This link expires in 7 days and can only be used once. Share it with the person you want to invite.</p>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input id="invLinkInput" type="text" readonly value="${url}"
+                    style="flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;color:#111827;background:#f9fafb;">
+                <button onclick="copyInvLink()" style="padding:9px 16px;background:#1a3a5c;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">
+                    Copy
+                </button>
+            </div>
+            <p style="margin:10px 0 0;font-size:12px;color:#9ca3af;">Expires: ${expiresAt}</p>
+            <button onclick="document.getElementById('inviteLinkModal').remove()"
+                style="margin-top:18px;width:100%;padding:9px;background:#f3f4f6;border:none;border-radius:7px;font-size:14px;cursor:pointer;color:#374151;">
+                Close
+            </button>
+        </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
+function copyInvLink() {
+    const inp = document.getElementById('invLinkInput');
+    if (!inp) return;
+    navigator.clipboard.writeText(inp.value).then(() => {
+        const btn = inp.nextElementSibling;
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); }
+    }).catch(() => { inp.select(); document.execCommand('copy'); });
+}
 </script>
 @endpush
 
@@ -305,10 +395,11 @@ window.FeedConfig = {!! json_encode([
         'commentDestroy' => url('/posts/__POST_ID__/comments/__ID__'),
         'commentLike'    => url('/comments/__ID__/like'),
         'postShow'       => url('/posts/__ID__'),
+        'batchCounts'    => route('posts.batch-counts'),
     ],
 ]) !!};
 </script>
-<script src="{{ asset('js/community/feed-core.js') }}?v=4" defer></script>
-<script src="{{ asset('js/community/feed.js') }}?v=4" defer></script>
+<script src="{{ asset('js/community/feed-core.js') }}?v=5" defer></script>
+<script src="{{ asset('js/community/feed.js') }}?v=5" defer></script>
 @endpush
 @endif

@@ -135,5 +135,8 @@
         state.initialized = true;
         setupInfiniteScroll();
         loadSavedFeed();
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? "";
+        const bc = window.FeedConfig?.routes?.batchCounts;
+        if (Core.createLiveSync && bc) Core.createLiveSync(el.list, state.posts, csrf, bc);
     };
 })();

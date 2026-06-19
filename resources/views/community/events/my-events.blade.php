@@ -1003,6 +1003,8 @@ document.querySelectorAll('[data-action="registrations"]').forEach(btn => {
                 'X-CSRF-TOKEN': CSRF,
                 'Accept': 'application/json',
             },
+        }).then(() => {
+            if (typeof window.fetchSidebarBadges === 'function') window.fetchSidebarBadges();
         }).catch(() => {});
 
         openRegsModal();

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlumniUser;
+use App\Models\NewsletterSubscriber;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -338,5 +340,50 @@ class AdminController extends Controller
         $status = $user->is_approved ? 'approved' : 'suspended';
 
         return back()->with('success', "{$user->full_name}'s account has been {$status}.");
+    }
+
+    // ── Admin badge counts (for sidebar polling) ──────────────────────────
+
+    public function adminBadgeCounts(): JsonResponse
+    {
+        $role = session('alumni_role');
+        if (!in_array($role, ['admin', 'super_admin'])) {
+            return response()->json(['pending_users' => 0, 'newsletter_new' => 0]);
+        }
+
+        $user = AlumniUser::find(session('alumni_id'));
+
+        $pendingUsersSince = $user?->pending_users_last_seen ?? now()->subYear();
+        $newsletterSince   = $user?->newsletter_last_seen   ?? now()->subYear();
+
+        return response()->json([
+            'pending_users'  => AlumniUser::where('is_approved', false)
+                ->whereIn('role', ['alumni', 'moderator'])
+                ->where('created_at', '>', $pendingUsersSince)
+                ->count(),
+            'newsletter_new' => NewsletterSubscriber::where('status', 'active')
+                ->where('subscribed_at', '>', $newsletterSince)
+                ->count(),
+        ]);
+    }
+
+    public function markPendingUsersSeen(): JsonResponse
+    {
+        if (!in_array(session('alumni_role'), ['admin', 'super_admin'])) {
+            return response()->json(['ok' => false], 403);
+        }
+        AlumniUser::where('id', session('alumni_id'))
+            ->update(['pending_users_last_seen' => now()]);
+        return response()->json(['ok' => true]);
+    }
+
+    public function markNewsletterSeen(): JsonResponse
+    {
+        if (!in_array(session('alumni_role'), ['admin', 'super_admin'])) {
+            return response()->json(['ok' => false], 403);
+        }
+        AlumniUser::where('id', session('alumni_id'))
+            ->update(['newsletter_last_seen' => now()]);
+        return response()->json(['ok' => true]);
     }
 }

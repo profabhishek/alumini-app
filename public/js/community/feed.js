@@ -292,4 +292,14 @@
 
     setupInfiniteScroll();
     loadFeed();
+
+    // LiveSync: real-time like/comment counts without page refresh
+    if (Core.createLiveSync && config.routes && config.routes.batchCounts) {
+        Core.createLiveSync(
+            el.feedList,
+            state.posts,
+            document.querySelector('meta[name="csrf-token"]')?.content ?? "",
+            config.routes.batchCounts,
+        );
+    }
 })();

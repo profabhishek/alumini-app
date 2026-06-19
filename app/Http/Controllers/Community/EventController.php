@@ -172,7 +172,7 @@ class EventController extends Controller
         foreach ($eventIds as $id) {
             $since = isset($seenMap[$id])
                 ? \Carbon\Carbon::parse($seenMap[$id])
-                : now()->subDays(7);
+                : now();
 
             $count = \App\Models\EventRegistration::where('event_id', $id)
                 ->where('created_at', '>', $since)
@@ -196,9 +196,12 @@ class EventController extends Controller
 
     public function markRegistrationsSeen(Request $request, $eventId)
     {
+        $now = now()->toDateTimeString();
         $seenMap = session('events_regs_seen', []);
-        $seenMap[$eventId] = now()->toDateTimeString();
+        $seenMap[$eventId] = $now;
         session(['events_regs_seen' => $seenMap]);
+        // Persist a global events-regs-seen timestamp to DB for logout/login persistence
+        \App\Models\AlumniUser::where('id', session('alumni_id'))->update(['events_regs_seen_at' => $now]);
 
         return response()->json(['ok' => true]);
     }

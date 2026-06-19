@@ -39,7 +39,14 @@ class AlumniUser extends Authenticatable
         'email_notifications',
         'appearance',
         'profile_visibility',
-        'last_seen_at',       
+        'last_seen_at',
+        'notifications_read_at',
+        'applications_last_seen',
+        'my_jobs_last_seen',
+        'my_stories_last_seen',
+        'events_regs_seen_at',
+        'pending_users_last_seen',
+        'newsletter_last_seen',
     ];
 
     protected $hidden = ['password'];
@@ -50,7 +57,14 @@ class AlumniUser extends Authenticatable
         'hide_email'          => 'boolean',
         'hide_phone'          => 'boolean',
         'email_notifications' => 'array',
-        'last_seen_at'        => 'datetime',
+        'last_seen_at'          => 'datetime',
+        'notifications_read_at' => 'datetime',
+        'applications_last_seen'=> 'datetime',
+        'my_jobs_last_seen'     => 'datetime',
+        'my_stories_last_seen'     => 'datetime',
+        'events_regs_seen_at'      => 'datetime',
+        'pending_users_last_seen'  => 'datetime',
+        'newsletter_last_seen'     => 'datetime',
     ];
 
     // ── Role checks ───────────────────────────────────────────────────────

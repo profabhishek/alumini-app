@@ -81,7 +81,9 @@ class JobApplicationController extends Controller
             ->latest()
             ->paginate(10);
 
-        session(['applications_last_seen' => now()->toDateTimeString()]);
+        $now = now()->toDateTimeString();
+        session(['applications_last_seen' => $now]);
+        \App\Models\AlumniUser::where('id', session('alumni_id'))->update(['applications_last_seen' => $now]);
 
         return view('community.jobs.my-applications', compact('applications'));
     }

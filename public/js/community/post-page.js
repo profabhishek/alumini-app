@@ -69,4 +69,11 @@
     }
 
     render();
+
+    // LiveSync for single post
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? "";
+    const bc = window.FeedConfig?.routes?.batchCounts;
+    if (Core.createLiveSync && bc && el.container) {
+        Core.createLiveSync(el.container, state.posts, csrf, bc);
+    }
 })();

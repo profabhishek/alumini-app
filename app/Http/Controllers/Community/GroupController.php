@@ -5,10 +5,16 @@ namespace App\Http\Controllers\Community;
 use App\Http\Controllers\Controller;
 use App\Models\CommunityGroup;
 use App\Models\CommunityGroupMember;
+use App\Models\GroupInviteLink;
+use App\Models\GroupInvitation;
+use App\Models\AlumniUser;
+use App\Mail\GroupInvitationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Models\Post;
+use App\Services\NotificationHelper;
 
 class GroupController extends Controller
 {
@@ -182,7 +188,7 @@ class GroupController extends Controller
         return back()->with('success', 'Request to join sent — an admin or moderator will review it.');
     }
 
-public function leave(CommunityGroup $group)
+    public function leave(CommunityGroup $group)
     {
         $myId = (int) session('alumni_id');
         $membership = $group->membership($myId);
@@ -309,7 +315,6 @@ public function leave(CommunityGroup $group)
         $isSiteAdmin  = in_array($myRole, ['admin', 'super_admin']);
         $isGroupAdmin = $group->isGroupAdmin($myId);
 
-        // Moderators (non-admin) may only remove plain members.
         if (!$isGroupAdmin && !$isSiteAdmin && $member->role !== 'member') {
             return back()->with('error', 'Only a group admin can remove a moderator or another admin.');
         }
@@ -325,5 +330,197 @@ public function leave(CommunityGroup $group)
         $member->delete();
 
         return back()->with('success', "{$name} was removed from the group.");
+    }
+
+    // ── Mark group feed as read ───────────────────────────────────────────
+
+    public function markRead(CommunityGroup $group)
+    {
+        $myId = (int) session('alumni_id');
+        CommunityGroupMember::where('group_id', $group->id)
+            ->where('alumni_id', $myId)
+            ->where('status', 'approved')
+            ->update(['last_read_at' => now()]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    // ── Unread badge counts for all member groups ─────────────────────────
+
+    public function unreadCounts()
+    {
+        $myId = (int) session('alumni_id');
+
+        $memberships = CommunityGroupMember::where('alumni_id', $myId)
+            ->where('status', 'approved')
+            ->get();
+
+        $counts = [];
+        $total  = 0;
+
+        foreach ($memberships as $m) {
+            $since = $m->last_read_at ?? $m->joined_at ?? $m->created_at;
+            $count = Post::where('group_id', $m->group_id)
+                ->where('status', 'active')
+                ->where('created_at', '>', $since)
+                ->where('alumni_id', '!=', $myId)
+                ->count();
+
+            $counts[$m->group_id] = $count;
+            $total += $count;
+        }
+
+        $pendingInvitations = GroupInvitation::where('alumni_id', $myId)
+            ->where('status', 'pending')
+            ->count();
+
+        return response()->json([
+            'counts'              => $counts,
+            'total'               => $total,
+            'pending_invitations' => $pendingInvitations,
+        ]);
+    }
+
+    // ── One-time invite link ──────────────────────────────────────────────
+
+    public function generateInviteLink(CommunityGroup $group)
+    {
+        $this->authorizeGroupManagement($group);
+
+        $link = GroupInviteLink::generate($group->id, (int) session('alumni_id'));
+        $url  = url('/groups/join/' . $link->token);
+
+        return response()->json(['url' => $url, 'expires_at' => $link->expires_at->toDateTimeString()]);
+    }
+
+    public function acceptInviteLink(string $token)
+    {
+        $link = GroupInviteLink::where('token', $token)->with('group')->firstOrFail();
+
+        if (!$link->isValid()) {
+            return redirect()->route('groups.index')
+                ->with('error', 'This invite link has already been used or has expired.');
+        }
+
+        $myId  = (int) session('alumni_id');
+        $group = $link->group;
+
+        abort_if($group->status !== 'active', 404);
+
+        if ($group->isApprovedMember($myId)) {
+            return redirect()->route('groups.show', $group->slug)
+                ->with('info', 'You are already a member of this group.');
+        }
+
+        DB::transaction(function () use ($link, $group, $myId) {
+            $link->update(['used_by' => $myId, 'used_at' => now()]);
+
+            CommunityGroupMember::updateOrCreate(
+                ['group_id' => $group->id, 'alumni_id' => $myId],
+                ['role' => 'member', 'status' => 'approved', 'joined_at' => now()]
+            );
+        });
+
+        // Notify all admins/moderators of the group
+        $modIds = CommunityGroupMember::where('group_id', $group->id)
+            ->where('status', 'approved')
+            ->whereIn('role', ['admin', 'moderator'])
+            ->pluck('alumni_id');
+
+        foreach ($modIds as $modId) {
+            NotificationHelper::fire(
+                recipientId: (int) $modId,
+                actorId:     $myId,
+                type:        'group_join',
+                groupId:     $group->id,
+            );
+        }
+
+        return redirect()->route('groups.show', $group->slug)
+            ->with('success', 'You have joined "' . $group->name . '"!');
+    }
+
+    // ── Direct user invitations ───────────────────────────────────────────
+
+    public function sendInvitation(Request $request, CommunityGroup $group)
+    {
+        $this->authorizeGroupManagement($group);
+
+        $validated = $request->validate([
+            'alumni_id' => 'required|integer|exists:alumni_users,id',
+        ]);
+
+        $targetId = (int) $validated['alumni_id'];
+        $myId     = (int) session('alumni_id');
+
+        if ($group->isApprovedMember($targetId)) {
+            return response()->json(['error' => 'This user is already a member.'], 422);
+        }
+
+        $existing = GroupInvitation::where('group_id', $group->id)
+            ->where('alumni_id', $targetId)->first();
+
+        if ($existing && $existing->isPending()) {
+            return response()->json(['error' => 'An invitation is already pending for this user.'], 422);
+        }
+
+        $invitation = GroupInvitation::updateOrCreate(
+            ['group_id' => $group->id, 'alumni_id' => $targetId],
+            ['invited_by' => $myId, 'status' => 'pending', 'responded_at' => null]
+        );
+
+        $invitation->load(['group', 'invitedBy', 'alumni']);
+
+        try {
+            Mail::to($invitation->alumni->email)->send(new GroupInvitationMail($invitation));
+        } catch (\Throwable $e) {
+            // log but don't fail
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    // ── Invitations page ──────────────────────────────────────────────────
+
+    public function myInvitations()
+    {
+        $myId = (int) session('alumni_id');
+
+        $invitations = GroupInvitation::where('alumni_id', $myId)
+            ->where('status', 'pending')
+            ->with(['group', 'invitedBy'])
+            ->latest()
+            ->get();
+
+        return view('community.groups.invitations', compact('invitations'));
+    }
+
+    public function respondInvitation(Request $request, GroupInvitation $invitation)
+    {
+        abort_unless((int) $invitation->alumni_id === (int) session('alumni_id'), 403);
+        abort_unless($invitation->isPending(), 422);
+
+        $validated = $request->validate(['action' => 'required|in:accept,decline']);
+
+        if ($validated['action'] === 'accept') {
+            DB::transaction(function () use ($invitation) {
+                $invitation->update(['status' => 'accepted', 'responded_at' => now()]);
+
+                CommunityGroupMember::updateOrCreate(
+                    ['group_id' => $invitation->group_id, 'alumni_id' => $invitation->alumni_id],
+                    ['role' => 'member', 'status' => 'approved', 'joined_at' => now()]
+                );
+            });
+
+            return response()->json([
+                'ok'       => true,
+                'action'   => 'accepted',
+                'redirect' => route('groups.show', $invitation->group->slug),
+            ]);
+        }
+
+        $invitation->update(['status' => 'declined', 'responded_at' => now()]);
+
+        return response()->json(['ok' => true, 'action' => 'declined']);
     }
 }

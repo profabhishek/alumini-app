@@ -4,8 +4,8 @@
 @section('title', 'Post')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/community/home.css') }}?v=4">
-    <link rel="stylesheet" href="{{ asset('css/community/feed.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/community/home.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/community/feed.css') }}?v=5">
 @endpush
 
 @section('content')
@@ -91,9 +91,10 @@ window.FeedConfig = {!! json_encode([
         'commentDestroy' => url('/posts/__POST_ID__/comments/__ID__'),
         'commentLike'    => url('/comments/__ID__/like'),
         'postShow'       => url('/posts/__ID__'),
+        'batchCounts'    => route('posts.batch-counts'),
     ],
 ]) !!};
 </script>
-<script src="{{ asset('js/community/feed-core.js') }}?v=4"></script>
-<script src="{{ asset('js/community/post-page.js') }}?v=4"></script>
+<script src="{{ asset('js/community/feed-core.js') }}?v=5"></script>
+<script src="{{ asset('js/community/post-page.js') }}?v=5"></script>
 @endpush

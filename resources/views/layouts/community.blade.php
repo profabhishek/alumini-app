@@ -18,7 +18,7 @@
     if (session('alumni_id')) {
         $lastSeen = session('applications_last_seen')
             ? \Carbon\Carbon::parse(session('applications_last_seen'))
-            : now()->subDays(7);
+            : now();
 
         $myApplicationsBadge = \App\Models\JobApplication::where('alumni_id', session('alumni_id'))
             ->where('status', '!=', 'submitted')
@@ -27,7 +27,7 @@
 
         $myJobsLastSeen = session('my_jobs_last_seen')
             ? \Carbon\Carbon::parse(session('my_jobs_last_seen'))
-            : now()->subDays(7);
+            : now();
 
         $myJobsNewApplicantsBadge = \App\Models\JobApplication::whereHas('job', function ($q) {
             $q->where('created_by', session('alumni_id'));
@@ -54,7 +54,7 @@
             foreach ($myEventIds as $eid) {
                 $since = isset($seenMap[$eid])
                     ? \Carbon\Carbon::parse($seenMap[$eid])
-                    : now()->subDays(7);
+                    : now();
 
                 $myEventsNewRegsBadge += \App\Models\EventRegistration::where('event_id', $eid)
                     ->where('created_at', '>', $since)
@@ -75,7 +75,7 @@
         // My stories with status changes since last visit
         $myStoriesLastSeen = session('my_stories_last_seen')
             ? \Carbon\Carbon::parse(session('my_stories_last_seen'))
-            : now()->subDays(7);
+            : now();
 
         $myStoriesUpdatesBadge = \App\Models\Story::where('created_by', session('alumni_id'))
             ->where('status', '!=', 'pending')
@@ -139,30 +139,35 @@
 
     $notificationItems = collect()
         ->merge($notifNews->map(fn($n) => [
+            'id'    => 'news_' . $n->id,
             'type'  => 'news',
             'title' => $n->title,
             'date'  => $n->published_at,
             'url'   => route('news.show', $n->slug),
         ]))
         ->merge($latestNotices->map(fn($n) => [
+            'id'    => 'notice_' . $n->id,
             'type'  => 'notice',
             'title' => $n->title,
             'date'  => $n->published_at,
             'url'   => route('notice.show', $n->slug),
         ]))
         ->merge($notifEvents->map(fn($e) => [
+            'id'    => 'event_' . $e->id,
             'type'  => 'event',
             'title' => $e->title,
             'date'  => $e->created_at,
             'url'   => route('events.show', $e->slug ?? $e->id),
         ]))
         ->merge($notifStories->map(fn($s) => [
+            'id'    => 'story_' . $s->id,
             'type'  => 'story',
             'title' => $s->title,
             'date'  => $s->created_at,
             'url'   => route('stories.show', $s->slug),
         ]))
         ->merge($notifJobs->map(fn($j) => [
+            'id'    => 'job_' . $j->id,
             'type'  => 'job',
             'title' => $j->title,
             'date'  => $j->created_at,
@@ -175,17 +180,10 @@
         ->values();
 
 
-    $notificationsReadAt = null;
-
-    if ($currentAlumniUser) {
-        $notificationsReadAt = $currentAlumniUser->notifications_read_at
-            ? \Carbon\Carbon::parse($currentAlumniUser->notifications_read_at)
-            : null;
-    }
-
-    $newNotificationsCount = $notificationItems
-        ->filter(fn($item) => $item['date'] && (! $notificationsReadAt || $item['date']->gt($notificationsReadAt)))
-        ->count();
+    // Content items (news/events/jobs/stories) are not real per-user notifications.
+    // They have no per-user read state in the DB, so they never contribute to the badge.
+    // Only personal notifications (alumni_notifications table) drive the badge count.
+    $newNotificationsCount = 0;
 @endphp
 
 <!DOCTYPE html>
@@ -257,9 +255,8 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
                         </svg>
-                        @php $totalBellCount = $newNotificationsCount + $personalUnreadCount; @endphp
-                        @if($totalBellCount > 0)
-                            <span class="badge">{{ $totalBellCount > 9 ? '9+' : $totalBellCount }}</span>
+                        @if($personalUnreadCount > 0)
+                            <span class="badge">{{ $personalUnreadCount > 9 ? '9+' : $personalUnreadCount }}</span>
                         @endif
                     </button>
 
@@ -276,7 +273,7 @@
                                 @endif
 
                                 @forelse($notificationItems as $item)
-                                <a href="{{ $item['url'] }}" class="notif-item">
+                                <a href="{{ $item['url'] }}" class="notif-item" data-content-id="{{ $item['id'] }}">
                                     <span class="notif-item__icon notif-item__icon--{{ $item['type'] }}">
                                         @switch($item['type'])
                                             @case('news')
@@ -383,11 +380,7 @@
                             </svg>
                         </span>
                         <span class="nav-label">My Event</span>
-                        @if($eventTotalBadge > 0)
-                            <span class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;">
-                                {{ $eventTotalBadge > 9 ? '9+' : $eventTotalBadge }}
-                            </span>
-                        @endif
+                        <span id="sb-badge-event-total" class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;{{ $eventTotalBadge > 0 ? '' : 'display:none;' }}">{{ $eventTotalBadge > 9 ? '9+' : $eventTotalBadge }}</span>
                         <svg class="nav-chevron" id="chev-event" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <polyline points="9,18 15,12 9,6"/>
                         </svg>
@@ -406,11 +399,7 @@
                         @if($canApprove)
                             <a href="{{ route('admin.events.pending') }}" class="sidebar-child">
                                 <span class="sidebar-child-dot"></span>Pending Events
-                                @if($pendingEventsBadge > 0)
-                                    <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                        {{ $pendingEventsBadge > 9 ? '9+' : $pendingEventsBadge }}
-                                    </span>
-                                @endif
+                                <span id="sb-badge-pending-events" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $pendingEventsBadge > 0 ? '' : 'display:none;' }}">{{ $pendingEventsBadge > 9 ? '9+' : $pendingEventsBadge }}</span>
                             </a>
                         @endif
 
@@ -426,11 +415,7 @@
                         </a>
                         <a href="{{ route('events.my') }}" class="sidebar-child {{ request()->routeIs('events.my') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>My Events
-                            @if($myEventsNewRegsBadge > 0)
-                                <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                    {{ $myEventsNewRegsBadge > 9 ? '9+' : $myEventsNewRegsBadge }}
-                                </span>
-                            @endif
+                            <span id="sb-badge-my-events" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $myEventsNewRegsBadge > 0 ? '' : 'display:none;' }}">{{ $myEventsNewRegsBadge > 9 ? '9+' : $myEventsNewRegsBadge }}</span>
                         </a>
                         <a href="{{ route('events.index') }}" class="sidebar-child {{ request()->routeIs('events.index') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>Browse Events
@@ -461,11 +446,7 @@
                         </svg>
                     </span>
                     <span class="nav-label">Job Post</span>
-                    @if($jobPostTotalBadge > 0)
-                        <span class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;">
-                            {{ $jobPostTotalBadge > 9 ? '9+' : $jobPostTotalBadge }}
-                        </span>
-                    @endif
+                    <span id="sb-badge-job-total" class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;{{ $jobPostTotalBadge > 0 ? '' : 'display:none;' }}">{{ $jobPostTotalBadge > 9 ? '9+' : $jobPostTotalBadge }}</span>
                     <svg class="nav-chevron" id="chev-job" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="9,18 15,12 9,6"/>
                     </svg>
@@ -478,11 +459,7 @@
 
                         <a href="{{ route('jobs.my') }}" class="sidebar-child">
                             <span class="sidebar-child-dot"></span>My Jobs
-                            @if($myJobsNewApplicantsBadge > 0)
-                                <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                    {{ $myJobsNewApplicantsBadge > 9 ? '9+' : $myJobsNewApplicantsBadge }}
-                                </span>
-                            @endif
+                            <span id="sb-badge-my-jobs" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $myJobsNewApplicantsBadge > 0 ? '' : 'display:none;' }}">{{ $myJobsNewApplicantsBadge > 9 ? '9+' : $myJobsNewApplicantsBadge }}</span>
                         </a>
 
                         <a href="{{ route('jobs.index') }}" class="sidebar-child">
@@ -492,21 +469,13 @@
                         <a href="{{ route('jobs.my-applications') }}"
                             class="sidebar-child {{ request()->routeIs('jobs.my-applications') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>My Applications
-                            @if($myApplicationsBadge > 0)
-                                <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                    {{ $myApplicationsBadge > 9 ? '9+' : $myApplicationsBadge }}
-                                </span>
-                            @endif
+                            <span id="sb-badge-my-applications" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $myApplicationsBadge > 0 ? '' : 'display:none;' }}">{{ $myApplicationsBadge > 9 ? '9+' : $myApplicationsBadge }}</span>
                         </a>
 
                         @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
                         <a href="{{ route('admin.jobs.pending') }}" class="sidebar-child sidebar-child-admin">
                             <span class="sidebar-child-dot"></span>Moderation Queue
-                            @if($moderationQueueBadge > 0)
-                                <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                    {{ $moderationQueueBadge > 9 ? '9+' : $moderationQueueBadge }}
-                                </span>
-                            @endif
+                            <span id="sb-badge-mod-queue" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $moderationQueueBadge > 0 ? '' : 'display:none;' }}">{{ $moderationQueueBadge > 9 ? '9+' : $moderationQueueBadge }}</span>
                         </a>
 
                             <a href="{{ route('admin.jobs.index') }}" class="sidebar-child sidebar-child-admin">
@@ -527,11 +496,7 @@
                             </svg>
                         </span>
                         <span class="nav-label">Stories</span>
-                        @if($storiesTotalBadge > 0)
-                            <span class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;">
-                                {{ $storiesTotalBadge > 9 ? '9+' : $storiesTotalBadge }}
-                            </span>
-                        @endif
+                        <span id="sb-badge-story-total" class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;margin-right:auto;{{ $storiesTotalBadge > 0 ? '' : 'display:none;' }}">{{ $storiesTotalBadge > 9 ? '9+' : $storiesTotalBadge }}</span>
                         <svg class="nav-chevron" id="chev-story" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <polyline points="9,18 15,12 9,6"/>
                         </svg>
@@ -542,11 +507,7 @@
                             <a href="{{ route('admin.stories.pending') }}"
                             class="sidebar-child {{ request()->routeIs('admin.stories.pending') ? 'active' : '' }}">
                                 <span class="sidebar-child-dot" style="background:#e8640c;"></span>Pending Story
-                                @if($pendingStoriesBadge > 0)
-                                    <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                        {{ $pendingStoriesBadge > 9 ? '9+' : $pendingStoriesBadge }}
-                                    </span>
-                                @endif
+                                <span id="sb-badge-pending-stories" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $pendingStoriesBadge > 0 ? '' : 'display:none;' }}">{{ $pendingStoriesBadge > 9 ? '9+' : $pendingStoriesBadge }}</span>
                             </a>
                         @endif
 
@@ -558,11 +519,7 @@
                         <a href="{{ route('stories.my') }}"
                         class="sidebar-child {{ request()->routeIs('stories.my') ? 'active' : '' }}">
                             <span class="sidebar-child-dot"></span>My Story
-                            @if($myStoriesUpdatesBadge > 0)
-                                <span class="sidebar-child-badge sidebar-child-badge--notif">
-                                    {{ $myStoriesUpdatesBadge > 9 ? '9+' : $myStoriesUpdatesBadge }}
-                                </span>
-                            @endif
+                            <span id="sb-badge-my-stories" class="sidebar-child-badge sidebar-child-badge--notif" style="{{ $myStoriesUpdatesBadge > 0 ? '' : 'display:none;' }}">{{ $myStoriesUpdatesBadge > 9 ? '9+' : $myStoriesUpdatesBadge }}</span>
                         </a>
 
                         <a href="{{ route('stories.index') }}"
@@ -608,6 +565,7 @@
                         </svg>
                     </span>
                     <span class="nav-label">Community Groups</span>
+                    <span id="sb-badge-groups" class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;display:none;"></span>
                 </a>
 
                 <a href="{{ route('profile.index') }}" class="sidebar-nav__item">
@@ -657,6 +615,7 @@
                             </svg>
                         </span>
                         <span class="nav-label">Pending Requests</span>
+                        <span id="sb-badge-pending-users" class="sidebar-child-badge sidebar-child-badge--notif" style="display:none;"></span>
                     </a>
 
                     <a href="{{ route('admin.users.index') }}"
@@ -710,6 +669,7 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                         </span>
                         <span class="nav-label">Newsletter</span>
+                        <span id="sb-badge-newsletter" class="sidebar-child-badge sidebar-child-badge--notif" style="display:none;"></span>
                     </a>
 
                     @if(session('alumni_role') === 'super_admin')
@@ -925,6 +885,158 @@
        @if(session('alumni_id'))
         <script>
         (function () {
+            const URL_SIDEBAR = '{{ route('notifications.sidebar-badges') }}';
+            const POLL_MS     = 10000;
+
+            function setSidebarBadge(id, count) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (count > 0) {
+                    el.textContent   = count > 9 ? '9+' : count;
+                    el.style.display = '';
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+
+            window.fetchSidebarBadges = fetchSidebarBadges;
+            function fetchSidebarBadges() {
+                fetch(URL_SIDEBAR, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                })
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(d => {
+                    setSidebarBadge('sb-badge-event-total',      d.event_total);
+                    setSidebarBadge('sb-badge-pending-events',   d.pending_events);
+                    setSidebarBadge('sb-badge-my-events',        d.my_events);
+                    setSidebarBadge('sb-badge-job-total',        d.job_total);
+                    setSidebarBadge('sb-badge-my-jobs',          d.my_jobs);
+                    setSidebarBadge('sb-badge-my-applications',  d.my_applications);
+                    setSidebarBadge('sb-badge-mod-queue',        d.mod_queue);
+                    setSidebarBadge('sb-badge-story-total',      d.story_total);
+                    setSidebarBadge('sb-badge-pending-stories',  d.pending_stories);
+                    setSidebarBadge('sb-badge-my-stories',       d.my_stories);
+                })
+                .catch(() => {});
+            }
+
+            let timer = setInterval(fetchSidebarBadges, POLL_MS);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(timer);
+                    timer = null;
+                } else {
+                    fetchSidebarBadges();
+                    timer = setInterval(fetchSidebarBadges, POLL_MS);
+                }
+            });
+
+            // ── Group unread badge (separate poll) ──────────────────────
+            const URL_GROUP_COUNTS = '/groups/unread-counts';
+            window.updateGroupSidebarBadge = function(total) {
+                setSidebarBadge('sb-badge-groups', total);
+            };
+
+            function fetchGroupBadges() {
+                fetch(URL_GROUP_COUNTS, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(d => {
+                        const counts  = d.counts || {};
+                        const pending = d.pending_invitations || 0;
+                        const total   = Object.values(counts).reduce((a, b) => a + b, 0) + pending;
+                        setSidebarBadge('sb-badge-groups', total);
+                    })
+                    .catch(() => {});
+            }
+
+            fetchGroupBadges();
+            let groupTimer = setInterval(fetchGroupBadges, POLL_MS);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(groupTimer);
+                } else {
+                    fetchGroupBadges();
+                    groupTimer = setInterval(fetchGroupBadges, POLL_MS);
+                }
+            });
+
+            @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
+            // ── Admin panel badges (Pending Requests + Newsletter) ──────────
+            const URL_ADMIN_BADGES = '{{ route('admin.badge-counts') }}';
+            const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+            const pendingUsersLink   = document.querySelector('a[href="{{ route('admin.users.pending') }}"]');
+            const newsletterLink     = document.querySelector('a[href="{{ route('admin.newsletter.index') }}"]');
+
+            function fetchAdminBadges() {
+                fetch(URL_ADMIN_BADGES, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(d => {
+                        setSidebarBadge('sb-badge-pending-users', d.pending_users  || 0);
+                        setSidebarBadge('sb-badge-newsletter',    d.newsletter_new || 0);
+                    })
+                    .catch(() => {});
+            }
+
+            // Mark as seen when visiting the page, clear badge immediately
+            if (pendingUsersLink) {
+                pendingUsersLink.addEventListener('click', () => {
+                    setSidebarBadge('sb-badge-pending-users', 0);
+                    fetch('{{ route('admin.mark-pending-users-seen') }}', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    }).catch(() => {});
+                });
+            }
+
+            if (newsletterLink) {
+                newsletterLink.addEventListener('click', () => {
+                    setSidebarBadge('sb-badge-newsletter', 0);
+                    fetch('{{ route('admin.mark-newsletter-seen') }}', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    }).catch(() => {});
+                });
+            }
+
+            // Also mark seen if already on those pages (direct navigation)
+            @if(request()->routeIs('admin.users.pending'))
+            fetch('{{ route('admin.mark-pending-users-seen') }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            }).catch(() => {});
+            @endif
+            @if(request()->routeIs('admin.newsletter.*'))
+            fetch('{{ route('admin.mark-newsletter-seen') }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            }).catch(() => {});
+            @endif
+
+            fetchAdminBadges();
+            let adminBadgeTimer = setInterval(fetchAdminBadges, 30000); // 30s — admin data changes slowly
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(adminBadgeTimer);
+                } else {
+                    fetchAdminBadges();
+                    adminBadgeTimer = setInterval(fetchAdminBadges, 30000);
+                }
+            });
+            @endif
+        })();
+        </script>
+
+        <script>
+        (function () {
             const badge = document.getElementById('headerMsgBadge');
             if (!badge) return;
     
@@ -965,30 +1077,6 @@
         })();
         </script>
 
-        <script>
-            (function () {
-                const menu     = document.getElementById('notifMenuToggle');
-                const dropdown = document.getElementById('notifDropdown');
-                if (!menu || !dropdown) return;
-
-                const toggleBtn = menu.querySelector('.comm-icon-btn');
-
-                toggleBtn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    menu.classList.toggle('open');
-                });
-
-                document.addEventListener('click', function (e) {
-                    if (!menu.contains(e.target)) {
-                        menu.classList.remove('open');
-                    }
-                });
-
-                document.addEventListener('keydown', function (e) {
-                    if (e.key === 'Escape') menu.classList.remove('open');
-                });
-            })();
-        </script>
 
         <script>
             (function () {
@@ -1137,60 +1225,232 @@
             })();
         </script>
 
+        <style>
+            .notif-item {
+                transition: opacity 0.25s ease, max-height 0.3s ease, padding 0.3s ease;
+                overflow: hidden;
+                max-height: 200px;
+            }
+            .notif-item--removing {
+                opacity: 0;
+                max-height: 0 !important;
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
+            }
+        </style>
         <script>
-            (function () {
-                const menu     = document.getElementById('notifMenuToggle');
-                const list     = document.getElementById('personalNotifList');
-                if (!menu || !list) return;
+        (function () {
+            const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            const URL_PERSONAL = '{{ route('notifications.personal') }}';
+            const URL_MARK_ONE = '/notifications/{id}/mark-read';
+            const POLL_MS      = 10000; // poll every 10s
 
-                let loaded = false;
+            const menu      = document.getElementById('notifMenuToggle');
+            const list      = document.getElementById('personalNotifList');
+            const toggleBtn = menu?.querySelector('.comm-icon-btn');
+            if (!menu || !list || !toggleBtn) return;
 
-                menu.querySelector('.comm-icon-btn').addEventListener('click', function () {
-                    if (loaded) return;
-                    loaded = true;
+            let knownIds    = new Set(); // IDs currently rendered
+            let pollTimer   = null;
+            let isOpen      = false;
 
-                    fetch('{{ route('notifications.personal') }}', {
-                        headers: { 'Accept': 'application/json' },
+            // ── Badge ─────────────────────────────────────────────────────────
+            function setBadgeCount(count) {
+                let badge = toggleBtn.querySelector('.badge');
+                if (count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'badge';
+                        toggleBtn.appendChild(badge);
+                    }
+                    badge.textContent = count > 9 ? '9+' : count;
+                } else {
+                    badge?.remove();
+                }
+            }
+
+            // ── Build one notification element ────────────────────────────────
+            function buildItem(n) {
+                const avatarHtml = n.avatar
+                    ? `<img src="${n.avatar}" alt="${n.actor}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+                    : `<span style="font-size:11px;font-weight:700;color:#e8640c;">${n.initials}</span>`;
+
+                // Use server-generated message (already formatted with actor names + count)
+                const label = n.message || `<strong>${n.actor}</strong> interacted with your content`;
+
+                const el = document.createElement('a');
+                el.href = n.url || n.post_url || '#';
+                el.className = 'notif-item' + (n.is_read ? '' : ' notif-item--unread');
+                el.dataset.notifId = n.id;
+                el.dataset.url     = n.url || n.post_url || '#';
+                el.innerHTML = `
+                    <span class="notif-item__icon" style="background:rgba(232,100,12,.1);color:#e8640c;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                        ${avatarHtml}
+                    </span>
+                    <span class="notif-item__body">
+                        <span class="notif-item__title">${label}</span>
+                        ${n.preview ? `<span class="notif-item__label" style="color:#6b7280;font-size:12px;">"${n.preview}"</span>` : ''}
+                        <span class="notif-item__time">${n.time}</span>
+                    </span>`;
+
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const id      = this.dataset.notifId;
+                    const destUrl = this.dataset.url;
+
+                    // Remove from DOM with animation
+                    this.classList.add('notif-item--removing');
+                    setTimeout(() => {
+                        this.remove();
+                        if (!list.querySelector('.notif-item')) {
+                            list.innerHTML = '<div class="notif-empty" style="padding:12px 16px;font-size:13px;color:#9ca3af;">No notifications.</div>';
+                        }
+                    }, 300);
+
+                    // Mark read on server
+                    fetch(URL_MARK_ONE.replace('{id}', id), {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
                         credentials: 'same-origin',
                     })
                     .then(r => r.json())
                     .then(data => {
-                        if (!data.notifications?.length) return;
-
-                        list.innerHTML = data.notifications.map(n => {
-                            const avatarHtml = n.avatar
-                                ? `<img src="${n.avatar}" alt="${n.actor}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-                                : `<span style="font-size:11px;font-weight:700;color:#e8640c;">${n.initials}</span>`;
-
-                            const label = n.type === 'reply'
-                                ? `<strong>${n.actor}</strong> replied to your comment`
-                                : `<strong>${n.actor}</strong> commented on your post`;
-
-                            return `<a href="${n.post_url}" class="notif-item ${n.is_read ? '' : 'notif-item--unread'}">
-                                <span class="notif-item__icon" style="background:rgba(232,100,12,.1);color:#e8640c;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                                    ${avatarHtml}
-                                </span>
-                                <span class="notif-item__body">
-                                    <span class="notif-item__title">${label}</span>
-                                    ${n.preview ? `<span class="notif-item__label" style="color:#6b7280;">"${n.preview}"</span>` : ''}
-                                    <span class="notif-item__time">${n.time}</span>
-                                </span>
-                            </a>`;
-                        }).join('');
-
-                        // Mark as read after viewing
-                        fetch('{{ route('notifications.personal.mark-read') }}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                'Accept': 'application/json',
-                            },
-                            credentials: 'same-origin',
-                        }).catch(() => {});
+                        if (data.ok) setBadgeCount(data.unread_count ?? 0);
                     })
                     .catch(() => {});
+
+                    knownIds.delete(id);
+
+                    // Navigate after animation
+                    setTimeout(() => { window.location.href = destUrl; }, 320);
                 });
-            })();
+
+                return el;
+            }
+
+            // ── Render / diff-update the list ─────────────────────────────────
+            // Only adds new items at the top; never re-renders existing ones
+            // so user interactions (hover, scroll) aren't disrupted.
+            function applyNotifications(notifications, unreadCount) {
+                setBadgeCount(unreadCount);
+
+                if (!notifications.length) {
+                    if (!knownIds.size) {
+                        list.innerHTML = '<div class="notif-empty" style="padding:12px 16px;font-size:13px;color:#9ca3af;">No notifications.</div>';
+                    }
+                    return;
+                }
+
+                // Remove empty-state placeholder if present
+                const empty = list.querySelector('.notif-empty');
+                if (empty) empty.remove();
+
+                // Prepend genuinely new items (not yet in DOM)
+                const incoming = [...notifications].reverse(); // oldest first so prepend order is correct
+                for (const n of incoming) {
+                    const sid = String(n.id);
+                    if (!knownIds.has(sid)) {
+                        knownIds.add(sid);
+                        const el = buildItem(n);
+                        // Animate in
+                        el.style.opacity  = '0';
+                        el.style.maxHeight = '0';
+                        list.prepend(el);
+                        // Trigger reflow then animate
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                el.style.opacity   = '';
+                                el.style.maxHeight = '';
+                            });
+                        });
+                    }
+                }
+
+                // Remove items from DOM that are no longer in server response
+                // (e.g. deleted by admin) — but only if they weren't already removed by click
+                const serverIds = new Set(notifications.map(n => String(n.id)));
+                list.querySelectorAll('.notif-item[data-notif-id]').forEach(el => {
+                    const sid = el.dataset.notifId;
+                    if (!serverIds.has(sid)) {
+                        knownIds.delete(sid);
+                        el.classList.add('notif-item--removing');
+                        setTimeout(() => el.remove(), 300);
+                    }
+                });
+            }
+
+            // ── Fetch from server ─────────────────────────────────────────────
+            function fetchNotifications() {
+                fetch(URL_PERSONAL, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                })
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => applyNotifications(data.notifications ?? [], data.unread_count ?? 0))
+                .catch(() => {});
+            }
+
+            // ── Polling ───────────────────────────────────────────────────────
+            function startPolling() {
+                if (pollTimer) return;
+                pollTimer = setInterval(fetchNotifications, POLL_MS);
+            }
+
+            function stopPolling() {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+
+            // Poll when tab is visible, pause when hidden
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    stopPolling();
+                } else {
+                    fetchNotifications(); // immediate refresh on tab focus
+                    startPolling();
+                }
+            });
+
+            const URL_MARK_ALL = '{{ route('notifications.personal.mark-read') }}';
+
+            function markAllRead() {
+                // Zero badge immediately in UI
+                setBadgeCount(0);
+                // Mark all read on server
+                fetch(URL_MARK_ALL, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                }).catch(() => {});
+                // Remove unread styling from all visible items
+                list.querySelectorAll('.notif-item--unread').forEach(el => {
+                    el.classList.remove('notif-item--unread');
+                });
+            }
+
+            // ── Open / close ──────────────────────────────────────────────────
+            toggleBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                isOpen = !menu.classList.contains('open');
+                menu.classList.toggle('open');
+                if (isOpen) {
+                    fetchNotifications();
+                    markAllRead(); // zero badge as soon as bell is opened
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!menu.contains(e.target)) menu.classList.remove('open');
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') menu.classList.remove('open');
+            });
+
+            // ── Boot ──────────────────────────────────────────────────────────
+            fetchNotifications(); // load badge count on page load
+            startPolling();       // start background polling
+        })();
         </script>
         @endif
 </body>

@@ -344,13 +344,28 @@ class AuthController extends Controller
         session()->regenerate(); // prevent session fixation
 
         session([
-            'alumni_id'          => $user->id,
-            'alumni_name'        => $user->full_name,
-            'alumni_email'       => $user->email,
-            'alumni_role'        => $user->role,
-            'alumni_permissions' => $user->permissions ?? [],
-            'alumni_avatar'      => $user->photo,
+            'alumni_id'               => $user->id,
+            'alumni_name'             => $user->full_name,
+            'alumni_email'            => $user->email,
+            'alumni_role'             => $user->role,
+            'alumni_permissions'      => $user->permissions ?? [],
+            'alumni_avatar'           => $user->photo,
+            // Restore last-seen timestamps from DB so sidebar badges survive logout/login
+            'applications_last_seen'  => $user->applications_last_seen?->toDateTimeString(),
+            'my_jobs_last_seen'       => $user->my_jobs_last_seen?->toDateTimeString(),
+            'my_stories_last_seen'    => $user->my_stories_last_seen?->toDateTimeString(),
         ]);
+
+        // Restore events_regs_seen map: use events_regs_seen_at as a per-event fallback
+        if ($user->events_regs_seen_at) {
+            $ts = $user->events_regs_seen_at->toDateTimeString();
+            $eventIds = \App\Models\Event::where('created_by', $user->id)->pluck('id');
+            $seenMap  = [];
+            foreach ($eventIds as $eid) {
+                $seenMap[$eid] = $ts;
+            }
+            session(['events_regs_seen' => $seenMap]);
+        }
 
         // ── Record this device in alumni_sessions ─────────────────────────
         \App\Models\AlumniSession::updateOrCreate(

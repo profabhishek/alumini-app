@@ -110,7 +110,7 @@ class StoryController extends Controller
     {
         $myStoriesLastSeen = session('my_stories_last_seen')
             ? \Carbon\Carbon::parse(session('my_stories_last_seen'))
-            : now()->subDays(7);
+            : now();
 
         // Update last seen AFTER reading
         $query = \App\Models\Story::where('created_by', session('alumni_id'))->latest();
@@ -134,8 +134,10 @@ class StoryController extends Controller
             ->pluck('id')
             ->toArray();
 
-        // Update last seen after counting
-        session(['my_stories_last_seen' => now()->toDateTimeString()]);
+        // Update last seen after counting (session + DB so it survives logout/login)
+        $now = now()->toDateTimeString();
+        session(['my_stories_last_seen' => $now]);
+        \App\Models\AlumniUser::where('id', session('alumni_id'))->update(['my_stories_last_seen' => $now]);
 
         $stats = [
             'total'     => \App\Models\Story::where('created_by', session('alumni_id'))->count(),

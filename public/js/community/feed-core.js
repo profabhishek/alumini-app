@@ -1617,6 +1617,117 @@
         };
     }
 
+    // ── LiveSync ─────────────────────────────────────────────────────────
+    // Polls /posts/batch-counts for currently visible post IDs.
+    // Active: polls every 4s. Idle (>60s no input): every 30s. Hidden tab: paused.
+    // Server caches results 5s so DB load is O(unique-id-sets) not O(users).
+    function createLiveSync(container, posts, csrf, batchCountsUrl) {
+        const ACTIVE_MS  = 4000;
+        const IDLE_MS    = 30000;
+        const IDLE_AFTER = 60000;
+
+        let timer        = null;
+        let lastActivity = Date.now();
+        let inflight     = false;
+
+        const onActivity = () => { lastActivity = Date.now(); };
+        ["click", "keydown", "scroll", "touchstart"].forEach(ev =>
+            document.addEventListener(ev, onActivity, { passive: true })
+        );
+
+        function isIdle() { return Date.now() - lastActivity > IDLE_AFTER; }
+
+        function visiblePostIds() {
+            const ids = [];
+            container.querySelectorAll(".feed-card[data-post-id]").forEach(card => {
+                ids.push(parseInt(card.dataset.postId, 10));
+            });
+            return ids;
+        }
+
+        async function sync() {
+            if (inflight || document.hidden) return;
+            const ids = visiblePostIds();
+            if (!ids.length) return;
+            inflight = true;
+            try {
+                const resp = await fetch(batchCountsUrl, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": csrf,
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({ ids }),
+                });
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                for (const [postIdStr, counts] of Object.entries(data)) {
+                    const postId = parseInt(postIdStr, 10);
+                    const card   = container.querySelector(`.feed-card[data-post-id="${postId}"]`);
+                    if (!card) continue;
+                    const cached = posts.get(postId) || {};
+
+                    if (counts.likes_count !== cached.likes_count) {
+                        const countEl   = card.querySelector(".likes-count-text");
+                        const likesWrap = card.querySelector(".card-reactions__likes");
+                        const reactions = card.querySelector(".card-reactions");
+                        if (countEl) countEl.textContent = counts.likes_count;
+                        if (likesWrap) likesWrap.hidden = counts.likes_count === 0;
+                        if (reactions && counts.likes_count > 0) reactions.hidden = false;
+                        cached.likes_count = counts.likes_count;
+                    }
+
+                    if (counts.is_liked !== cached.is_liked) {
+                        const likeBtn = card.querySelector('[data-action="toggle-like"]');
+                        if (likeBtn && likeBtn.dataset.liked !== String(counts.is_liked)) {
+                            likeBtn.dataset.liked = String(counts.is_liked);
+                            likeBtn.classList.toggle("is-active", counts.is_liked);
+                            const svg = likeBtn.querySelector("svg");
+                            if (svg) svg.setAttribute("fill", counts.is_liked ? "currentColor" : "none");
+                        }
+                        cached.is_liked = counts.is_liked;
+                    }
+
+                    if (counts.comments_count !== cached.comments_count) {
+                        const reactions = card.querySelector(".card-reactions");
+                        const countSpan = card.querySelector('[data-action="toggle-comments"]');
+                        const n = counts.comments_count;
+                        if (countSpan) countSpan.textContent = n > 0 ? `${n} comment${n !== 1 ? "s" : ""}` : "";
+                        if (reactions && n > 0) reactions.hidden = false;
+                        cached.comments_count = n;
+                    }
+
+                    posts.set(postId, cached);
+                }
+            } catch (_) {
+                // silent
+            } finally {
+                inflight = false;
+            }
+        }
+
+        function scheduleNext() {
+            clearTimeout(timer);
+            const delay = isIdle() ? IDLE_MS : ACTIVE_MS;
+            timer = setTimeout(() => { sync().finally(scheduleNext); }, delay);
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                clearTimeout(timer);
+            } else {
+                onActivity();
+                sync().finally(scheduleNext);
+            }
+        });
+
+        scheduleNext();
+        return { sync, stop: () => clearTimeout(timer) };
+    }
+
     window.FeedCore = {
         esc,
         escAttr,
@@ -1637,5 +1748,6 @@
         replyMarkup,
         createFeedController,
         roleBadgeMarkup,
+        createLiveSync,
     };
 })();
