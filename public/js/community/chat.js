@@ -379,8 +379,13 @@
                     (c) => Number(c.id) === Number(state.activeConversation.id),
                 );
                 if (refreshed) {
+                    const prevPending = state.activeConversation.pending_count || 0;
                     state.activeConversation = refreshed;
                     renderActiveHeader();
+                    // If info panel is open and pending_count changed, auto-refresh it
+                    if (!el.infoPanel.hidden && refreshed.pending_count !== prevPending) {
+                        openInfoPanel();
+                    }
                 }
             }
         } catch (err) {
@@ -469,6 +474,13 @@
                         ${
                             c.unread_count > 0
                                 ? `<span class="wa-unread">${Math.min(c.unread_count, 99)}</span>`
+                                : ""
+                        }
+                        ${
+                            c.type === "group" &&
+                            c.is_admin &&
+                            c.pending_count > 0
+                                ? `<span class="wa-unread wa-pending-badge" title="${c.pending_count} pending join request${c.pending_count !== 1 ? "s" : ""}">${Math.min(c.pending_count, 9)}+</span>`
                                 : ""
                         }
                     </span>
@@ -669,8 +681,10 @@
         } catch (err) {
             toast(err.message, "error");
         } finally {
-            el.loadOlderButton.disabled = false;
-            el.loadOlderButton.textContent = "Load earlier messages";
+            state.isSending = false;
+            el.sendButton.disabled = false;
+            el.messageInput.disabled = false;
+            el.messageInput.focus();
         }
     }
 
@@ -884,6 +898,7 @@
 
         el.sendButton.disabled = true;
         el.messageInput.disabled = true;
+        state.isSending = true;
 
         try {
             let reqBody,
@@ -947,15 +962,17 @@
         )
             return;
         try {
-            await api(route(config.routes.deleteMessage, messageId), {
-                method: "DELETE",
-            });
-            state.messages = state.messages.filter(
-                (m) => Number(m.id) !== Number(messageId),
+            const data = await api(
+                route(config.routes.deleteMessage, messageId),
+                {
+                    method: "DELETE",
+                },
             );
-            renderMessages();
+            applyRemoteDeletions(data.message ? [data.message] : []);
             fetchConversations({ quiet: true });
-            toast("Message deleted.", "success");
+            if (!data.already_deleted) {
+                toast("Message deleted.", "success");
+            }
         } catch (err) {
             toast(err.message, "error");
         }
@@ -964,7 +981,8 @@
     // ── Polling ───────────────────────────────────────────────────────────
 
     async function pollMessages() {
-        if (!state.activeConversation || document.hidden) return;
+        if (!state.activeConversation || document.hidden || state.isSending)
+            return;
         try {
             const url = `${route(config.routes.pollMessages, state.activeConversation.id)}?after_id=${state.lastMessageId}`;
             const data = await api(url);
@@ -972,12 +990,15 @@
                 (m) =>
                     !state.messages.some((x) => Number(x.id) === Number(m.id)),
             );
+
+            applyRemoteDeletions(data.deleted || []);
+
             if (incoming.length) {
                 const nearBottom =
                     el.messageList.scrollHeight -
-                        el.messageList.scrollTop -
-                        el.messageList.clientHeight <
-                    160;
+                    el.messageList.scrollTop -
+                    el.messageList.clientHeight;
+                160;
                 state.messages.push(...incoming);
                 state.lastMessageId = Math.max(
                     state.lastMessageId,
@@ -991,6 +1012,39 @@
         } catch {
             /* transient */
         }
+    }
+
+    function applyRemoteDeletions(deletedList) {
+        if (!deletedList.length) return;
+
+        deletedList.forEach((dm) => {
+            const idx = state.messages.findIndex(
+                (m) => Number(m.id) === Number(dm.id),
+            );
+            if (idx === -1) return;
+            if (state.messages[idx].deleted) return; // already applied
+
+            state.messages[idx] = { ...state.messages[idx], ...dm };
+
+            const article = el.messageList.querySelector(
+                `[data-message-id="${dm.id}"]`,
+            );
+            if (!article) return;
+
+            const bubble = article.querySelector(".wa-bubble");
+            if (!bubble) return;
+
+            const label = dm.deleted_by_admin
+                ? "This message was removed by admin"
+                : "This message was deleted";
+
+            const meta =
+                bubble.querySelector(".wa-message-meta")?.outerHTML || "";
+            bubble.innerHTML = `<p class="wa-deleted-message">${esc(label)}</p>${meta}`;
+            bubble.parentElement
+                ?.querySelector(".wa-message-actions")
+                ?.remove();
+        });
     }
 
     function startMessagePolling() {
@@ -1139,10 +1193,10 @@
                     ${group.join_requests
                         .map(
                             (r) => `
-                        <div class="wa-info-member">
+                        <div class="wa-pending-request">
                             ${avatarMarkup(r, "wa-avatar wa-avatar--sm")}
-                            <span><strong>${esc(r.name)}</strong></span>
-                            <div style="display:flex;gap:6px;margin-left:auto;">
+                            <span class="wa-pending-request__name">${esc(r.name)}</span>
+                            <div class="wa-pending-request__actions">
                                 <button class="wa-action-btn wa-action-btn--accept"
                                     data-request-id="${r.id}" data-action="accept" title="Accept">✓</button>
                                 <button class="wa-action-btn wa-action-btn--reject"
@@ -1157,6 +1211,18 @@
  
                 <div class="wa-info-card">
                     <strong>${group.members.length} Participants</strong>
+                    ${isAdmin ? `
+                    <div class="wa-invite-search" style="position:relative;margin-bottom:10px;">
+                        <input
+                            type="text"
+                            id="inviteSearchInput"
+                            class="wa-info-input"
+                            placeholder="Search people to invite…"
+                            autocomplete="off"
+                            style="padding-right:36px;"
+                        >
+                        <div id="inviteSearchResults" class="wa-invite-results" hidden></div>
+                    </div>` : ""}
                     <div class="wa-member-list">
                         ${group.members
                             .map((m) => {
@@ -1236,11 +1302,109 @@
                     }
                 </div>
             `;
+
+            // Wire up invite search (admin only)
+            if (isAdmin) setupInviteSearch(conv.id);
+
         } catch (err) {
             el.infoBody.innerHTML = emptyState(
                 "Information unavailable",
                 err.message,
             );
+        }
+    }
+
+    // ── Invite search in info panel ───────────────────────────────────────
+
+    function setupInviteSearch(conversationId) {
+        const input   = document.getElementById("inviteSearchInput");
+        const results = document.getElementById("inviteSearchResults");
+        if (!input || !results) return;
+
+        let debounceTimer;
+        let currentQuery = "";
+
+        input.addEventListener("input", function () {
+            const q = input.value.trim();
+            currentQuery = q;
+            clearTimeout(debounceTimer);
+
+            if (q.length < 2) {
+                results.hidden = true;
+                results.innerHTML = "";
+                return;
+            }
+
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const data = await api(`${config.routes.searchUsers}?q=${encodeURIComponent(q)}`);
+                    if (currentQuery !== q) return; // stale
+
+                    const users = data.users || [];
+                    if (!users.length) {
+                        results.hidden = false;
+                        results.innerHTML = `<div class="wa-invite-results__empty">No users found</div>`;
+                        return;
+                    }
+
+                    results.hidden = false;
+                    results.innerHTML = users.map(u => `
+                        <div class="wa-invite-result-item" data-user-id="${u.id}" data-user-name="${escAttr(u.name)}">
+                            <span class="wa-avatar wa-avatar--xs" aria-hidden="true">
+                                ${u.avatar
+                                    ? `<img src="${escAttr(u.avatar)}" alt="" loading="lazy">`
+                                    : `<span>${escAttr(u.initials || u.name[0])}</span>`}
+                            </span>
+                            <span class="wa-invite-result-info">
+                                <strong>${esc(u.name)}</strong>
+                                ${u.meta ? `<small>${esc(u.meta)}</small>` : ""}
+                            </span>
+                            <button class="wa-info-btn wa-info-btn--sm wa-invite-btn"
+                                data-action="invite-user"
+                                data-user-id="${u.id}"
+                                data-user-name="${escAttr(u.name)}">
+                                Invite
+                            </button>
+                        </div>`).join("");
+                } catch {
+                    // silent
+                }
+            }, 280);
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", function hideInviteResults(e) {
+            if (!e.target.closest(".wa-invite-search")) {
+                results.hidden = true;
+                results.innerHTML = "";
+                // Remove listener once panel is closed / search is gone
+                if (!document.getElementById("inviteSearchInput")) {
+                    document.removeEventListener("click", hideInviteResults);
+                }
+            }
+        });
+    }
+
+    async function inviteUser(userId, userName, conversationId) {
+        try {
+            await api(
+                route(config.routes.groupInfo, conversationId)
+                    .replace("/info", "/invite-user"),
+                {
+                    method: "POST",
+                    body: JSON.stringify({ user_id: userId }),
+                },
+            );
+            toast(`Invitation sent to ${userName}.`, "success");
+
+            // Clear search
+            const input   = document.getElementById("inviteSearchInput");
+            const results = document.getElementById("inviteSearchResults");
+            if (input)   input.value = "";
+            if (results) { results.hidden = true; results.innerHTML = ""; }
+
+        } catch (err) {
+            toast(err.message, "error");
         }
     }
 
@@ -1931,6 +2095,13 @@
                 break;
             case "regenerate-invite":
                 regenerateInvite();
+                break;
+            case "invite-user":
+                inviteUser(
+                    actionBtn.dataset.userId,
+                    actionBtn.dataset.userName,
+                    state.activeConversation?.id,
+                );
                 break;
         }
     });

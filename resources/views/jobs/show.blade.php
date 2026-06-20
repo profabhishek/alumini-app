@@ -368,6 +368,9 @@
     }, { passive: true });
 })();
 
+// Copy link
+document.getElementById('jdCopyLink')?.addEventListener('click', function () {
+    navigator.clipboard?.writeText(location.href).then(() => {
         const orig = this.innerHTML;
         this.textContent = 'Copied!';
         this.style.cssText += ';background:#e8640c;color:#fff;border-color:#e8640c';

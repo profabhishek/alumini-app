@@ -140,7 +140,7 @@
                         <td>
                             @if($app->resume)
                                 <div class="ap-resume-btns">
-                                    <a href="{{ asset('storage/' . $app->resume) }}"
+                                    <a href="{{ route('jobs.application.resume', $app) }}"
                                        target="_blank" rel="noopener noreferrer"
                                        class="ap-link-btn" title="View resume">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -149,8 +149,7 @@
                                         </svg>
                                         View
                                     </a>
-                                    <a href="{{ asset('storage/' . $app->resume) }}"
-                                       download
+                                    <a href="{{ route('jobs.application.resume', $app) }}?download=1"
                                        class="ap-link-btn" title="Download resume">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>

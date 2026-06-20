@@ -12,6 +12,7 @@ class ChatGroupJoinRequest extends Model
         'conversation_id',
         'alumni_id',
         'status',
+        'invited_by',
         'acted_by',
         'acted_at',
     ];
@@ -35,7 +36,13 @@ class ChatGroupJoinRequest extends Model
         return $this->belongsTo(AlumniUser::class, 'acted_by');
     }
 
-    public function isPending(): bool  { return $this->status === 'pending'; }
-    public function isAccepted(): bool { return $this->status === 'accepted'; }
-    public function isRejected(): bool { return $this->status === 'rejected'; }
+    public function invitedBy()
+    {
+        return $this->belongsTo(AlumniUser::class, 'invited_by');
+    }
+
+    public function isPending(): bool      { return $this->status === 'pending'; }
+    public function isAccepted(): bool     { return $this->status === 'accepted'; }
+    public function isRejected(): bool     { return $this->status === 'rejected'; }
+    public function isInvitation(): bool   { return !is_null($this->invited_by); }
 }

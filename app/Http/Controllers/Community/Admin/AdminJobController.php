@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Community\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BroadcastAnnouncementEmailsJob;
 use App\Models\Job;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use App\Services\NotificationHelper;
+use App\Services\EmailBroadcastService;
 
 class AdminJobController extends Controller
 {
@@ -79,7 +84,20 @@ class AdminJobController extends Controller
             return back()->with('error', $message);
         }
 
-        $job->update(['status' => 'published']);
+        $job->update(['status' => 'published', 'published_at' => now()]);
+        Cache::forget('pending_jobs_count');
+
+        if ($job->created_by && $job->created_by !== session('alumni_id')) {
+            NotificationHelper::fire(
+                recipientId: $job->created_by,
+                actorId:     session('alumni_id'),
+                type:        'job_approved',
+                preview:     $job->title,
+            );
+        }
+
+        // Dispatch background job — returns instantly; worker handles bulk email
+        BroadcastAnnouncementEmailsJob::dispatch('job', $job->id, $job->created_by ?? null);
 
         $message = '"' . $job->title . '" has been approved and published.';
 
@@ -113,7 +131,18 @@ class AdminJobController extends Controller
         $job->update([
             'status'           => 'rejected',
             'rejection_reason' => $request->reason,
+            'published_at'     => null,
         ]);
+        Cache::forget('pending_jobs_count');
+
+        if ($job->created_by && $job->created_by !== session('alumni_id')) {
+            NotificationHelper::fire(
+                recipientId: $job->created_by,
+                actorId:     session('alumni_id'),
+                type:        'job_rejected',
+                preview:     $job->title,
+            );
+        }
 
         $message = '"' . $job->title . '" has been rejected.';
 
@@ -188,9 +217,12 @@ class AdminJobController extends Controller
             'work_mode'            => 'required|in:Remote,On-site,Hybrid',
             'status'               => 'required|in:pending,published,rejected',
             'application_deadline' => 'nullable|date',
+            'banner_image'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        $job->update([
+        $wasAlreadyPublished = ($job->status === 'published');
+
+        $updates = [
             'title'                => $request->title,
             'company_name'         => $request->company_name,
             'location'             => $request->location,
@@ -198,12 +230,38 @@ class AdminJobController extends Controller
             'work_mode'            => $request->work_mode,
             'status'               => $request->status,
             'application_deadline' => $request->application_deadline ?? null,
-        ]);
+        ];
+
+        // Stamp published_at when transitioning to published
+        if ($request->status === 'published' && !$wasAlreadyPublished) {
+            $updates['published_at'] = now();
+        }
+
+        if ($request->hasFile('banner_image')) {
+            if ($job->banner_image) {
+                Storage::disk('public')->delete($job->banner_image);
+            }
+            $updates['banner_image'] = $request->file('banner_image')
+                ->store('jobs/banners', 'public');
+        }
+
+        $job->update($updates);
+
+        // Dispatch background job when newly published via edit form
+        if (!$wasAlreadyPublished && $job->fresh()->status === 'published') {
+            BroadcastAnnouncementEmailsJob::dispatch('job', $job->id, $job->created_by ?? null);
+        }
 
         $message = '"' . $job->title . '" updated successfully.';
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message]);
+            return response()->json([
+                'success'      => true,
+                'message'      => $message,
+                'banner_image' => $job->fresh()->banner_image
+                    ? asset('storage/' . $job->fresh()->banner_image)
+                    : null,
+            ]);
         }
 
         return back()->with('success', $message);

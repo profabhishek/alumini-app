@@ -40,14 +40,16 @@ class Event extends Model
 
         'banner_image',
 
-        'status'
+        'status',
+        'published_at',
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date'            => 'date',
+        'end_date'              => 'date',
         'registration_deadline' => 'date',
         'registration_required' => 'boolean',
+        'published_at'          => 'datetime',
     ];
 
     public function creator()

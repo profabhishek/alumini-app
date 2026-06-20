@@ -28,6 +28,11 @@
         </div>
     </div>
 
+    <div id="serverErrorBox" style="display:none;margin-bottom:1rem;padding:1rem 1.25rem;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;color:#991b1b;">
+        <strong>Please fix the following errors:</strong>
+        <ul id="serverErrorList" style="margin:.5rem 0 0 1.25rem;padding:0;"></ul>
+    </div>
+
     <form id="eventForm" action="{{ route('events.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
@@ -167,10 +172,7 @@
                                 <input type="date" id="registration_deadline" name="registration_deadline">
                             </div>
 
-                            {{-- <div class="form-group">
-                                <label for="ticket_price">Ticket Price</label>
-                                <input type="number" id="ticket_price" name="ticket_price" placeholder="0" min="0" step="0.01">
-                            </div> --}}
+                            {{-- Ticket price hidden: all events are free --}}
 
                             <div class="form-group">
                                 <label for="registration_required">Registration Required</label>
@@ -492,9 +494,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (deadline) {
-            const deadlineDateTime = parseDateTime(deadline, '23:59');
+            const deadlineDate = new Date(deadline + 'T00:00:00');
+            const startDateOnly = new Date(startDate + 'T00:00:00');
 
-            if (!isValidDateObject(deadlineDateTime)) {
+            if (!isValidDateObject(deadlineDate)) {
                 showError(
                     'Registration deadline is invalid.',
                     registrationDeadlineInput
@@ -502,9 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
 
-            if (deadlineDateTime >= startDateTime) {
+            if (deadlineDate > startDateOnly) {
                 showError(
-                    'Registration deadline must be before the event starts.',
+                    'Registration deadline must be on or before the event start date.',
                     registrationDeadlineInput
                 );
                 return false;
@@ -515,24 +518,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(
                 'Total seats must be greater than zero.',
                 totalSeatsInput
-            );
-            return false;
-        }
-
-        if (eventType === 'Paid') {
-            if (!ticketPrice || Number(ticketPrice) <= 0) {
-                showError(
-                    'Please enter a valid ticket price for paid events.',
-                    ticketPriceInput
-                );
-                return false;
-            }
-        }
-
-        if (eventType === 'Free' && ticketPrice && Number(ticketPrice) > 0) {
-            showError(
-                'Free events cannot have a ticket price.',
-                ticketPriceInput
             );
             return false;
         }
@@ -643,11 +628,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     eventTypeInput?.addEventListener('change', () => {
         clearError(eventTypeInput);
-
-        if (eventTypeInput.value === 'Free') {
-            ticketPriceInput.value = '';
-            clearError(ticketPriceInput);
-        }
     });
 
     totalSeatsInput?.addEventListener('input', () => {
@@ -657,15 +637,15 @@ document.addEventListener('DOMContentLoaded', () => {
     registrationDeadlineInput?.addEventListener('change', () => {
         clearError(registrationDeadlineInput);
 
-        if (
-            startDateInput?.value &&
-            registrationDeadlineInput.value &&
-            registrationDeadlineInput.value >= startDateInput.value
-        ) {
-            showError(
-                'Registration deadline must be before the event starts.',
-                registrationDeadlineInput
-            );
+        if (startDateInput?.value && registrationDeadlineInput.value) {
+            const dl = new Date(registrationDeadlineInput.value + 'T00:00:00');
+            const sd = new Date(startDateInput.value + 'T00:00:00');
+            if (dl > sd) {
+                showError(
+                    'Registration deadline must be on or before the event start date.',
+                    registrationDeadlineInput
+                );
+            }
         }
     });
 
@@ -705,13 +685,79 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePreviewTime();
 
     /* ==========================
-       Submit Validation
+       Submit — AJAX (keep form data on error)
     ========================== */
 
-    form.addEventListener('submit', function (e) {
-        if (!validateForm()) {
-            e.preventDefault();
-            return;
+    const submitBtn   = document.querySelector('[form="eventForm"]');
+    const errorBox    = document.getElementById('serverErrorBox');
+    const errorList   = document.getElementById('serverErrorList');
+
+    function showServerErrors(errors) {
+        errorList.innerHTML = '';
+        // errors is either an object {field:[msgs]} or an array of strings
+        const msgs = Array.isArray(errors)
+            ? errors
+            : Object.values(errors).flat();
+        msgs.forEach(msg => {
+            const li = document.createElement('li');
+            li.textContent = msg;
+            errorList.appendChild(li);
+        });
+        errorBox.style.display = '';
+        errorBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function hideServerErrors() {
+        errorBox.style.display = 'none';
+        errorList.innerHTML = '';
+    }
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideServerErrors();
+
+        if (!validateForm()) return;
+
+        const formData = new FormData(form);
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving…';
+        }
+
+        try {
+            const res = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        || '{{ csrf_token() }}',
+                },
+                body: formData,
+            });
+
+            if (res.ok || res.status === 201) {
+                // Success — redirect to my events
+                const data = await res.json().catch(() => ({}));
+                window.location.href = data.redirect || '{{ route('events.my') }}';
+                return;
+            }
+
+            if (res.status === 422) {
+                const data = await res.json();
+                showServerErrors(data.errors || data.message || 'Validation failed.');
+                return;
+            }
+
+            // Other server error
+            showServerErrors(['An unexpected error occurred. Please try again.']);
+        } catch (err) {
+            showServerErrors(['Network error. Please check your connection and try again.']);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Publish Event';
+            }
         }
     });
 });

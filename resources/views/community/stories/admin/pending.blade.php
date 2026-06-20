@@ -107,6 +107,7 @@
                             <button type="button" class="st-btn st-btn--approve" style="font-size:12.5px;padding:6px 12px;"
                                     data-action="approve"
                                     data-story-id="{{ $story->id }}"
+                                    data-story-title="{{ $story->title }}"
                                     data-approve-url="{{ route('admin.stories.approve', $story->id) }}">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                                 Approve
@@ -164,6 +165,36 @@
         </div>
         <div class="st-modal__footer">
             <button type="button" class="st-btn st-btn--outline" id="closePreviewFooter">Close</button>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================
+     APPROVE CONFIRM MODAL
+============================================================ --}}
+<div id="approveModal" class="st-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="approveModalTitle" hidden>
+    <div class="st-modal st-modal--sm" role="document">
+        <div class="st-modal__header">
+            <h2 id="approveModalTitle" class="st-modal__title">Approve Story</h2>
+            <button type="button" class="st-modal__close" id="closeApproveModal" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="st-modal__body" style="text-align:center;padding:28px 24px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:#f0fdf4;border:1.5px solid #bbf7d0;color:#16a34a;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p style="font-size:14px;color:var(--st-gray-600);line-height:1.6;margin:0;">
+                Approve <strong id="approveStoryTitle"></strong>?<br>
+                It will be <strong>published</strong> and visible to all alumni.
+            </p>
+        </div>
+        <div class="st-modal__footer">
+            <button type="button" class="st-btn st-btn--outline" id="cancelApproveBtn">Cancel</button>
+            <button type="button" class="st-btn st-btn--approve" id="confirmApproveBtn" style="padding:8px 20px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Yes, Approve
+            </button>
         </div>
     </div>
 </div>
@@ -249,25 +280,37 @@
     $('closePreviewModal').addEventListener('click',  () => closeModal(previewModal));
     $('closePreviewFooter').addEventListener('click', () => closeModal(previewModal));
 
-    // ── APPROVE ───────────────────────────────────────────────────────────
+    // ── APPROVE (via confirm modal) ───────────────────────────────────────
+    const approveModal = $('approveModal');
+    let pa = {};
+
     document.querySelectorAll('[data-action="approve"]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id  = btn.dataset.storyId;
-            const url = btn.dataset.approveUrl;
-            btn.disabled = true;
-            btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:st-spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
-
-            try {
-                const res  = await fetch(url, { method:'PATCH', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Content-Type':'application/json'} });
-                const data = await res.json();
-                if (!res.ok) { showToast(data.error ?? 'Could not approve.', 'error'); btn.disabled=false; btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approve`; return; }
-
-                // Remove row
-                const row = document.querySelector(`[data-story-row="${id}"]`);
-                if (row) { row.style.transition='opacity .3s'; row.style.opacity='0'; setTimeout(()=>row.remove(),300); }
-                showToast('Story approved and published!', 'success');
-            } catch { showToast('Network error.', 'error'); btn.disabled=false; }
+        btn.addEventListener('click', () => {
+            pa = { id: btn.dataset.storyId, url: btn.dataset.approveUrl };
+            $('approveStoryTitle').textContent = btn.dataset.storyTitle;
+            openModal(approveModal);
         });
+    });
+
+    $('closeApproveModal').addEventListener('click', () => closeModal(approveModal));
+    $('cancelApproveBtn').addEventListener('click',  () => closeModal(approveModal));
+
+    $('confirmApproveBtn').addEventListener('click', async () => {
+        const btn = $('confirmApproveBtn'), orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:st-spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Approving…`;
+        try {
+            const res  = await fetch(pa.url, { method:'PATCH', headers:{'Accept':'application/json','X-CSRF-TOKEN':CSRF,'Content-Type':'application/json'} });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.error ?? 'Could not approve.', 'error'); }
+            else {
+                closeModal(approveModal);
+                const row = document.querySelector(`[data-story-row="${pa.id}"]`);
+                if (row) { row.style.transition='opacity .3s,transform .3s'; row.style.opacity='0'; row.style.transform='translateX(20px)'; setTimeout(()=>row.remove(),320); }
+                showToast('Story approved and published! ✓', 'success');
+            }
+        } catch { showToast('Network error.', 'error'); }
+        finally { btn.disabled=false; btn.innerHTML=orig; }
     });
 
     // ── REJECT ────────────────────────────────────────────────────────────

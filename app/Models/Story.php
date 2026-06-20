@@ -20,6 +20,11 @@ class Story extends Model
         'cover_image',
         'status',
         'rejection_reason',
+        'published_at',
+    ];
+
+    protected $casts = [
+        'published_at' => 'datetime',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────

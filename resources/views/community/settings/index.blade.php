@@ -175,44 +175,6 @@
                 </div>
             </div>
 
-            <div class="settings-form-section">
-                <h2 class="settings-section-title">Profile Visibility</h2>
-                <p class="settings-section-desc">Control who can find and view your alumni profile.</p>
-
-                <div class="visibility-options">
-
-                    <label class="visibility-option {{ $user->profile_visibility === 'public' || !$user->profile_visibility ? 'active' : '' }}">
-                        <input type="radio" name="profile_visibility" value="public"
-                               {{ $user->profile_visibility === 'public' || !$user->profile_visibility ? 'checked' : '' }} hidden>
-                        <div class="visibility-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                        </div>
-                        <div class="visibility-text">
-                            <span class="visibility-title">Public</span>
-                            <span class="visibility-desc">Anyone can view your profile, including non-members.</span>
-                        </div>
-                        <div class="visibility-check">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,12 4,10"/></svg>
-                        </div>
-                    </label>
-
-                    <label class="visibility-option {{ $user->profile_visibility === 'alumni-only' ? 'active' : '' }}">
-                        <input type="radio" name="profile_visibility" value="alumni-only"
-                               {{ $user->profile_visibility === 'alumni-only' ? 'checked' : '' }} hidden>
-                        <div class="visibility-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                        </div>
-                        <div class="visibility-text">
-                            <span class="visibility-title">Alumni Only</span>
-                            <span class="visibility-desc">Only verified alumni members can view your profile.</span>
-                        </div>
-                        <div class="visibility-check">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,12 4,10"/></svg>
-                        </div>
-                    </label>
-
-                </div>
-            </div>
 
             <div class="settings-form-actions">
                 <button type="submit" class="btn-save">

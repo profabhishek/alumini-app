@@ -6,12 +6,25 @@
         ? \App\Models\AlumniUser::find($alumniId)
         : null;
 
-    // ── Personal unread notification count ───────────────────────────────
+    // ── Personal unread notification count (social + new content) ──────────
     $personalUnreadCount = 0;
     if ($alumniId) {
+        // Social unread
         $personalUnreadCount = \App\Models\AlumniNotification::where('recipient_id', $alumniId)
             ->where('is_read', false)
             ->count();
+
+        // Content unread: count items published after bell was last opened
+        $bellLastOpened = $currentAlumniUser?->notifications_read_at
+            ?? \Carbon\Carbon::now()->subDays(7); // default: last 7 days
+
+        $newContent = 0;
+        $newContent += \App\Models\Job::where('status','published')->where('published_at','>',$bellLastOpened)->count();
+        $newContent += \App\Models\Event::where('status','published')->where('published_at','>',$bellLastOpened)->count();
+        $newContent += \App\Models\Story::where('status','published')->where('published_at','>',$bellLastOpened)->count();
+        $newContent += \App\Models\Notice::where('status','published')->where('published_at','>',$bellLastOpened)->count();
+        $newContent += \App\Models\News::where('status','published')->where('published_at','>',$bellLastOpened)->count();
+        $personalUnreadCount += $newContent;
     }
 
     // ── Job sidebar badges ───────────────────────────────────────────────
@@ -258,44 +271,10 @@
                         <div class="notif-dropdown__header">
                             Recent Activity
                         </div>
-
-                            <div class="notif-dropdown__body">
-                                <div id="personalNotifList"></div>
-
-                                @if($notificationItems->isNotEmpty())
-                                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;padding:8px 16px 4px;border-top:1px solid #f3f4f6;margin-top:4px;">Recent Content</div>
-                                @endif
-
-                                @forelse($notificationItems as $item)
-                                <a href="{{ $item['url'] }}" class="notif-item" data-content-id="{{ $item['id'] }}">
-                                    <span class="notif-item__icon notif-item__icon--{{ $item['type'] }}">
-                                        @switch($item['type'])
-                                            @case('news')
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2Z"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg>
-                                                @break
-                                            @case('notice')
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-                                                @break
-                                            @case('story')
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-                                                @break
-                                            @case('event')
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                            @break
-                                            @case('job')
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-                                                @break
-                                        @endswitch
-                                    </span>
-                                    <span class="notif-item__body">
-                                        <span class="notif-item__label">{{ ucfirst($item['type']) }}</span>
-                                        <span class="notif-item__title">{{ $item['title'] }}</span>
-                                        <span class="notif-item__time">{{ $item['date']->diffForHumans() }}</span>
-                                    </span>
-                                </a>
-                            @empty
-                                <div class="notif-empty">Nothing new right now.</div>
-                            @endforelse
+                        <div class="notif-dropdown__body">
+                            <div id="personalNotifList">
+                                <div class="notif-empty" style="padding:20px 16px;font-size:13px;color:#9ca3af;text-align:center;">Loading…</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -894,7 +873,7 @@
        @if(session('alumni_id'))
         <script>
         (function () {
-            const URL_SIDEBAR = '{{ route('notifications.sidebar-badges') }}';
+            const URL_SIDEBAR = "{{ route('notifications.sidebar-badges') }}";
             const POLL_MS     = 10000;
 
             function setSidebarBadge(id, count) {
@@ -952,9 +931,9 @@
                 fetch(URL_GROUP_COUNTS, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
                     .then(r => r.ok ? r.json() : Promise.reject())
                     .then(d => {
-                        const counts  = d.counts || {};
-                        const pending = d.pending_invitations || 0;
-                        const total   = Object.values(counts).reduce((a, b) => a + b, 0) + pending;
+                        // d.total = new active posts + pending posts/edits (admin) + join-event notifs
+                        // d.pending_invitations = invitations TO the logged-in user
+                        const total = (d.total || 0) + (d.pending_invitations || 0);
                         setSidebarBadge('sb-badge-groups', total);
                     })
                     .catch(() => {});
@@ -974,7 +953,7 @@
 
             @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
             // ── Admin panel badges (Pending Requests + Newsletter) ──────────
-            const URL_ADMIN_BADGES = '{{ route('admin.badge-counts') }}';
+            const URL_ADMIN_BADGES = "{{ route('admin.badge-counts') }}";
             const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
             const pendingUsersLink   = document.querySelector('a[href="{{ route('admin.users.pending') }}"]');
@@ -1093,7 +1072,7 @@
                 const input = document.getElementById('commSearchInput');
                 if (!wrap || !input) return;
             
-                const SEARCH_URL = '{{ route('search') }}';
+                const SEARCH_URL = "{{ route('search') }}";
             
                 let dropdown   = null;
                 let debounceId = null;
@@ -1250,224 +1229,129 @@
         <script>
         (function () {
             const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-            const URL_PERSONAL = '{{ route('notifications.personal') }}';
-            const URL_MARK_ONE = '/notifications/{id}/mark-read';
-            const POLL_MS      = 10000; // poll every 10s
+            const URL_FEED     = "{{ route('notifications.feed') }}";
+            const URL_MARK_ALL = "{{ route('notifications.personal.mark-read') }}";
+            const URL_COUNT    = "{{ route('notifications.personal') }}";
+            const POLL_MS      = 10000;
 
             const menu      = document.getElementById('notifMenuToggle');
             const list      = document.getElementById('personalNotifList');
             const toggleBtn = menu?.querySelector('.comm-icon-btn');
             if (!menu || !list || !toggleBtn) return;
 
-            let knownIds    = new Set(); // IDs currently rendered
-            let pollTimer   = null;
-            let isOpen      = false;
+            let pollTimer = null;
 
-            // ── Badge ─────────────────────────────────────────────────────────
-            function setBadgeCount(count) {
-                let badge = toggleBtn.querySelector('.badge');
-                if (count > 0) {
-                    if (!badge) {
-                        badge = document.createElement('span');
-                        badge.className = 'badge';
-                        toggleBtn.appendChild(badge);
-                    }
-                    badge.textContent = count > 9 ? '9+' : count;
-                } else {
-                    badge?.remove();
-                }
+            /* Badge */
+            function setBadge(n) {
+                let b = toggleBtn.querySelector('.badge');
+                if (n > 0) {
+                    if (!b) { b = document.createElement('span'); b.className = 'badge'; toggleBtn.appendChild(b); }
+                    b.textContent = n > 9 ? '9+' : n;
+                } else { b && b.remove(); }
             }
 
-            // ── Build one notification element ────────────────────────────────
-            function buildItem(n) {
-                const avatarHtml = n.avatar
-                    ? `<img src="${n.avatar}" alt="${n.actor}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-                    : `<span style="font-size:11px;font-weight:700;color:#e8640c;">${n.initials}</span>`;
-
-                // Use server-generated message (already formatted with actor names + count)
-                const label = n.message || `<strong>${n.actor}</strong> interacted with your content`;
-
-                const el = document.createElement('a');
-                el.href = n.url || n.post_url || '#';
-                el.className = 'notif-item' + (n.is_read ? '' : ' notif-item--unread');
-                el.dataset.notifId = n.id;
-                el.dataset.url     = n.url || n.post_url || '#';
-                el.innerHTML = `
-                    <span class="notif-item__icon" style="background:rgba(232,100,12,.1);color:#e8640c;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                        ${avatarHtml}
-                    </span>
-                    <span class="notif-item__body">
-                        <span class="notif-item__title">${label}</span>
-                        ${n.preview ? `<span class="notif-item__label" style="color:#6b7280;font-size:12px;">"${n.preview}"</span>` : ''}
-                        <span class="notif-item__time">${n.time}</span>
-                    </span>`;
-
-                el.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const id      = this.dataset.notifId;
-                    const destUrl = this.dataset.url;
-
-                    // Remove from DOM with animation
-                    this.classList.add('notif-item--removing');
-                    setTimeout(() => {
-                        this.remove();
-                        if (!list.querySelector('.notif-item')) {
-                            list.innerHTML = '<div class="notif-empty" style="padding:12px 16px;font-size:13px;color:#9ca3af;">No notifications.</div>';
-                        }
-                    }, 300);
-
-                    // Mark read on server
-                    fetch(URL_MARK_ONE.replace('{id}', id), {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-                        credentials: 'same-origin',
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.ok) setBadgeCount(data.unread_count ?? 0);
-                    })
+            function fetchCount() {
+                fetch(URL_COUNT, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(d => setBadge(d.unread_count ?? 0))
                     .catch(() => {});
+            }
 
-                    knownIds.delete(id);
+            function markAllRead() {
+                setBadge(0);
+                fetch(URL_MARK_ALL, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }, credentials: 'same-origin' }).catch(() => {});
+            }
 
-                    // Navigate after animation
-                    setTimeout(() => { window.location.href = destUrl; }, 320);
-                });
+            /* Icons & colours for content types */
+            const ICONS = {
+                job:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
+                event:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+                story:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+                notice: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
+                news:   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2Z"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg>',
+            };
+            const COLORS = { job:'#16a34a', event:'#7c3aed', story:'#2563eb', notice:'#d97706', news:'#0891b2' };
+            const BG     = { job:'rgba(22,163,74,.1)', event:'rgba(124,58,237,.1)', story:'rgba(37,99,235,.1)', notice:'rgba(217,119,6,.1)', news:'rgba(8,145,178,.1)' };
 
+            /* Build a content item (job/event/story/notice/news) */
+            function buildContentItem(item) {
+                var color = COLORS[item.type] || '#6b7280';
+                var bg    = BG[item.type]     || 'rgba(107,114,128,.1)';
+                var icon  = ICONS[item.type]  || '';
+                var label = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+                var el = document.createElement('a');
+                el.href = item.url || '#';
+                el.className = 'notif-item';
+                el.innerHTML =
+                    '<span class="notif-item__icon" style="background:' + bg + ';color:' + color + ';border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + icon + '</span>' +
+                    '<span class="notif-item__body">' +
+                        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:' + color + ';display:block;">' + label + '</span>' +
+                        '<span style="display:block;font-size:13px;font-weight:600;color:#1c2331;line-height:1.35;margin-top:1px;">' + item.title + '</span>' +
+                        '<span style="font-size:11px;color:#9ca3af;margin-top:2px;display:block;">' + item.time + '</span>' +
+                    '</span>';
                 return el;
             }
 
-            // ── Render / diff-update the list ─────────────────────────────────
-            // Only adds new items at the top; never re-renders existing ones
-            // so user interactions (hover, scroll) aren't disrupted.
-            function applyNotifications(notifications, unreadCount) {
-                setBadgeCount(unreadCount);
+            /* Build a social notification item (likes, comments, replies) */
+            function buildSocialItem(item) {
+                var initial = ((item.initials || '?').charAt(0)).toUpperCase();
+                var hue = (initial.charCodeAt(0) * 47) % 360;
+                var iconStyle = item.avatar ? 'background:#f3f4f6;' : ('background:hsl(' + hue + ',60%,88%);');
+                var avatarHtml = item.avatar
+                    ? '<img src="' + item.avatar + '" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:50%;display:block;">'
+                    : '<span style="font-size:13px;font-weight:700;color:hsl(' + hue + ',55%,35%);">' + initial + '</span>';
+                var el = document.createElement('a');
+                el.href = item.url || '#';
+                el.className = 'notif-item' + (item.is_read ? '' : ' notif-item--unread');
+                var preview = item.preview ? '<span style="font-size:12px;color:#6b7280;display:block;margin-top:1px;">“' + item.preview + '”</span>' : '';
+                el.innerHTML =
+                    '<span class="notif-item__icon" style="' + iconStyle + 'border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">' + avatarHtml + '</span>' +
+                    '<span class="notif-item__body">' +
+                        '<span style="display:block;font-size:13px;font-weight:500;color:#1c2331;line-height:1.35;">' + item.title + '</span>' +
+                        preview +
+                        '<span style="font-size:11px;color:#9ca3af;margin-top:2px;display:block;">' + item.time + '</span>' +
+                    '</span>';
+                return el;
+            }
 
-                if (!notifications.length) {
-                    if (!knownIds.size) {
-                        list.innerHTML = '<div class="notif-empty" style="padding:12px 16px;font-size:13px;color:#9ca3af;">No notifications.</div>';
-                    }
+            function renderFeed(items) {
+                list.innerHTML = '';
+                if (!items || !items.length) {
+                    list.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:#9ca3af;text-align:center;">Nothing new right now.</div>';
                     return;
                 }
-
-                // Remove empty-state placeholder if present
-                const empty = list.querySelector('.notif-empty');
-                if (empty) empty.remove();
-
-                // Prepend genuinely new items (not yet in DOM)
-                const incoming = [...notifications].reverse(); // oldest first so prepend order is correct
-                for (const n of incoming) {
-                    const sid = String(n.id);
-                    if (!knownIds.has(sid)) {
-                        knownIds.add(sid);
-                        const el = buildItem(n);
-                        // Animate in
-                        el.style.opacity  = '0';
-                        el.style.maxHeight = '0';
-                        list.prepend(el);
-                        // Trigger reflow then animate
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                el.style.opacity   = '';
-                                el.style.maxHeight = '';
-                            });
-                        });
-                    }
-                }
-
-                // Remove items from DOM that are no longer in server response
-                // (e.g. deleted by admin) — but only if they weren't already removed by click
-                const serverIds = new Set(notifications.map(n => String(n.id)));
-                list.querySelectorAll('.notif-item[data-notif-id]').forEach(el => {
-                    const sid = el.dataset.notifId;
-                    if (!serverIds.has(sid)) {
-                        knownIds.delete(sid);
-                        el.classList.add('notif-item--removing');
-                        setTimeout(() => el.remove(), 300);
-                    }
+                items.forEach(function(item) {
+                    list.appendChild(item.kind === 'social' ? buildSocialItem(item) : buildContentItem(item));
                 });
             }
 
-            // ── Fetch from server ─────────────────────────────────────────────
-            function fetchNotifications() {
-                fetch(URL_PERSONAL, {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                })
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(data => applyNotifications(data.notifications ?? [], data.unread_count ?? 0))
-                .catch(() => {});
+            function fetchFeed() {
+                fetch(URL_FEED, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+                    .then(function(d) { renderFeed(d.items || []); })
+                    .catch(function() {});
             }
 
-            // ── Polling ───────────────────────────────────────────────────────
-            function startPolling() {
-                if (pollTimer) return;
-                pollTimer = setInterval(fetchNotifications, POLL_MS);
-            }
-
-            function stopPolling() {
-                clearInterval(pollTimer);
-                pollTimer = null;
-            }
-
-            // Poll when tab is visible, pause when hidden
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    stopPolling();
-                } else {
-                    fetchNotifications(); // immediate refresh on tab focus
-                    startPolling();
-                }
-            });
-
-            const URL_MARK_ALL = '{{ route('notifications.personal.mark-read') }}';
-
-            function markAllRead() {
-                // Zero badge immediately in UI
-                setBadgeCount(0);
-                // Mark all read on server
-                fetch(URL_MARK_ALL, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            function markAllRead() {
-                // Zero badge immediately in UI
-                setBadgeCount(0);
-                // Mark all read on server
-                fetch(URL_MARK_ALL, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                }).catch(() => {});
-                // Remove unread styling from all visible items
-                list.querySelectorAll('.notif-item--unread').forEach(el => {
-                    el.classList.remove('notif-item--unread');
-                });
-            }
-
-            // ── Open / close ──────────────────────────────────────────────────
-            toggleBtn.addEventListener('click', function (e) {
+            /* Open / close */
+            toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                isOpen = !menu.classList.contains('open');
+                var opening = !menu.classList.contains('open');
                 menu.classList.toggle('open');
-                if (isOpen) {
-                    fetchNotifications();
-                    markAllRead(); // zero badge as soon as bell is opened
-                }
+                if (opening) { fetchFeed(); markAllRead(); }
             });
+            document.addEventListener('click', function(e) { if (!menu.contains(e.target)) menu.classList.remove('open'); });
+            document.addEventListener('keydown', function(e) { if (e.key === 'Escape') menu.classList.remove('open'); });
 
-            document.addEventListener('click', function (e) {
-                if (!menu.contains(e.target)) menu.classList.remove('open');
+            /* Badge polling */
+            fetchCount();
+            pollTimer = setInterval(fetchCount, POLL_MS);
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) { clearInterval(pollTimer); pollTimer = null; }
+                else { fetchCount(); if (!pollTimer) pollTimer = setInterval(fetchCount, POLL_MS); }
             });
-
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') menu.classList.remove('open');
-            });
-
-            // ── Boot ──────────────────────────────────────────────────────────
-            fetchNotifications(); // load badge count on page load
-            startPolling();       // start background polling
         })();
         </script>
+
         @endif
 </body>
 </html>

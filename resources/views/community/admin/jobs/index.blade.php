@@ -156,6 +156,7 @@
                                 data-job-mode="{{ $job->work_mode }}"
                                 data-job-status="{{ $job->status }}"
                                 data-job-deadline="{{ optional($job->application_deadline)->format('Y-m-d') }}"
+                                data-job-banner="{{ $job->banner_image ? asset('storage/'.$job->banner_image) : '' }}"
                                 data-update-url="{{ route('admin.jobs.update', $job->id) }}"
                                 aria-label="Edit {{ $job->title }}">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -254,6 +255,23 @@
                         <label class="me-label" for="ajDeadline">Application Deadline</label>
                         <input type="date" id="ajDeadline" name="application_deadline" class="me-input">
                     </div>
+                </div>
+
+                <div class="me-form-group">
+                    <label class="me-label">Company / Banner Image</label>
+                    <div id="ajBannerPreviewWrap" style="display:none;margin-bottom:8px;position:relative;">
+                        <img id="ajBannerPreviewImg" src="" alt="" style="width:100%;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;">
+                        <button type="button" id="ajBannerRemoveBtn"
+                            style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <label id="ajBannerUploadLabel" for="ajBannerImage"
+                        style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px dashed #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;color:#6b7280;transition:border-color .15s;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Click to upload image (JPEG, PNG, WebP — max 4 MB)
+                    </label>
+                    <input type="file" id="ajBannerImage" accept="image/jpeg,image/png,image/jpg,image/webp" style="display:none;">
                 </div>
 
             </form>
@@ -391,6 +409,35 @@
     // ── EDIT ──────────────────────────────────────────────────────────
     const editModal = $('ajEditModal');
 
+    // ── Banner image preview in edit modal ───────────────────────────
+    const ajBannerInput       = $('ajBannerImage');
+    const ajBannerPreviewWrap = $('ajBannerPreviewWrap');
+    const ajBannerPreviewImg  = $('ajBannerPreviewImg');
+    const ajBannerUploadLabel = $('ajBannerUploadLabel');
+    const ajBannerRemoveBtn   = $('ajBannerRemoveBtn');
+
+    function ajShowBannerPreview(src) {
+        ajBannerPreviewImg.src = src;
+        ajBannerPreviewWrap.style.display = 'block';
+        ajBannerUploadLabel.style.display = 'none';
+    }
+    function ajResetBannerUI() {
+        ajBannerInput.value = '';
+        ajBannerPreviewImg.src = '';
+        ajBannerPreviewWrap.style.display = 'none';
+        ajBannerUploadLabel.style.display = 'flex';
+    }
+
+    ajBannerInput.addEventListener('change', () => {
+        const file = ajBannerInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => ajShowBannerPreview(e.target.result);
+        reader.readAsDataURL(file);
+    });
+
+    ajBannerRemoveBtn.addEventListener('click', () => ajResetBannerUI());
+
     document.querySelectorAll('.ae-btn-edit').forEach(btn => {
         btn.addEventListener('click', () => {
             $('ajEditJobId').value  = btn.dataset.jobId;
@@ -403,6 +450,14 @@
             setSelect('ajJobType',  btn.dataset.jobType);
             setSelect('ajWorkMode', btn.dataset.jobMode);
             setSelect('ajStatus',   btn.dataset.jobStatus);
+
+            // Reset banner image UI; show existing if any
+            const existingBanner = btn.dataset.jobBanner ?? '';
+            if (existingBanner) {
+                ajShowBannerPreview(existingBanner);
+            } else {
+                ajResetBannerUI();
+            }
 
             // Reset errors
             hide($('ajEditError'));
@@ -450,23 +505,26 @@
         saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:me-spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Saving…`;
 
         try {
+            const fd = new FormData();
+            fd.append('_method',              'PUT');
+            fd.append('title',                $('ajTitle').value.trim());
+            fd.append('company_name',         $('ajCompany').value.trim());
+            fd.append('location',             $('ajLocation').value.trim());
+            fd.append('job_type',             $('ajJobType').value);
+            fd.append('work_mode',            $('ajWorkMode').value);
+            fd.append('status',               $('ajStatus').value);
+            fd.append('application_deadline', $('ajDeadline').value);
+            if (ajBannerInput.files[0]) {
+                fd.append('banner_image', ajBannerInput.files[0]);
+            }
+
             const res = await fetch($('ajUpdateUrl').value, {
                 method: 'POST',
                 headers: {
                     'Accept'       : 'application/json',
                     'X-CSRF-TOKEN' : CSRF,
-                    'Content-Type' : 'application/json',
                 },
-                body: JSON.stringify({
-                    _method              : 'PUT',
-                    title                : $('ajTitle').value.trim(),
-                    company_name         : $('ajCompany').value.trim(),
-                    location             : $('ajLocation').value.trim() || null,
-                    job_type             : $('ajJobType').value,
-                    work_mode            : $('ajWorkMode').value,
-                    status               : $('ajStatus').value,
-                    application_deadline : $('ajDeadline').value || null,
-                }),
+                body: fd,
             });
 
             const data = await res.json();

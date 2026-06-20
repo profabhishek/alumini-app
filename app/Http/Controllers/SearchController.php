@@ -9,7 +9,6 @@ use App\Models\News;
 use App\Models\Notice;
 use App\Models\Story;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route as RouteFacade;
 
 class SearchController extends Controller
 {
@@ -43,14 +42,7 @@ class SearchController extends Controller
                 'sub'      => $alum->department,
                 'photo'    => $alum->photo ? asset('storage/' . $alum->photo) : null,
                 'initials' => $alum->initials,
-                // TODO: confirm the real alumni profile route name and
-                // replace this fallback (currently links to the directory
-                // if a dedicated profile route can't be found).
-                'url' => RouteFacade::has('members.show')
-                    ? route('members.show', $alum->id)
-                    : (RouteFacade::has('alumni.profile')
-                        ? route('alumni.profile', $alum->id)
-                        : route('alumni.directory')),
+                'url'      => route('alumni.profile', $alum->id),
             ];
         }
 

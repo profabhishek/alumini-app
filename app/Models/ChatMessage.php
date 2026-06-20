@@ -22,6 +22,7 @@ class ChatMessage extends Model
         'file_size',
         'reply_to_id',
         'delivered_at',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -130,6 +131,8 @@ class ChatMessage extends Model
             'type'            => $this->type,
             'body'            => $this->isDeleted() ? null : $this->body,
             'deleted'         => $this->isDeleted(),
+            'deleted_by_admin'=> $this->isDeleted() && $this->deleted_by !== null
+                                && (int) $this->deleted_by !== (int) $this->sender_id,
             'file_url'        => $this->fileUrl(),
             'file_name'       => $this->file_name,
             'file_mime'       => $this->file_mime,

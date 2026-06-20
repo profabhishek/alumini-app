@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Community\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BroadcastAnnouncementEmailsJob;
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use App\Models\AlumniUser;
-
+use App\Services\NotificationHelper;
+use App\Services\EmailBroadcastService;
 
 class AdminEventController extends Controller
 {
@@ -99,8 +103,23 @@ class AdminEventController extends Controller
         }
 
         $event->update([
-            'status' => 'published',
+            'status'       => 'published',
+            'published_at' => now(),
         ]);
+        Cache::forget('pending_events_count');
+
+        // Notify the event creator
+        if ($event->created_by && $event->created_by !== session('alumni_id')) {
+            NotificationHelper::fire(
+                recipientId: $event->created_by,
+                actorId:     session('alumni_id'),
+                type:        'event_approved',
+                preview:     $event->title,
+            );
+        }
+
+        // Dispatch background job — returns instantly; worker handles bulk email
+        BroadcastAnnouncementEmailsJob::dispatch('event', $event->id, $event->created_by ?? null);
 
         $message = '"' . $event->title . '" has been approved and published.';
 
@@ -142,9 +161,21 @@ class AdminEventController extends Controller
         ]);
 
         $event->update([
-            'status' => 'rejected',
+            'status'           => 'rejected',
             'rejection_reason' => $request->reason,
+            'published_at'     => null,
         ]);
+        Cache::forget('pending_events_count');
+
+        // Notify the event creator
+        if ($event->created_by && $event->created_by !== session('alumni_id')) {
+            NotificationHelper::fire(
+                recipientId: $event->created_by,
+                actorId:     session('alumni_id'),
+                type:        'event_rejected',
+                preview:     $event->title,
+            );
+        }
 
         $message = '"' . $event->title . '" has been rejected.';
 
@@ -201,20 +232,50 @@ class AdminEventController extends Controller
     public function update(Request $request, Event $event)
     {
         $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'status'      => 'required|in:pending,active,published,completed,cancelled',
-            'start_date'  => 'required|date',
-            'end_date'    => 'nullable|date|after_or_equal:start_date',
-            'location'    => 'nullable|string|max:255',
-            'event_mode'  => 'required|in:In-Person,Online,Hybrid',
-            'total_seats' => 'nullable|integer|min:1',
+            'title'        => 'required|string|max:255',
+            'status'       => 'required|in:pending,active,published,completed,cancelled',
+            'start_date'   => 'required|date',
+            'end_date'     => 'nullable|date|after_or_equal:start_date',
+            'location'     => 'nullable|string|max:255',
+            'event_mode'   => 'required|in:In-Person,Online,Hybrid',
+            'total_seats'  => 'nullable|integer|min:1',
+            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
+
+        // Track whether this update is a first-time publish (for broadcast)
+        $wasAlreadyPublished = ($event->status === 'published');
+
+        // Track published_at so re-publishing bumps feed position
+        if ($validated['status'] === 'published' && $event->status !== 'published') {
+            $validated['published_at'] = now();
+        } elseif (in_array($validated['status'], ['cancelled', 'pending', 'rejected'])) {
+            $validated['published_at'] = null;
+        }
+
+        // Handle banner image upload
+        if ($request->hasFile('banner_image')) {
+            if ($event->banner_image) {
+                Storage::disk('public')->delete($event->banner_image);
+            }
+            $validated['banner_image'] = $request->file('banner_image')
+                ->store('events/banners', 'public');
+        } else {
+            unset($validated['banner_image']);
+        }
 
         $event->update($validated);
 
+        // Dispatch background job when newly published via the edit form
+        if (!$wasAlreadyPublished && $event->fresh()->status === 'published') {
+            BroadcastAnnouncementEmailsJob::dispatch('event', $event->id, $event->created_by ?? null);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => 'Event updated successfully.',
+            'success'      => true,
+            'message'      => 'Event updated successfully.',
+            'banner_image' => $event->fresh()->banner_image
+                ? asset('storage/' . $event->fresh()->banner_image)
+                : null,
         ]);
     }
 

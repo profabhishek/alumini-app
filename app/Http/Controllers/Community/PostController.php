@@ -380,13 +380,30 @@ class PostController extends Controller
 
         if ($needsApproval) {
             $post->pending_body = $validated['body'];
+            $post->save();
+
+            // Notify group admins/mods that an edit is awaiting approval
+            $modIds = CommunityGroupMember::where('group_id', $post->group_id)
+                ->where('status', 'approved')
+                ->whereIn('role', ['admin', 'moderator'])
+                ->pluck('alumni_id');
+
+            foreach ($modIds as $modId) {
+                NotificationHelper::fire(
+                    recipientId: (int) $modId,
+                    actorId:     $myId,
+                    type:        'group_post_pending',
+                    postId:      $post->id,
+                    preview:     Str::limit($validated['body'], 80),
+                    groupId:     $post->group_id,
+                );
+            }
         } else {
             $post->body         = $validated['body'];
             $post->pending_body = null;
             $post->status       = 'active'; // in case a mod approves via edit
+            $post->save();
         }
-
-        $post->save();
 
         return response()->json([
             'post'    => $post->toFeedArray($myId, $isGroupMod),
@@ -418,6 +435,22 @@ class PostController extends Controller
         $post->save();
 
         $myId = (int) session('alumni_id');
+
+        // Notify the post author that their post/edit was approved
+        if ((int) $post->alumni_id !== $myId) {
+            $group = $post->group_id
+                ? \App\Models\CommunityGroup::find($post->group_id)
+                : null;
+
+            NotificationHelper::fire(
+                recipientId: (int) $post->alumni_id,
+                actorId:     $myId,
+                type:        'group_post_approved',
+                postId:      $post->id,
+                preview:     $group?->name,
+                groupId:     $post->group_id,
+            );
+        }
 
         return response()->json([
             'post' => $post->toFeedArray($myId, true),

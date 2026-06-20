@@ -26,12 +26,14 @@ class Job extends Model
         'banner_image',
         'status',
         'rejection_reason',
+        'published_at',
     ];
 
     protected $casts = [
         'application_deadline' => 'date',
         'salary_min'           => 'integer',
         'salary_max'           => 'integer',
+        'published_at'         => 'datetime',
     ];
 
     // ── Auto-generate slug ────────────────────────────────────────────────

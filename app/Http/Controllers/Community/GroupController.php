@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Models\Post;
+use App\Models\AlumniNotification;
 use App\Services\NotificationHelper;
 
 class GroupController extends Controller
@@ -23,6 +24,18 @@ class GroupController extends Controller
     public function index(Request $request)
     {
         $myId = (int) session('alumni_id');
+
+        // Mark all groups as read when landing on the groups index page
+        // This clears the sidebar badge immediately on page load and after refresh
+        CommunityGroupMember::where('alumni_id', $myId)
+            ->where('status', 'approved')
+            ->update(['last_read_at' => now()]);
+
+        // Mark group-related social notifications as read
+        AlumniNotification::where('recipient_id', $myId)
+            ->whereIn('type', ['group_join', 'group_post_pending', 'group_member_joined', 'group_new_post'])
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
 
         $query = CommunityGroup::where('status', 'active')->latest();
 
@@ -155,10 +168,13 @@ class GroupController extends Controller
                 ->count()
             : 0;
 
+        // Only the original creator (or super_admin) may delete the group
+        $isCreator = (int) $group->created_by === $myId || $myRole === 'super_admin';
+
     return view('community.groups.show', compact(
         'group', 'isApproved', 'isPending', 'groupRole',
         'isGroupAdmin', 'isGroupMod', 'isSiteAdmin', 'pendingCount',
-        'pendingEditsCount'
+        'pendingEditsCount', 'isCreator'
     ));
     }
 
@@ -207,6 +223,32 @@ class GroupController extends Controller
         $membership->delete();
 
         return redirect()->route('groups.index')->with('success', 'You left the group.');
+    }
+
+    // ── Delete group (creator only) ───────────────────────────────────────
+
+    public function destroy(CommunityGroup $group)
+    {
+        $myId   = (int) session('alumni_id');
+        $myRole = session('alumni_role');
+
+        // Only the original creator or a site super_admin may delete the group
+        if ((int) $group->created_by !== $myId && $myRole !== 'super_admin') {
+            abort(403, 'Only the group creator can delete this group.');
+        }
+
+        $groupName = $group->name;
+
+        DB::transaction(function () use ($group) {
+            CommunityGroupMember::where('group_id', $group->id)->delete();
+            GroupInviteLink::where('group_id', $group->id)->delete();
+            GroupInvitation::where('group_id', $group->id)->delete();
+            Post::where('group_id', $group->id)->delete();
+            $group->delete();
+        });
+
+        return redirect()->route('groups.index')
+            ->with('success', '"' . $groupName . '" has been permanently deleted.');
     }
 
     // ── Member management ────────────────────────────────────────────────
@@ -370,13 +412,49 @@ class GroupController extends Controller
             $total += $count;
         }
 
+        // ── Pending posts/edits for admin/mod groups (direct DB count, not
+        //    notification-based so it stays accurate after the bell is opened) ──
+        $pendingCounts = [];
+        $pendingTotal  = 0;
+        $adminGroupIds = $memberships
+            ->whereIn('role', ['admin', 'moderator'])
+            ->pluck('group_id')
+            ->all();
+
+        if (!empty($adminGroupIds)) {
+            Post::whereIn('group_id', $adminGroupIds)
+                ->where(function ($q) {
+                    // New post awaiting first approval
+                    $q->where('status', 'pending_review')
+                    // Published post with a member-submitted edit awaiting approval
+                      ->orWhereNotNull('pending_body');
+                })
+                ->selectRaw('group_id, COUNT(*) as cnt')
+                ->groupBy('group_id')
+                ->get()
+                ->each(function ($r) use (&$pendingCounts, &$pendingTotal) {
+                    $pendingCounts[(int) $r->group_id] = (int) $r->cnt;
+                    $pendingTotal += (int) $r->cnt;
+                });
+        }
+
         $pendingInvitations = GroupInvitation::where('alumni_id', $myId)
             ->where('status', 'pending')
             ->count();
 
+        // Other group social notifications: join events only.
+        // group_new_post excluded (already in $counts above via active-post loop).
+        // group_post_pending excluded (directly counted as $pendingTotal above —
+        //   stays visible even after admin opens the bell).
+        $groupNotifCount = AlumniNotification::where('recipient_id', $myId)
+            ->whereIn('type', ['group_join', 'group_member_joined'])
+            ->where('is_read', false)
+            ->count();
+
         return response()->json([
             'counts'              => $counts,
-            'total'               => $total,
+            'pending_counts'      => $pendingCounts,   // per-group pending items (admin/mod only)
+            'total'               => $total + $pendingTotal + $groupNotifCount,
             'pending_invitations' => $pendingInvitations,
         ]);
     }
@@ -471,13 +549,72 @@ class GroupController extends Controller
 
         $invitation->load(['group', 'invitedBy', 'alumni']);
 
+        // In-app notification to the invited user
+        NotificationHelper::fire(
+            recipientId: $targetId,
+            actorId:     $myId,
+            type:        'group_invitation',
+            preview:     $group->name,
+            groupId:     $group->id,
+        );
+
         try {
-            Mail::to($invitation->alumni->email)->send(new GroupInvitationMail($invitation));
+            Mail::to($invitation->alumni->email)->queue(new GroupInvitationMail($invitation));
         } catch (\Throwable $e) {
             // log but don't fail
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * GET /groups/{group:slug}/search-users?q=
+     * Returns alumni users NOT already a member or pending invitee of this group.
+     */
+    public function searchUsersForGroup(Request $request, CommunityGroup $group)
+    {
+        $this->authorizeGroupManagement($group);
+
+        $q = trim($request->input('q', ''));
+
+        if (strlen($q) < 2) {
+            return response()->json(['users' => []]);
+        }
+
+        // IDs to exclude: existing members
+        $memberIds = CommunityGroupMember::where('group_id', $group->id)
+            ->where('status', 'approved')
+            ->pluck('alumni_id');
+
+        // IDs to exclude: pending invitations
+        $invitedIds = GroupInvitation::where('group_id', $group->id)
+            ->where('status', 'pending')
+            ->pluck('alumni_id');
+
+        $excludeIds = $memberIds->merge($invitedIds)->unique()->all();
+
+        $users = AlumniUser::where('is_approved', true)
+            ->whereNotIn('id', $excludeIds)
+            ->where(function ($query) use ($q) {
+                $query->where('full_name', 'like', "%{$q}%")
+                      ->orWhere('email', 'like', "%{$q}%")
+                      ->orWhere('department', 'like', "%{$q}%");
+            })
+            ->select('id', 'full_name', 'email', 'photo', 'department', 'current_job_title', 'current_company')
+            ->limit(15)
+            ->get()
+            ->map(fn($u) => [
+                'id'       => $u->id,
+                'name'     => $u->full_name,
+                'email'    => $u->email,
+                'meta'     => $u->current_job_title
+                               ? "{$u->current_job_title} · {$u->current_company}"
+                               : $u->department,
+                'avatar'   => $u->photo ? asset('storage/' . $u->photo) : null,
+                'initials' => strtoupper(substr($u->full_name ?? 'A', 0, 1)),
+            ]);
+
+        return response()->json(['users' => $users]);
     }
 
     // ── Invitations page ──────────────────────────────────────────────────

@@ -146,6 +146,10 @@ class EventController extends Controller
             'status'                => 'pending',
         ]);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['redirect' => route('events.my')]);
+        }
+
         return redirect()->route('events.my')->with('success', 'Event created successfully.');
     }
 
@@ -228,7 +232,9 @@ class EventController extends Controller
             'upcoming'  => (int) ($rawStats->upcoming ?? 0),
         ];
 
-        return view('community.events.my-events', compact('events', 'stats', 'newRegCounts'));
+        $categories = EventCategory::active()->orderBy('name')->pluck('name');
+
+        return view('community.events.my-events', compact('events', 'stats', 'newRegCounts', 'categories'));
     }
 
     public function markRegistrationsSeen(Request $request, $eventId)
@@ -413,6 +419,35 @@ class EventController extends Controller
             $filename = 'registrations-' . $event->slug . '.csv';
             $headers  = [
                 'Content-Type'        => 'text/csv',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ];
+
+            $callback = function () use ($registrations, $event) {
+                $handle = fopen('php://output', 'w');
+
+                // CSV heading row
+                fputcsv($handle, [
+                    'Full Name', 'Email', 'Phone', 'Country',
+                    'Batch/Year', 'No. of People', 'Message', 'Registered At'
+                ]);
+
+                foreach ($registrations as $reg) {
+                    fputcsv($handle, [
+                        $reg->full_name,
+                        $reg->email,
+                        $reg->phone,
+                        $reg->country,
+                        $reg->batch_year,
+                        $reg->no_of_people,
+                        $reg->message,
+                        $reg->created_at->format('d M Y, g:i A'),
+                    ]);
+                }
+
+                fclose($handle);
+            };
+
+            return response()->stream($callback, 200, $headers);
         }
 
         return response()->json([

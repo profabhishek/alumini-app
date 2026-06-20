@@ -36,7 +36,7 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'table' => 'jobs',
+            'table' => 'queue_jobs',   // 'jobs' is taken by the job-postings feature table
             'queue' => 'default',
             'retry_after' => 90,
             'after_commit' => false,

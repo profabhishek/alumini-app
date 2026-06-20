@@ -191,14 +191,15 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     function applyGroupBadges(data) {
-        const counts = data.counts || {};
-        const pending = data.pending_invitations || 0;
+        const counts        = data.counts || {};
+        const pendingCounts = data.pending_counts || {};
+        const pending       = data.pending_invitations || 0;
 
-        // Per-card dots
+        // Per-card dots — include pending posts/edits for admin/mod groups
         document.querySelectorAll('.group-card[data-member="1"]').forEach(card => {
             const gid  = card.dataset.groupId;
             const dot  = document.getElementById('group-dot-' + gid);
-            const cnt  = counts[gid] || 0;
+            const cnt  = (counts[gid] || 0) + (pendingCounts[gid] || 0);
             if (dot) {
                 dot.textContent = cnt > 99 ? '99+' : cnt;
                 dot.style.display = cnt > 0 ? 'inline-block' : 'none';
@@ -224,10 +225,9 @@
             }
         }
 
-        // Expose total for sidebar badge
+        // Expose total for sidebar badge — same formula as the layout poller
         if (typeof window.updateGroupSidebarBadge === 'function') {
-            const total = Object.values(counts).reduce((a, b) => a + b, 0) + pending;
-            window.updateGroupSidebarBadge(total);
+            window.updateGroupSidebarBadge((data.total || 0) + pending);
         }
     }
 
@@ -262,6 +262,11 @@
     let timer;
     function startPoll() { timer = setInterval(fetchGroupCounts, 10000); }
     function stopPoll()  { clearInterval(timer); }
+
+    // Clear sidebar badge immediately on page load (server already stamped last_read_at)
+    if (typeof window.updateGroupSidebarBadge === 'function') {
+        window.updateGroupSidebarBadge(0);
+    }
 
     fetchGroupCounts();
     startPoll();

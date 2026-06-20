@@ -181,6 +181,7 @@
                                 data-story-status="{{ $story->status }}"
                                 data-story-excerpt="{{ $story->excerpt }}"
                                 data-story-rejection-reason="{{ $story->rejection_reason }}"
+                                data-story-cover-image="{{ $story->cover_image ? asset('storage/'.$story->cover_image) : '' }}"
                                 data-update-url="{{ route('admin.stories.update', $story->id) }}"
                                 aria-label="Edit {{ $story->title }}">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -329,6 +330,23 @@
                     <label class="me-label" for="asExcerpt">Excerpt</label>
                     <textarea id="asExcerpt" class="me-input" rows="3" maxlength="400" style="resize:vertical;" placeholder="Short summary shown in listings…"></textarea>
                     <span style="font-size:11px;color:#9ca3af;">Max 400 characters</span>
+                </div>
+
+                <div class="me-form-group">
+                    <label class="me-label">Cover Image</label>
+                    <div id="asCoverPreviewWrap" style="display:none;margin-bottom:8px;position:relative;">
+                        <img id="asCoverPreviewImg" src="" alt="" style="width:100%;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;">
+                        <button type="button" id="asCoverRemoveBtn"
+                            style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <label id="asCoverUploadLabel" for="asCoverImage"
+                        style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px dashed #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;color:#6b7280;transition:border-color .15s;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Click to upload image (JPEG, PNG, WebP — max 4 MB)
+                    </label>
+                    <input type="file" id="asCoverImage" accept="image/jpeg,image/png,image/jpg,image/webp" style="display:none;">
                 </div>
             </div>
         </div>
@@ -506,6 +524,35 @@
 
     $('asStatus').addEventListener('change', toggleRejectionField);
 
+    // ── Cover image preview in edit modal ────────────────────────────
+    const asCoverInput      = $('asCoverImage');
+    const asCoverPreviewWrap = $('asCoverPreviewWrap');
+    const asCoverPreviewImg  = $('asCoverPreviewImg');
+    const asCoverUploadLabel = $('asCoverUploadLabel');
+    const asCoverRemoveBtn   = $('asCoverRemoveBtn');
+
+    function asShowCoverPreview(src) {
+        asCoverPreviewImg.src = src;
+        asCoverPreviewWrap.style.display = 'block';
+        asCoverUploadLabel.style.display = 'none';
+    }
+    function asResetCoverUI() {
+        asCoverInput.value = '';
+        asCoverPreviewImg.src = '';
+        asCoverPreviewWrap.style.display = 'none';
+        asCoverUploadLabel.style.display = 'flex';
+    }
+
+    asCoverInput.addEventListener('change', () => {
+        const file = asCoverInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => asShowCoverPreview(e.target.result);
+        reader.readAsDataURL(file);
+    });
+
+    asCoverRemoveBtn.addEventListener('click', () => asResetCoverUI());
+
     document.querySelectorAll('.ae-btn-edit').forEach(btn => {
         btn.addEventListener('click', () => {
             $('asEditStoryId').value    = btn.dataset.storyId;
@@ -518,6 +565,14 @@
             setSelect('asStatus',   btn.dataset.storyStatus);
 
             toggleRejectionField();
+
+            // Reset cover image UI; show existing image if any
+            const existingCover = btn.dataset.storyCoverImage ?? '';
+            if (existingCover) {
+                asShowCoverPreview(existingCover);
+            } else {
+                asResetCoverUI();
+            }
 
             // Reset errors
             hide($('asEditError'));
@@ -554,17 +609,21 @@
         saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:me-spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Saving…`;
 
         try {
+            const fd = new FormData();
+            fd.append('_method',          'PUT');
+            fd.append('title',            $('asTitle').value.trim());
+            fd.append('category',         $('asCategory').value);
+            fd.append('status',           $('asStatus').value);
+            fd.append('excerpt',          $('asExcerpt').value.trim());
+            fd.append('rejection_reason', $('asStatus').value === 'rejected' ? ($('asRejectionReason').value.trim() ?? '') : '');
+            if (asCoverInput.files[0]) {
+                fd.append('cover_image', asCoverInput.files[0]);
+            }
+
             const res = await fetch($('asUpdateUrl').value, {
                 method: 'POST',
-                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    _method           : 'PUT',
-                    title             : $('asTitle').value.trim(),
-                    category          : $('asCategory').value,
-                    status            : $('asStatus').value,
-                    excerpt           : $('asExcerpt').value.trim() || null,
-                    rejection_reason  : $('asStatus').value === 'rejected' ? ($('asRejectionReason').value.trim() || null) : null,
-                }),
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                body: fd,
             });
 
             const data = await res.json();

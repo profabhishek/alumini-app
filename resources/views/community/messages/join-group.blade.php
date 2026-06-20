@@ -385,6 +385,7 @@
                 <div class="jg-actions">
                     <a href="{{ route('chat.index') }}" class="jg-btn jg-btn--ghost">Back to Chats</a>
                 </div>
+            @else
 
             {{-- ── State: already a member ─────────────────────────── --}}
             @if($isMember)
@@ -413,7 +414,26 @@
                     </a>
                 </div>
 
-            {{-- ── State: pending request ───────────────────────────── --}}
+            {{-- ── State: invitation (admin invited this user directly) ── --}}
+            @elseif($hasPending && $isInvitation)
+                <p style="font-size:13.5px;color:#6b7280;margin:0 0 20px;line-height:1.6;">
+                    You've been invited to join this group by an admin. Accept to join instantly.
+                </p>
+
+                <div class="jg-actions">
+                    <a href="{{ route('chat.index') }}" class="jg-btn jg-btn--ghost">Decline</a>
+                    <button class="jg-btn jg-btn--primary" id="acceptInviteBtn" type="button">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                        Accept Invitation
+                    </button>
+                </div>
+                <p class="jg-error" id="acceptInviteError" role="alert"></p>
+
+            {{-- ── State: pending request (user self-requested) ─────────── --}}
             @elseif($hasPending)
                 <div class="jg-state jg-state--pending">
                     <div class="jg-state__icon">
@@ -466,11 +486,55 @@
 
                 <p class="jg-error" id="joinGroupError" role="alert"></p>
             @endif
-
+            @endif
         </div>
     </div>
 </div>
 @endsection
+
+@if(!$isMember && $hasPending && $isInvitation && !$linkDisabled)
+@push('scripts')
+<script>
+(function () {
+    const btn   = document.getElementById('acceptInviteBtn');
+    const error = document.getElementById('acceptInviteError');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function () {
+        btn.disabled  = true;
+        error.textContent = '';
+        btn.innerHTML = '<span class="jg-spinner"></span> Joining…';
+
+        try {
+            const res  = await fetch(@json(route('chat.join.accept', ['token' => $token])), {
+                method:  'POST',
+                headers: {
+                    'Accept':           'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN':     @json(csrf_token()),
+                },
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || data.message || 'Unable to join.');
+
+            // Redirect to the group conversation
+            window.location.href = @json(route('chat.index'))
+                + (data.conversation_id ? '?conversation=' + data.conversation_id : '');
+
+        } catch (err) {
+            error.textContent = err.message;
+            btn.disabled      = false;
+            btn.innerHTML     = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                Accept Invitation`;
+        }
+    });
+})();
+</script>
+@endpush
+@endif
 
 @if(!$isMember && !$hasPending && !$linkDisabled)
 @push('scripts')
@@ -501,8 +565,11 @@
                 throw new Error(data.error || data.message || 'Unable to send the request.');
             }
 
-            // Success — update UI in place
-            btn.closest('.jg-actions').innerHTML = '';
+// Success — update UI in place
+            const actionsDiv = btn.closest('.jg-actions');
+            const cardBody = btn.closest('.jg-card__body');
+
+            actionsDiv.innerHTML = '';
 
             const stateDiv = document.createElement('div');
             stateDiv.className = 'jg-state jg-state--pending';
@@ -522,14 +589,12 @@
                 </div>`;
 
             // Insert before the (now-empty) actions div
-            btn.closest('.jg-card__body').insertBefore(
-                stateDiv,
-                document.querySelector('.jg-actions')
-            );
+            cardBody.insertBefore(stateDiv, actionsDiv);
 
             // Show back button
-            document.querySelector('.jg-actions').innerHTML =
+            actionsDiv.innerHTML =
                 `<a href="{{ route('chat.index') }}" class="jg-btn jg-btn--ghost">Back to Chats</a>`;
+                
 
         } catch (err) {
             error.textContent = err.message;

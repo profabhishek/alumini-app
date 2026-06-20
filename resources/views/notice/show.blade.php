@@ -238,4 +238,20 @@
     }
     // Reveal
     const els = document.querySelectorAll('.nb-reveal');
-    if (!els.length) ret
+    if (!els.length) return;
+    if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('nb-reveal--show');
+                    obs.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        els.forEach(el => obs.observe(el));
+    } else {
+        els.forEach(el => el.classList.add('nb-reveal--show'));
+    }
+})();
+</script>
+@endpush

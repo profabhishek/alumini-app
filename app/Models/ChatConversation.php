@@ -19,11 +19,13 @@ class ChatConversation extends Model
         'description',
         'created_by',
         'invite_token',
+        'allow_join_via_link',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'allow_join_via_link' => 'boolean',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────

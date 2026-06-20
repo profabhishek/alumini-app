@@ -88,11 +88,6 @@ Route::get('/', function () {
 
 Route::get('/alumni', [AlumniDirectoryController::class, 'index'])->name('alumni');
 
-Route::get('/news', [NewsPublicController::class, 'index'])->name('news');
-Route::get('/news/{news:slug}', [NewsPublicController::class, 'show'])->name('news.show');
-
-Route::get('/notice', [NoticePublicController::class, 'index'])->name('notice');
-Route::get('/notice/{notice:slug}', [NoticePublicController::class, 'show'])->name('notice.show');
 
 Route::get('/contact',  [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
@@ -100,7 +95,7 @@ Route::post('/contact', [ContactController::class, 'send'])->name('contact.send'
 Route::get('/gallery', function () {
     $allPhotos = \App\Models\GalleryItem::published()
         ->orderByDesc('created_at')
-        ->select(['id', 'title', 'image_path', 'created_at'])
+        ->select(['id', 'title', 'image', 'created_at'])
         ->limit(200)
         ->get();
     return view('gallery.index', ['allPhotos' => $allPhotos]);
@@ -308,15 +303,8 @@ Route::middleware('alumni.auth')->group(function () {
     Route::get('/my-events/{event}/registrations', [EventController::class, 'registrations'])
         ->name('events.registrations');
 
-    Route::post('/my-events/{eventId}/mark-seen', function ($eventId) {
-        $seen = session('events_regs_seen', []);
-        $seen[$eventId] = now()->toDateTimeString();
-        session(['events_regs_seen' => $seen]);
-        return response()->json(['ok' => true]);
-    })->name('events.registrations.mark-seen');
-
     Route::post('/my-events/{eventId}/mark-seen', [EventController::class, 'markRegistrationsSeen'])
-    ->name('events.registrations.mark-seen');
+        ->name('events.registrations.mark-seen');
 
     /*
     |----------------------------------------------------------------
@@ -480,11 +468,23 @@ Route::middleware('alumni.auth')->group(function () {
     Route::post('/chat/groups/{id}/invite/regenerate', [ChatController::class, 'regenerateInvite'])
         ->name('chat.groups.invite.regenerate');
 
+    Route::get('/chat/invitations', [ChatController::class, 'myInvitations'])
+        ->name('chat.invitations');
+
     Route::get('/chat/join/{token}', [ChatController::class, 'joinPage'])
         ->name('chat.join');
 
     Route::post('/chat/join/{token}', [ChatController::class, 'joinGroup'])
         ->name('chat.join.store');
+
+    Route::post('/chat/join/{token}/accept', [ChatController::class, 'acceptChatInvitation'])
+        ->name('chat.join.accept');
+
+    Route::post('/chat/invitations/{id}/decline', [ChatController::class, 'declineChatInvitation'])
+        ->name('chat.invitations.decline');
+
+    Route::post('/chat/groups/{id}/invite-user', [ChatController::class, 'inviteUserToGroup'])
+        ->name('chat.groups.invite-user');
 
     Route::get('/chat/groups/{id}/join-requests', [ChatController::class, 'joinRequests'])
         ->name('chat.groups.join-requests');
@@ -574,6 +574,10 @@ Route::middleware('alumni.auth')->group(function () {
     Route::get('/notifications/sidebar-badges', [\App\Http\Controllers\Community\NotificationController::class, 'sidebarBadges'])
         ->name('notifications.sidebar-badges');
 
+    Route::get('/notifications/feed', [\App\Http\Controllers\Community\NotificationController::class, 'feed'])
+        ->name('notifications.feed');
+
+
     // ── Community Groups ────────────────────────────────────────────────
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');
     Route::get('/groups/create', [GroupController::class, 'create'])->name('groups.create');
@@ -600,8 +604,16 @@ Route::middleware('alumni.auth')->group(function () {
     // ── Group invite links & invitations ─────────────────────────────────
     Route::post('/groups/{group:slug}/invite-link', [GroupController::class, 'generateInviteLink'])->name('groups.invite-link.generate');
     Route::post('/groups/{group:slug}/invite-user', [GroupController::class, 'sendInvitation'])->name('groups.invite-user');
+    Route::get('/groups/{group:slug}/search-users', [GroupController::class, 'searchUsersForGroup'])->name('groups.search-users');
     Route::post('/groups/{group:slug}/mark-read', [GroupController::class, 'markRead'])->name('groups.mark-read');
+    Route::delete('/groups/{group:slug}', [GroupController::class, 'destroy'])->name('groups.destroy');
     Route::post('/groups/invitations/{invitation}/respond', [GroupController::class, 'respondInvitation'])->name('groups.invitations.respond');
+
+    // ── News & Notice (auth-required) ─────────────────────────────────────
+    Route::get('/news',              [\App\Http\Controllers\NewsPublicController::class,   'index'])->name('news');
+    Route::get('/news/{news:slug}',  [\App\Http\Controllers\NewsPublicController::class,   'show'])->name('news.show');
+    Route::get('/notice',            [\App\Http\Controllers\NoticePublicController::class, 'index'])->name('notice');
+    Route::get('/notice/{notice:slug}', [\App\Http\Controllers\NoticePublicController::class, 'show'])->name('notice.show');
 });
 
 
@@ -925,5 +937,6 @@ Route::get('/jobs/{job:slug}', [JobController::class, 'show'])->name('jobs.show'
 |==========================================================================
 */
 
-Route::get('/nav', fn() => view('components.navbar'))
-    ->name('navbar');
+if (app()->environment('local')) {
+    Route::get('/nav', fn() => view('components.navbar'));
+};

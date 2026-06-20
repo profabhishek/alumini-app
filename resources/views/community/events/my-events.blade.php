@@ -363,7 +363,12 @@
                 <div class="me-form-row">
                     <div class="me-form-group">
                         <label class="me-label" for="editCategory">Category <span class="me-required">*</span></label>
-                        <input type="text" id="editCategory" name="category" class="me-input" placeholder="e.g. Workshop, Seminar" required maxlength="255">
+                        <select id="editCategory" name="category" class="me-input me-select" required>
+                            <option value="">Select category</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat }}">{{ $cat }}</option>
+                            @endforeach
+                        </select>
                         <span class="me-field-error" id="editCategoryError"></span>
                     </div>
                     <div class="me-form-group">

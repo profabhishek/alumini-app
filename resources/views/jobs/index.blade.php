@@ -309,6 +309,9 @@
 (function () {
     // Scroll-reveal on cards
     const cards = document.querySelectorAll('.jr-card');
+    if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach((e, i) => {
                 if (e.isIntersecting) {
                     setTimeout(() => e.target.classList.add('jr-card--visible'), i * 55);
                     obs.unobserve(e.target);

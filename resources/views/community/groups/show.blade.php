@@ -87,6 +87,16 @@
                         onclick="generateInviteLink('{{ $group->slug }}')">
                     🔗 Invite Link
                 </button>
+                <button type="button" class="groups-btn groups-btn--primary" id="inviteMemberBtn"
+                        onclick="openInviteMemberModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/>
+                        <line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                    Invite Member
+                </button>
             @endif
 
             @if($isApproved)
@@ -104,6 +114,24 @@
                 <form method="POST" action="{{ route('groups.join', $group->slug) }}">
                     @csrf
                     <button type="submit" class="groups-btn groups-btn--primary">Join Group</button>
+                </form>
+            @endif
+
+            @if($isCreator)
+                <form method="POST" action="{{ route('groups.destroy', $group->slug) }}"
+                      data-confirm-title="Delete this group?"
+                      data-confirm-body="This will permanently delete &ldquo;{{ $group->name }}&rdquo; along with all its posts, members, and invite links. This cannot be undone."
+                      data-confirm-text="Delete Group"
+                      data-confirm-danger="true">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="groups-btn groups-btn--danger">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                            <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                        </svg>
+                        Delete Group
+                    </button>
                 </form>
             @endif
         </div>
@@ -367,6 +395,164 @@ function copyInvLink() {
         const btn = inp.nextElementSibling;
         if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); }
     }).catch(() => { inp.select(); document.execCommand('copy'); });
+}
+
+// ── Invite Member Modal ──────────────────────────────────────────────────
+const INVITE_URL      = @json(route('groups.invite-user', $group->slug));
+const GROUP_SEARCH_URL = @json(route('groups.search-users', $group->slug));
+
+let inviteDebounce;
+
+function openInviteMemberModal() {
+    document.getElementById('inviteMemberModal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'inviteMemberModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:28px 26px 24px;max-width:460px;width:100%;box-shadow:0 12px 48px rgba(0,0,0,.2);position:relative;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+                <div style="width:38px;height:38px;background:linear-gradient(135deg,#fde9d6,#fbd0b0);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#E8640C;flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/>
+                        <line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="margin:0 0 2px;font-size:16px;font-weight:700;color:#1C2331;">Invite a Member</h3>
+                    <p style="margin:0;font-size:12.5px;color:#6b7280;">Search and send a direct invitation</p>
+                </div>
+                <button onclick="document.getElementById('inviteMemberModal').remove()"
+                    style="margin-left:auto;background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;padding:4px;">&times;</button>
+            </div>
+
+            <div style="position:relative;">
+                <svg style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#9ca3af;pointer-events:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input id="imSearchInput" type="text" placeholder="Search by name or email…" autocomplete="off"
+                    style="width:100%;padding:9px 12px 9px 34px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13.5px;outline:none;box-sizing:border-box;transition:border-color .15s;"
+                    onfocus="this.style.borderColor='#E8640C'" onblur="this.style.borderColor='#e5e7eb'">
+                <div id="imSearchResults" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;box-shadow:0 6px 24px rgba(28,35,49,.12);z-index:10;max-height:220px;overflow-y:auto;"></div>
+            </div>
+
+            <p id="imStatusMsg" style="margin:12px 0 0;font-size:13px;min-height:18px;color:#16a34a;"></p>
+        </div>`;
+
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+
+    const input   = document.getElementById('imSearchInput');
+    const results = document.getElementById('imSearchResults');
+
+    input.focus();
+    input.addEventListener('input', () => {
+        const q = input.value.trim();
+        clearTimeout(inviteDebounce);
+        results.style.display = 'none';
+        results.innerHTML = '';
+
+        if (q.length < 2) return;
+
+        inviteDebounce = setTimeout(async () => {
+            try {
+                const res  = await fetch(`${GROUP_SEARCH_URL}?q=${encodeURIComponent(q)}`, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+                const data = await res.json();
+                const users = data.users || [];
+
+                if (!users.length) {
+                    results.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:#9ca3af;text-align:center;">No users found</div>';
+                    results.style.display = 'block';
+                    return;
+                }
+
+                results.innerHTML = users.map(u => `
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:default;transition:background .12s;"
+                         onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background=''">
+                        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#fde9d6,#fbd0b0);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#E8640C;flex-shrink:0;overflow:hidden;">
+                            ${u.avatar
+                                ? `<img src="${u.avatar.replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+                                : (u.initials || u.name[0]).toUpperCase()}
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:13.5px;font-weight:600;color:#1C2331;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name.replace(/</g,'&lt;')}</div>
+                            ${u.meta ? `<div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.meta.replace(/</g,'&lt;')}</div>` : ''}
+                        </div>
+                        <button onclick="sendGroupInvitation(${u.id}, '${u.name.replace(/'/g,"&#39;")}', this)"
+                            style="flex-shrink:0;padding:6px 13px;background:#E8640C;color:#fff;border:none;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s;"
+                            onmouseenter="if(!this.disabled)this.style.background='#d05a0b'" onmouseleave="if(!this.disabled)this.style.background='#E8640C'">
+                            Invite
+                        </button>
+                    </div>`).join('');
+                results.style.display = 'block';
+
+            } catch { /* silent */ }
+        }, 280);
+    });
+
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('inviteMemberModal')?.remove();
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+}
+
+async function sendGroupInvitation(userId, userName, btn) {
+    const statusMsg = document.getElementById('imStatusMsg');
+    const results   = document.getElementById('imSearchResults');
+    const input     = document.getElementById('imSearchInput');
+
+    // Disable button immediately to prevent double-clicks
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '…';
+        btn.style.background = '#9ca3af';
+        btn.style.cursor = 'not-allowed';
+    }
+    if (statusMsg) { statusMsg.style.color = '#6b7280'; statusMsg.textContent = 'Sending invitation…'; }
+
+    try {
+        const res = await fetch(INVITE_URL, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CSRF,
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ alumni_id: userId }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            const msg = data.errors
+                ? Object.values(data.errors).flat()[0]
+                : (data.error || data.message || 'Failed to send invitation.');
+            throw new Error(msg);
+        }
+
+        if (statusMsg) { statusMsg.style.color = '#16a34a'; statusMsg.textContent = `✓ Invitation sent to ${userName}.`; }
+        if (input)   { input.value = ''; }
+        if (results) { results.style.display = 'none'; results.innerHTML = ''; }
+        // Keep button disabled after success — user was removed from results
+        if (btn) { btn.textContent = 'Sent ✓'; }
+
+    } catch (err) {
+        if (statusMsg) { statusMsg.style.color = '#b91c1c'; statusMsg.textContent = err.message; }
+        // Re-enable button so admin can retry
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Invite';
+            btn.style.background = '#E8640C';
+            btn.style.cursor = 'pointer';
+        }
+    }
 }
 </script>
 @endpush

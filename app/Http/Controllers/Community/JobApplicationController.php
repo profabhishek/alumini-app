@@ -78,7 +78,7 @@ class JobApplicationController extends Controller
     // ── Secure Resume Download ────────────────────────────────────────────
     // Only the applicant themselves OR the job owner can download a resume.
 
-    public function downloadResume(JobApplication $application)
+    public function downloadResume(JobApplication $application, Request $request)
     {
         $alumniId = session('alumni_id');
 
@@ -103,7 +103,20 @@ class JobApplicationController extends Controller
         $extension    = pathinfo($originalName, PATHINFO_EXTENSION);
         $downloadName = 'resume_' . $application->full_name . '.' . $extension;
 
-        return Storage::disk('local')->download($application->resume, $downloadName);
+        $fullPath = storage_path('app/' . $application->resume);
+
+        if ($request->boolean('download')) {
+            return response()->download($fullPath, $downloadName);
+        }
+
+        // View inline (opens in browser tab for PDFs)
+        $extension = strtolower(pathinfo($application->resume, PATHINFO_EXTENSION));
+        $mimeType  = $extension === 'pdf' ? 'application/pdf' : 'application/octet-stream';
+
+        return response()->file($fullPath, [
+            'Content-Type'        => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $downloadName . '"',
+        ]);
     }
 
     // ── My Applications ───────────────────────────────────────────────────
@@ -207,6 +220,17 @@ class JobApplicationController extends Controller
             'rejection_reason' => $request->status === 'rejected'
                 ? $request->rejection_reason
                 : null,
+        ]);
+
+        if ($oldStatus !== $request->status) {
+            try {
+                // Fresh reload with job relation — don't rely on route-bound instance
+                $freshApplication = \App\Models\JobApplication::with('job')
+                    ->findOrFail($application->id);
+
+                $poster = \App\Models\AlumniUser::find(session('alumni_id'));
+
+                if ($poster && $freshApplication->job) {
                     Mail::to($freshApplication->email)->send(
                         new ApplicationStatusMail(
                             $freshApplication,

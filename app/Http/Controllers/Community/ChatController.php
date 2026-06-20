@@ -81,7 +81,19 @@ class ChatController extends Controller
             ->pluck('cnt', 'conversation_id')
             ->all();
 
-        $data = $conversations->map(fn($c) => $this->serializeConversation($c, $myId, $participantCountMap));
+        // Pre-compute pending join-request counts (for group admins only) — single query
+        $pendingCountMap = [];
+        $groupConvIds = $conversations->filter(fn($c) => $c->isGroup() && $c->isAdmin($myId))->pluck('id')->all();
+        if (!empty($groupConvIds)) {
+            $pendingCountMap = ChatGroupJoinRequest::whereIn('conversation_id', $groupConvIds)
+                ->where('status', 'pending')
+                ->selectRaw('conversation_id, COUNT(*) as cnt')
+                ->groupBy('conversation_id')
+                ->pluck('cnt', 'conversation_id')
+                ->all();
+        }
+
+        $data = $conversations->map(fn($c) => $this->serializeConversation($c, $myId, $participantCountMap, $pendingCountMap));
 
         return response()->json(['conversations' => $data]);
     }
@@ -152,16 +164,19 @@ class ChatController extends Controller
             ChatMessageRead::markRead($id, $myId, $messages->last()->id);
         }
 
+        $recentlyDeleted = ChatMessage::withTrashed()
+            ->where('conversation_id', $id)
+            ->where('id', '<=', $afterId > 0 ? $afterId : PHP_INT_MAX)
+            ->whereNotNull('deleted_at')
+            ->where('deleted_at', '>=', now()->subMinutes(2))
+            ->get();
+
         return response()->json([
             'messages' => $messages->map(fn($m) => $m->toApiArray($myId)),
+            'deleted'  => $recentlyDeleted->map(fn($m) => $m->toApiArray($myId)),
         ]);
     }
 
-    /**
-     * GET /chat/poll-conversations?after=
-     * Lightweight poll to check if any conversation has new messages.
-     * Returns only conversations with changes after a given timestamp.
-     */
     public function pollConversations(Request $request): JsonResponse
     {
         $myId  = session('alumni_id');
@@ -187,9 +202,20 @@ class ChatController extends Controller
             ->pluck('cnt', 'conversation_id')
             ->all();
 
+        $pendingCountMap = [];
+        $groupConvIds = $conversations->filter(fn($c) => $c->isGroup() && $c->isAdmin($myId))->pluck('id')->all();
+        if (!empty($groupConvIds)) {
+            $pendingCountMap = ChatGroupJoinRequest::whereIn('conversation_id', $groupConvIds)
+                ->where('status', 'pending')
+                ->selectRaw('conversation_id, COUNT(*) as cnt')
+                ->groupBy('conversation_id')
+                ->pluck('cnt', 'conversation_id')
+                ->all();
+        }
+
         return response()->json([
             'conversations' => $conversations->map(
-                fn($c) => $this->serializeConversation($c, $myId, $participantCountMap)
+                fn($c) => $this->serializeConversation($c, $myId, $participantCountMap, $pendingCountMap)
             ),
             'server_time' => now()->toISOString(),
         ]);
@@ -240,8 +266,9 @@ class ChatController extends Controller
 
             $dir      = 'chat-files/' . date('Y/m');
             $fileName = $file->getClientOriginalName();
+            $extension = $this->extensionFromMime($fileMime);
             $safeName = Str::random(16) . '_' . Str::slug(pathinfo($fileName, PATHINFO_FILENAME))
-                        . '.' . $file->getClientOriginalExtension();
+                        . '.' . $extension;
             $filePath = $file->storeAs($dir, $safeName, 'public');
 
             // Resolve actual type from MIME if needed
@@ -294,10 +321,23 @@ class ChatController extends Controller
 
     public function deleteMessage(int $messageId): JsonResponse
     {
-        $myId    = session('alumni_id');
-        $message = ChatMessage::findOrFail($messageId);
+    $myId    = session('alumni_id');
+    $message = ChatMessage::withTrashed()->with('conversation')->find($messageId);
 
-        $isSender = (int) $message->sender_id === $myId;
+    if (!$message) {
+        return response()->json(['error' => 'Message not found.'], 404);
+    }
+
+    if ($message->isDeleted()) {
+        return response()->json([
+            'ok'              => true,
+            'already_deleted' => true,
+            'message_id'      => $messageId,
+            'message'         => $message->toApiArray($myId),
+        ]);
+    }
+
+    $isSender = (int) $message->sender_id === $myId;
 
         if (!$isSender) {
             // Check if user is admin of this conversation
@@ -318,14 +358,15 @@ class ChatController extends Controller
             }
         }
 
-        if ($message->isDeleted()) {
-            return response()->json(['error' => 'Already deleted.'], 409);
+            $message->update(['deleted_by' => $myId]);
+            $message->delete();
+
+            return response()->json([
+                'ok'         => true,
+                'message_id' => $messageId,
+                'message'    => $message->fresh()->toApiArray($myId),
+            ]);
         }
-
-        $message->delete();
-
-        return response()->json(['ok' => true, 'message_id' => $messageId]);
-    }
 
     // ── Start / find a direct conversation ───────────────────────────────
 
@@ -709,14 +750,17 @@ class ChatController extends Controller
         $myId = (int) session('alumni_id');
  
         $isMember = $conversation->hasParticipant($myId);
- 
-        $hasPending = ChatGroupJoinRequest::where('conversation_id', $conversation->id)
+
+        $pendingRequest = ChatGroupJoinRequest::where('conversation_id', $conversation->id)
             ->where('alumni_id', $myId)
             ->where('status', 'pending')
-            ->exists();
- 
+            ->first();
+
+        $hasPending   = $pendingRequest !== null;
+        $isInvitation = $pendingRequest?->isInvitation() ?? false;
+
         return view('community.messages.join-group', compact(
-            'conversation', 'isMember', 'hasPending', 'token'
+            'conversation', 'isMember', 'hasPending', 'isInvitation', 'token'
         ) + ['linkDisabled' => false]);
     }
 
@@ -733,13 +777,11 @@ class ChatController extends Controller
             return response()->json(['error' => 'You are already a member.'], 409);
         }
 
-        // Check for rejected request — allow re-try
         ChatGroupJoinRequest::where('conversation_id', $conversation->id)
             ->where('alumni_id', $myId)
-            ->where('status', 'rejected')
+            ->whereIn('status', ['rejected', 'accepted'])
             ->delete();
 
-        // Upsert join request
         $request = ChatGroupJoinRequest::firstOrCreate([
             'conversation_id' => $conversation->id,
             'alumni_id'       => $myId,
@@ -749,7 +791,203 @@ class ChatController extends Controller
             return response()->json(['message' => 'Join request already sent.']);
         }
 
+        if ($request->wasRecentlyCreated) {
+            $adminIds = ChatParticipant::where('conversation_id', $conversation->id)
+                ->where('role', 'admin')
+                ->pluck('alumni_id');
+
+            foreach ($adminIds as $adminId) {
+                \App\Services\NotificationHelper::fire(
+                    recipientId: (int) $adminId,
+                    actorId:     (int) $myId,
+                    type:        'chat_join_request',
+                    preview:     $conversation->name,
+                );
+            }
+        }
+
         return response()->json(['message' => 'Join request sent. Waiting for admin approval.']);
+    }
+
+    /**
+     * POST /chat/groups/{id}/invite-user
+     * Admin directly invites a user by their ID.
+     */
+    public function inviteUserToGroup(Request $request, int $id): JsonResponse
+    {
+        $myId = (int) session('alumni_id');
+        $conversation = $this->findConversationForUser($id, $myId);
+
+        if (!$conversation->isGroup() || !$conversation->isAdmin($myId)) {
+            return response()->json(['error' => 'Only group admins can invite members.'], 403);
+        }
+
+        $request->validate(['user_id' => 'required|integer|exists:alumni_users,id']);
+        $targetId = (int) $request->input('user_id');
+
+        if ($targetId === $myId) {
+            return response()->json(['error' => 'You are already in this group.'], 422);
+        }
+
+        if ($conversation->hasParticipant($targetId)) {
+            return response()->json(['error' => 'This user is already a member.'], 409);
+        }
+
+        // Already has a pending request or invitation
+        $existing = ChatGroupJoinRequest::where('conversation_id', $id)
+            ->where('alumni_id', $targetId)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existing) {
+            return response()->json(['error' => 'This user already has a pending request or invitation.'], 409);
+        }
+
+        // Remove any old accepted/rejected records so we can create a fresh one
+        ChatGroupJoinRequest::where('conversation_id', $id)
+            ->where('alumni_id', $targetId)
+            ->whereIn('status', ['rejected', 'accepted'])
+            ->delete();
+
+        // Ensure the group has an active invite token (needed for the acceptance URL)
+        if (!$conversation->invite_token) {
+            $conversation->generateInviteToken();
+        }
+        if (!$conversation->allow_join_via_link) {
+            $conversation->update(['allow_join_via_link' => true]);
+        }
+
+        ChatGroupJoinRequest::create([
+            'conversation_id' => $id,
+            'alumni_id'       => $targetId,
+            'status'          => 'pending',
+            'invited_by'      => $myId,
+        ]);
+
+        \App\Services\NotificationHelper::fire(
+            recipientId: $targetId,
+            actorId:     $myId,
+            type:        'chat_group_invitation',
+            preview:     $conversation->name,
+        );
+
+        return response()->json(['ok' => true, 'message' => 'Invitation sent.']);
+    }
+
+    /**
+     * GET /chat/invitations
+     * Show the current user's pending group chat invitations (blade page).
+     */
+    public function myInvitations()
+    {
+        $myId = (int) session('alumni_id');
+
+        $invitations = ChatGroupJoinRequest::where('alumni_id', $myId)
+            ->where('status', 'pending')
+            ->whereNotNull('invited_by')
+            ->with(['conversation', 'invitedBy'])
+            ->latest()
+            ->get()
+            ->map(fn($r) => [
+                'id'              => $r->id,
+                'group_name'      => $r->conversation->name ?? 'Unknown group',
+                'group_avatar'    => $r->conversation->avatar
+                    ? asset('storage/' . $r->conversation->avatar)
+                    : null,
+                'invited_by_name' => $r->invitedBy->full_name ?? 'Someone',
+                'token'           => $r->conversation->invite_token,
+                'created_at'      => $r->created_at->diffForHumans(),
+            ]);
+
+        return view('community.messages.invitations', compact('invitations'));
+    }
+
+    /**
+     * POST /chat/join/{token}/accept
+     * Invited user accepts their invitation → added directly as a member.
+     */
+    public function acceptChatInvitation(string $token): JsonResponse
+    {
+        $myId = (int) session('alumni_id');
+
+        $conversation = ChatConversation::where('invite_token', $token)
+            ->where('type', 'group')
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+
+        if ($conversation->hasParticipant($myId)) {
+            return response()->json(['message' => 'You are already a member.', 'conversation_id' => $conversation->id]);
+        }
+
+        $invitation = ChatGroupJoinRequest::where('conversation_id', $conversation->id)
+            ->where('alumni_id', $myId)
+            ->where('status', 'pending')
+            ->whereNotNull('invited_by')
+            ->first();
+
+        if (!$invitation) {
+            return response()->json(['error' => 'No valid invitation found.'], 404);
+        }
+
+        DB::transaction(function () use ($invitation, $conversation, $myId) {
+            $invitation->update([
+                'status'   => 'accepted',
+                'acted_by' => $myId,
+                'acted_at' => now(),
+            ]);
+
+            // Restore if previously left, else create fresh
+            $existing = ChatParticipant::where('conversation_id', $conversation->id)
+                ->where('alumni_id', $myId)
+                ->first();
+
+            if ($existing) {
+                $existing->update(['left_at' => null, 'role' => 'member']);
+            } else {
+                ChatParticipant::create([
+                    'conversation_id' => $conversation->id,
+                    'alumni_id'       => $myId,
+                    'role'            => 'member',
+                ]);
+            }
+
+            $user = AlumniUser::find($myId);
+            ChatMessage::create([
+                'conversation_id' => $conversation->id,
+                'sender_id'       => $myId,
+                'type'            => 'system',
+                'body'            => "{$user->full_name} joined the group.",
+            ]);
+        });
+
+        return response()->json([
+            'ok'              => true,
+            'conversation_id' => $conversation->id,
+            'message'         => 'You have joined the group.',
+        ]);
+    }
+
+    /**
+     * POST /chat/invitations/{id}/decline
+     * Invited user declines their invitation.
+     */
+    public function declineChatInvitation(int $id): JsonResponse
+    {
+        $myId = (int) session('alumni_id');
+
+        $invitation = ChatGroupJoinRequest::where('id', $id)
+            ->where('alumni_id', $myId)
+            ->where('status', 'pending')
+            ->whereNotNull('invited_by')
+            ->firstOrFail();
+
+        $invitation->update([
+            'status'   => 'rejected',
+            'acted_by' => $myId,
+            'acted_at' => now(),
+        ]);
+
+        return response()->json(['ok' => true]);
     }
 
     /**
@@ -781,11 +1019,6 @@ class ChatController extends Controller
         return response()->json(['requests' => $requests]);
     }
 
-    /**
-     * PATCH /chat/groups/{id}/join-requests/{requestId}
-     * Accept or reject a join request. Admins only.
-     * Body: { action: 'accept' | 'reject' }
-     */
     public function handleJoinRequest(Request $request, int $id, int $requestId): JsonResponse
     {
         $myId = session('alumni_id');
@@ -911,7 +1144,32 @@ class ChatController extends Controller
         }
     }
 
-    private function serializeConversation(ChatConversation $c, int $myId, ?array $participantCountMap = null): array
+    private function extensionFromMime(string $mime): string
+    {
+        return match ($mime) {
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+            'video/mp4'  => 'mp4',
+            'video/webm' => 'webm',
+            'video/quicktime'   => 'mov',
+            'video/x-msvideo'   => 'avi',
+            'application/pdf'   => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'application/vnd.ms-powerpoint' => 'ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+            'text/plain' => 'txt',
+            'application/zip' => 'zip',
+            'application/x-rar-compressed' => 'rar',
+            default => 'bin',
+        };
+    }
+
+    private function serializeConversation(ChatConversation $c, int $myId, ?array $participantCountMap = null, ?array $pendingCountMap = null): array
     {
         $latest     = $c->latestMessage;
         $unread     = $c->unreadCountFor($myId);
@@ -962,6 +1220,7 @@ class ChatController extends Controller
                 'is_mine'    => (int)$latest->sender_id === $myId,
             ] : null,
             'unread_count'       => $unread,
+            'pending_count'      => $pendingCountMap[$c->id] ?? 0,
             'updated_at'         => $c->updated_at?->toISOString(),
             // ── Online status (direct chats only) ──────────────────────
             'other_user_id'      => $otherId,
@@ -1089,7 +1348,41 @@ class ChatController extends Controller
     }
 
 
-        public function tickUpdates(Request $request, int $id): JsonResponse
+    public function tickUpdates(Request $request, int $id): JsonResponse
+    {
+        $myId = session('alumni_id');
+
+        $this->findConversationForUser($id, $myId);
+
+        $messageIds = collect($request->input('message_ids', []))
+            ->map(fn($mid) => (int) $mid)
+            ->filter(fn($mid) => $mid > 0)
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+
+        if (empty($messageIds)) {
+            return response()->json(['ticks' => []]);
+        }
+
+        $messages = ChatMessage::whereIn('id', $messageIds)
+            ->where('conversation_id', $id)
+            ->where('sender_id', $myId)  // only own messages
+            ->whereNull('deleted_at')
+            ->get(['id', 'conversation_id', 'sender_id', 'delivered_at', 'created_at']);
+
+        $ticks = $messages->map(function ($m) use ($myId) {
+            $tick = $m->tickState($myId);
+            return [
+                'id'           => $m->id,
+                'tick_state'   => $tick['state'],
+                'delivered_at' => $m->delivered_at?->toISOString(),
+                'read_at'      => $tick['read_at']?->toISOString(),
+            ];
+        });
+
+        return response()->json(['ticks' => $ticks]);
     }
 
     public function markOffline(): JsonResponse
