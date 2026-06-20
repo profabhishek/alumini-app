@@ -606,3 +606,31 @@
     color: var(--text-muted, #718096);
     font-weight: 400;
 }
+
+/* =============================================================
+   DARK MODE
+============================================================= */
+
+.dark .admin-alert--success {
+    background: #052e16;
+    color: #4ade80;
+    border-color: #166534;
+}
+
+.dark .admin-alert--error {
+    background: #2d0a0a;
+    color: #f87171;
+    border-color: #7f1d1d;
+}
+
+.dark .admin-alert--info {
+    background: #0c1a3a;
+    color: #60a5fa;
+    border-color: #1e3a6b;
+}
+
+.dark .admin-empty-state {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+    color: #64748b;
+}

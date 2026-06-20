@@ -166,13 +166,11 @@
                 const id = deleteBtn.dataset.id;
                 const email = deleteBtn.dataset.email;
 
-                if (
-                    !confirm(
-                        `Remove ${email} from the subscriber list? This cannot be undone.`,
-                    )
-                ) {
-                    return;
-                }
+                const confirmed = await window.adminConfirm(
+                    `Remove ${email} from the subscriber list? This cannot be undone.`,
+                    'Delete'
+                );
+                if (!confirmed) return;
 
                 const url = window.NLSUB_DELETE_URL_TEMPLATE.replace(
                     "__ID__",

@@ -4,6 +4,8 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/community/admin-newsletter.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/community/admin.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/community/admin-content.css') }}?v=1">
 @endpush
 
 @section('content')
@@ -152,9 +154,54 @@
     </div>
 </div>
 
+{{-- Confirm Modal --}}
+<div class="admin-modal-backdrop" id="adminConfirmModal" hidden>
+    <div class="admin-modal">
+        <div class="admin-modal__header">
+            <h3>Confirm Action</h3>
+            <button type="button" class="admin-modal__close" id="adminConfirmClose">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="admin-modal__body">
+            <p id="adminConfirmMessage" style="margin:0 0 1.5rem;"></p>
+            <div style="display:flex;gap:.625rem;justify-content:flex-end;">
+                <button type="button" class="admin-btn admin-btn--ghost" id="adminConfirmCancel">Cancel</button>
+                <button type="button" class="admin-btn admin-btn--reject" id="adminConfirmOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
+<script>
+(function () {
+    var modal    = document.getElementById('adminConfirmModal');
+    var msgEl    = document.getElementById('adminConfirmMessage');
+    var okBtn    = document.getElementById('adminConfirmOk');
+    var closeEl  = document.getElementById('adminConfirmClose');
+    var cancelEl = document.getElementById('adminConfirmCancel');
+    var _resolve = null;
+    function open(msg, okLabel) {
+        msgEl.textContent = msg;
+        okBtn.textContent = okLabel || 'Confirm';
+        modal.hidden = false;
+        return new Promise(function (res) { _resolve = res; });
+    }
+    function close(result) {
+        modal.hidden = true;
+        var r = _resolve; _resolve = null;
+        if (r) r(result);
+    }
+    window.adminConfirm = open;
+    okBtn.addEventListener('click', function () { close(true); });
+    closeEl.addEventListener('click', function () { close(false); });
+    cancelEl.addEventListener('click', function () { close(false); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(false); });
+})();
+</script>
 <script>
     window.NLSUB_STORE_URL = '{{ route('admin.newsletter.store') }}';
     window.NLSUB_TOGGLE_URL_TEMPLATE = '{{ route('admin.newsletter.toggle-status', '__ID__') }}';

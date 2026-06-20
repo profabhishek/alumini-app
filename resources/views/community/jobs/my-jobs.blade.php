@@ -278,11 +278,11 @@
 
             <div class="mj-form-row">
                 <div class="mj-form-group">
-                    <label class="mj-label">Min Salary (₹)</label>
+                    <label class="mj-label">Min Salary ($)</label>
                     <input type="number" name="salary_min" id="edit_salary_min" class="mj-input" min="0">
                 </div>
                 <div class="mj-form-group">
-                    <label class="mj-label">Max Salary (₹)</label>
+                    <label class="mj-label">Max Salary ($)</label>
                     <input type="number" name="salary_max" id="edit_salary_max" class="mj-input" min="0">
                 </div>
             </div>
@@ -702,9 +702,9 @@ async function loadViewData(id) {
         // Salary
         let salary = 'Not disclosed';
         if (d.salary_min && d.salary_max)
-            salary = `₹${Number(d.salary_min).toLocaleString()} – ₹${Number(d.salary_max).toLocaleString()}`;
+            salary = `$${Number(d.salary_min).toLocaleString()} – $${Number(d.salary_max).toLocaleString()}`;
         else if (d.salary_min)
-            salary = `₹${Number(d.salary_min).toLocaleString()}+`;
+            salary = `$${Number(d.salary_min).toLocaleString()}+`;
         document.getElementById('view_salary').textContent = salary;
 
         // Deadline

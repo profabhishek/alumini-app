@@ -50,22 +50,11 @@
             <div>
                 <a href="{{ route('home') }}" class="nav-logo">
                     <div class="nav-logo-mark">
-                        <!-- <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-                            <circle cx="20" cy="20" r="18" stroke="#F4A825" stroke-width="2" fill="none" opacity="0.3"/>
-                            <circle cx="20" cy="20" r="10" fill="#F4A825" opacity="0.15"/>
-                            <ellipse cx="20" cy="20" rx="18" ry="8" stroke="#F4A825" stroke-width="1.5" fill="none" opacity="0.6"/>
-                            <circle cx="20" cy="20" r="3" fill="#F4A825"/>
-                            <line x1="2" y1="20" x2="38" y2="20" stroke="#F4A825" stroke-width="1" opacity="0.4"/>
-                        </svg> -->
                         <img
                             src="https://iccr.hialumni.com/storage/uploads/Setting/7881769241382.png"
                             alt=""
                         />
                     </div>
-                    <!-- <div class="nav-logo-text">
-                        <span class="nav-logo-primary">ICCR</span>
-                        <span class="nav-logo-secondary">Alumni</span>
-                    </div> -->
                 </a>
             </div>
 

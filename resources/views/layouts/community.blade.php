@@ -231,8 +231,8 @@
 
             {{-- Logo --}}
             <a href="{{ url('/home') }}" class="comm-logo">
-                <img loading="lazy" src="https://iccr.hialumni.com/storage/uploads/Setting/7881769241382.png" alt="ICCR" class="comm-logo__img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="comm-logo__fallback" style="display:none;">
+                <img loading="lazy" src="{{ asset('images/iccr_background.png') }}" alt="ICCR" class="comm-logo__img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="comm-logo__fallback" style="">
                     <span class="comm-logo__abbr">ICCR</span>
                     <span class="comm-logo__full">Alumni Portal</span>
                 </div>
@@ -270,6 +270,7 @@
                     <div class="notif-dropdown" id="notifDropdown">
                         <div class="notif-dropdown__header">
                             Recent Activity
+                            <button type="button" id="notifClearAll" class="notif-clear-btn">Clear all</button>
                         </div>
                         <div class="notif-dropdown__body">
                             <div id="personalNotifList">
@@ -763,9 +764,9 @@
 
                                             @if($job->salary_min || $job->salary_max)
                                                 <span class="widget-tag">
-                                                    ₹{{ number_format($job->salary_min) }}
+                                                    ${{ number_format($job->salary_min) }}
                                                     @if($job->salary_max)
-                                                        - ₹{{ number_format($job->salary_max) }}
+                                                        - ${{ number_format($job->salary_max) }}
                                                     @endif
                                                 </span>
                                             @endif
@@ -1228,11 +1229,12 @@
         </style>
         <script>
         (function () {
-            const CSRF         = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-            const URL_FEED     = "{{ route('notifications.feed') }}";
-            const URL_MARK_ALL = "{{ route('notifications.personal.mark-read') }}";
-            const URL_COUNT    = "{{ route('notifications.personal') }}";
-            const POLL_MS      = 10000;
+            const CSRF          = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            const URL_FEED      = "{{ route('notifications.feed') }}";
+            const URL_MARK_ALL  = "{{ route('notifications.personal.mark-read') }}";
+            const URL_COUNT     = "{{ route('notifications.personal') }}";
+            const URL_CLEAR_ALL = "{{ route('notifications.clear-all') }}";
+            const POLL_MS       = 10000;
 
             const menu      = document.getElementById('notifMenuToggle');
             const list      = document.getElementById('personalNotifList');
@@ -1283,33 +1285,32 @@
                 el.href = item.url || '#';
                 el.className = 'notif-item';
                 el.innerHTML =
-                    '<span class="notif-item__icon" style="background:' + bg + ';color:' + color + ';border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + icon + '</span>' +
+                    '<span class="notif-item__icon notif-item__icon--' + item.type + '" style="border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + icon + '</span>' +
                     '<span class="notif-item__body">' +
-                        '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:' + color + ';display:block;">' + label + '</span>' +
-                        '<span style="display:block;font-size:13px;font-weight:600;color:#1c2331;line-height:1.35;margin-top:1px;">' + item.title + '</span>' +
-                        '<span style="font-size:11px;color:#9ca3af;margin-top:2px;display:block;">' + item.time + '</span>' +
+                        '<span class="notif-item__label" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:' + color + ';display:block;">' + label + '</span>' +
+                        '<span class="notif-item__title" style="display:block;font-size:13px;font-weight:600;line-height:1.35;margin-top:1px;">' + item.title + '</span>' +
+                        '<span class="notif-item__time" style="font-size:11px;margin-top:2px;display:block;">' + item.time + '</span>' +
                     '</span>';
                 return el;
             }
 
-            /* Build a social notification item (likes, comments, replies) */
             function buildSocialItem(item) {
                 var initial = ((item.initials || '?').charAt(0)).toUpperCase();
                 var hue = (initial.charCodeAt(0) * 47) % 360;
                 var iconStyle = item.avatar ? 'background:#f3f4f6;' : ('background:hsl(' + hue + ',60%,88%);');
                 var avatarHtml = item.avatar
-                    ? '<img src="' + item.avatar + '" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:50%;display:block;">'
+                    ? '<img src=' + item.avatar + ' alt="" style="width:34px;height:34px;object-fit:cover;border-radius:50%;display:block;">'
                     : '<span style="font-size:13px;font-weight:700;color:hsl(' + hue + ',55%,35%);">' + initial + '</span>';
                 var el = document.createElement('a');
                 el.href = item.url || '#';
                 el.className = 'notif-item' + (item.is_read ? '' : ' notif-item--unread');
-                var preview = item.preview ? '<span style="font-size:12px;color:#6b7280;display:block;margin-top:1px;">“' + item.preview + '”</span>' : '';
+                var preview = item.preview ? '<span class="notif-item__preview" style="font-size:12px;display:block;margin-top:1px;">"' + item.preview + '"</span>' : '';
                 el.innerHTML =
                     '<span class="notif-item__icon" style="' + iconStyle + 'border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">' + avatarHtml + '</span>' +
                     '<span class="notif-item__body">' +
-                        '<span style="display:block;font-size:13px;font-weight:500;color:#1c2331;line-height:1.35;">' + item.title + '</span>' +
+                        '<span class="notif-item__title" style="display:block;font-size:13px;font-weight:500;line-height:1.35;">' + item.title + '</span>' +
                         preview +
-                        '<span style="font-size:11px;color:#9ca3af;margin-top:2px;display:block;">' + item.time + '</span>' +
+                        '<span class="notif-item__time" style="font-size:11px;margin-top:2px;display:block;">' + item.time + '</span>' +
                     '</span>';
                 return el;
             }
@@ -1330,6 +1331,32 @@
                     .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
                     .then(function(d) { renderFeed(d.items || []); })
                     .catch(function() {});
+            }
+
+            /* Clear All */
+            var clearAllBtn = document.getElementById('notifClearAll');
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    clearAllBtn.disabled = true;
+                    clearAllBtn.textContent = '…';
+                    fetch(URL_CLEAR_ALL, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                        credentials: 'same-origin'
+                    })
+                    .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+                    .then(function() {
+                        setBadge(0);
+                        renderFeed([]);
+                        clearAllBtn.disabled = false;
+                        clearAllBtn.textContent = 'Clear all';
+                    })
+                    .catch(function() {
+                        clearAllBtn.disabled = false;
+                        clearAllBtn.textContent = 'Clear all';
+                    });
+                });
             }
 
             /* Open / close */

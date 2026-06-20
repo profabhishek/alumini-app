@@ -148,6 +148,12 @@ class JobController extends Controller
 
     public function myJobs(Request $request)
     {
+        // Mark job approval/rejection notifications as read
+        \App\Models\AlumniNotification::where('recipient_id', session('alumni_id'))
+            ->whereIn('type', ['job_approved', 'job_rejected'])
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
         // Read last seen BEFORE updating it
         $myJobsLastSeen = session('my_jobs_last_seen')
             ? \Carbon\Carbon::parse(session('my_jobs_last_seen'))

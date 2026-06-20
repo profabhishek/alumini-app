@@ -6,6 +6,14 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/community/groups.css') }}">
 <link rel="stylesheet" href="{{ asset('css/community/feed.css') }}?v=5">
+<style>
+    .pe-media-label{color:#1C2331;font-weight:600;font-size:13px;margin:10px 0 6px}
+    .dark .pe-media-label{color:#dce7fd;}
+    .pe-media-grid{display:flex;}
+    .pe-media-item{overflow:hidden;background:#f1f2f4;display:block; border-radius: 20px;}
+    .pe-media-item img{width:100%;height:100%;object-fit:cover;display:block}
+    .pe-media-item video{width:100%;height:100%;object-fit:contain;background:#000;display:block}
+</style>
 @endpush
 
 @section('content')
@@ -65,9 +73,24 @@
                         <div class="pe-new-post">
                             <div class="pe-diff__label" style="color:#1C2331;margin-bottom:8px">Post content</div>
                             <div class="pe-diff__body">{{ $post->body ?? '(no text — media only)' }}</div>
-                            @if($post->media && $post->media->count() > 0)
-                                <div class="pe-card__meta" style="margin-top:8px">
-                                    + {{ $post->media->count() }} media file(s) attached
+
+                            @if($post->media->count() > 0)
+                                <div class="pe-media-label">Attached media ({{ $post->media->count() }})</div>
+                                <div class="pe-media-grid">
+                                    @foreach($post->media as $m)
+                                        @if($m->type === 'video')
+                                            <div class="pe-media-item">
+                                                <video src="{{ asset('storage/' . $m->file_path) }}"
+                                                    controls preload="metadata" playsinline
+                                                    @if($m->thumbnail_path) poster="{{ asset('storage/' . $m->thumbnail_path) }}" @endif>
+                                                </video>
+                                            </div>
+                                        @else
+                                            <a class="pe-media-item" href="{{ asset('storage/' . $m->file_path) }}" target="_blank" rel="noopener">
+                                                <img loading="lazy" src="{{ asset('storage/' . $m->file_path) }}" alt="{{ $m->file_name }}">
+                                            </a>
+                                        @endif
+                                    @endforeach
                                 </div>
                             @endif
                         </div>

@@ -145,7 +145,6 @@
 .pe-event-row__submitter strong { color: #374151; }
 .pe-event-row__actions {
     display: flex;
-    flex-direction: column;
     gap: 8px;
     flex-shrink: 0;
     align-self: center;
@@ -511,7 +510,7 @@
             </button>
         </div>
         <div class="me-modal__body">
-            <div class="me-delete-icon" style="background:#f0fdf4;border-color:#bbf7d0;color:#16a34a;">
+            <div class="me-delete-icon me-approve-icon">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <p class="me-delete-text">

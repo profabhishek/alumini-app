@@ -184,12 +184,64 @@ img {
     --bg-input: #2d2d42;
     --border-light: #2d2d42;
     --border-medium: #3b3b5c;
+    --bg-card: #1e1e2e;
+    --bg-card-hover: #2d2d42;
 }
 
 .dark {
     --st-amber-600: #fbbf24;
     --st-green-600: #34d399;
     --st-red-600: #f87171;
+}
+
+/* html.dark specificity (0,1,1) beats :root (0,1,0) in stories.css,
+   so these override inline color:var(--st-*) styles in the pending page
+   even though stories.css loads after base.css. */
+html.dark {
+    --st-gray-50: #16162a;
+    --st-gray-100: #2d2d42;
+    --st-gray-200: #3b3b5c;
+    --st-gray-300: #334155;
+    --st-gray-400: #94a3b8;
+    --st-gray-500: #64748b;
+    --st-gray-600: #94a3b8;
+    --st-gray-900: #f1f5f9;
+    --st-indigo-50: #1e1b4b;
+    --st-indigo-600: #a5b4fc;
+    --st-whitist-500: #ececec;
+}
+
+/* ── Approve confirm icon (stories pending) ─── */
+.st-confirm-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+.st-confirm-icon--approve {
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    color: #16a34a;
+}
+.dark .st-confirm-icon--approve {
+    background: #052e16;
+    border-color: #166534;
+    color: #4ade80;
+}
+
+/* ── Approve icon (events pending) — override me-delete-icon red vars ── */
+.me-delete-icon.me-approve-icon {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #16a34a;
+}
+.dark .me-delete-icon.me-approve-icon {
+    background: #052e16;
+    border-color: #166534;
+    color: #4ade80;
 }
 
 .dark body {
@@ -4201,6 +4253,9 @@ img {
 .dark .me-delete-text {
     color: #cbd5e1;
 }
+.dark .me-delete-text strong {
+    color: #f1f5f9;
+}
 
 /* Toast */
 .dark .me-toast {
@@ -5770,16 +5825,21 @@ img {
     color: #f1f5f9;
 }
 
-
 /* =============================================================
    DARK MODE — Admin Pending Pages (Events · Jobs · Stories)
    Targets classes in: pending-job.css, my-events.css, stories.css
 ============================================================= */
 
 /* ── Shared page chrome ── */
-.dark .admin-page__eyebrow { color: #6b7280; }
-.dark .admin-page__title   { color: #f1f5f9; }
-.dark .admin-page__subtitle { color: #94a3b8; }
+.dark .admin-page__eyebrow {
+    color: #6b7280;
+}
+.dark .admin-page__title {
+    color: #f1f5f9;
+}
+.dark .admin-page__subtitle {
+    color: #94a3b8;
+}
 
 /* ── Alert banners ── */
 .dark .alert--success {
@@ -5798,24 +5858,36 @@ img {
     background: #1e1e2e;
     border-color: #2d2d42;
 }
-.dark .stat-card__label { color: #6b7280; }
-.dark .stat-card__value { color: #f1f5f9; }
+.dark .stat-card__label {
+    color: #6b7280;
+}
+.dark .stat-card__value {
+    color: #f1f5f9;
+}
 
 /* ── Stat cards (Events pending — pe- prefix) ── */
 .dark .pe-stat-card {
     background: #1e1e2e;
     border-color: #2d2d42;
 }
-.dark .pe-stat-card__number { color: #f1f5f9; }
-.dark .pe-stat-card__label  { color: #94a3b8; }
+.dark .pe-stat-card__number {
+    color: #f1f5f9;
+}
+.dark .pe-stat-card__label {
+    color: #94a3b8;
+}
 
 /* ── Panel (Jobs table wrapper) ── */
 .dark .panel {
     background: #1e1e2e;
     border-color: #2d2d42;
 }
-.dark .panel__title    { color: #f1f5f9; }
-.dark .panel__subtitle { color: #94a3b8; }
+.dark .panel__title {
+    color: #f1f5f9;
+}
+.dark .panel__subtitle {
+    color: #94a3b8;
+}
 
 /* ── Search input ── */
 .dark .search-form__input,
@@ -5827,12 +5899,19 @@ img {
 }
 .dark .search-form__input::placeholder,
 .dark .st-search-input::placeholder,
-.dark .pe-search::placeholder { color: #6b7280; }
+.dark .pe-search::placeholder {
+    color: #6b7280;
+}
 .dark .search-form__input:focus,
-.dark .st-search-input:focus   { border-color: #e8640c; box-shadow: 0 0 0 3px rgba(232,100,12,.15); }
+.dark .st-search-input:focus {
+    border-color: #e8640c;
+    box-shadow: 0 0 0 3px rgba(232, 100, 12, 0.15);
+}
 
 /* ── Jobs admin table ── */
-.dark .table-wrap    { background: #1e1e2e; }
+.dark .table-wrap {
+    background: #1e1e2e;
+}
 .dark .admin-table th {
     color: #64748b;
     border-bottom-color: #2d2d42;
@@ -5841,14 +5920,27 @@ img {
     color: #f1f5f9;
     border-bottom-color: #2d2d42;
 }
-.dark .admin-table tbody tr:hover { background: #252538; }
-.dark .job-cell__title    { color: #f1f5f9; }
-.dark .job-cell__meta     { color: #94a3b8; }
-.dark .creator-cell__name { color: #f1f5f9; }
-.dark .creator-cell__meta { color: #94a3b8; }
+.dark .admin-table tbody tr:hover {
+    background: #252538;
+}
+.dark .job-cell__title {
+    color: #f1f5f9;
+}
+.dark .job-cell__meta {
+    color: #94a3b8;
+}
+.dark .creator-cell__name {
+    color: #f1f5f9;
+}
+.dark .creator-cell__meta {
+    color: #94a3b8;
+}
 
 /* ── Stories admin table ── */
-.dark .st-table-wrap { background: #1e1e2e; border-color: #2d2d42; }
+.dark .st-table-wrap {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+}
 .dark .st-table th {
     color: #64748b;
     border-bottom-color: #2d2d42;
@@ -5857,8 +5949,12 @@ img {
     color: #e2e8f0;
     border-bottom-color: #2d2d42;
 }
-.dark .st-table tbody tr:hover { background: #252538; }
-.dark .st-table__thumb-placeholder { background: #2d2d42; }
+.dark .st-table tbody tr:hover {
+    background: #252538;
+}
+.dark .st-table__thumb-placeholder {
+    background: #2d2d42;
+}
 
 /* ── Badges ── */
 .dark .badge--pending {
@@ -5874,11 +5970,15 @@ img {
 .dark .empty-state__title,
 .dark .st-empty__title,
 .dark .me-empty__title,
-.dark .pe-empty__title    { color: #f1f5f9; }
+.dark .pe-empty__title {
+    color: #f1f5f9;
+}
 .dark .empty-state__text,
 .dark .st-empty__text,
 .dark .me-empty__text,
-.dark .pe-empty__text     { color: #6b7280; }
+.dark .pe-empty__text {
+    color: #6b7280;
+}
 
 /* ── Ghost / outline buttons ── */
 .dark .admin-btn--ghost,
@@ -5908,61 +6008,108 @@ img {
     background: #1e1e2e;
     border-color: #2d2d42;
 }
-.dark .pe-event-row__title    { color: #f1f5f9; }
-.dark .pe-event-row__meta     { color: #94a3b8; }
-.dark .pe-event-row__meta-item { color: #94a3b8; }
-.dark .pe-event-row__submitter { color: #94a3b8; }
-.dark .pe-preview-label       { color: #6b7280; }
-.dark .pe-preview-value       { color: #f1f5f9; }
+.dark .pe-event-row__title {
+    color: #f1f5f9;
+}
+.dark .pe-event-row__meta {
+    color: #94a3b8;
+}
+.dark .pe-event-row__meta-item {
+    color: #94a3b8;
+}
+.dark .pe-event-row__submitter {
+    color: #94a3b8;
+}
+.dark .pe-preview-label {
+    color: #6b7280;
+}
+.dark .pe-preview-value {
+    color: #f1f5f9;
+}
 
 /* ── Story cards ── */
 .dark .story-card {
     background: #1e1e2e;
     border-color: #2d2d42;
 }
-.dark .story-card:hover        { border-color: #3b3b5c; }
-.dark .story-card__cover-placeholder { background: #2d2d42; }
-.dark .story-card__category    {
-    background: #1e3a5f;
+.dark .story-card:hover {
+    border-color: #3b3b5c;
+}
+.dark .story-card__cover-placeholder {
+    background: #2d2d42;
+}
+.dark .story-card__category {
     color: #93c5fd;
 }
-.dark .story-card__title       { color: #f1f5f9; }
-.dark .story-card__excerpt     { color: #94a3b8; }
-.dark .story-card__meta        { color: #6b7280; }
-.dark .story-card__rejection   {
+.dark .story-card__title {
+    color: #f1f5f9;
+}
+.dark .story-card__excerpt {
+    color: #94a3b8;
+}
+.dark .story-card__meta {
+    color: #6b7280;
+}
+.dark .story-card__rejection {
     background: #450a0a;
     color: #f87171;
     border-color: #7f1d1d;
 }
-.dark .story-card__footer      { border-top-color: #2d2d42; }
+.dark .story-card__footer {
+    border-top-color: #2d2d42;
+}
 
 /* ── Event cards ── */
 .dark .event-card {
     background: #1e1e2e;
     border-color: #2d2d42;
 }
-.dark .event-card:hover        { border-color: #3b3b5c; }
-.dark .event-card__banner-placeholder { background: #2d2d42; }
-.dark .event-card__title       { color: #f1f5f9; }
-.dark .event-card__meta        { color: #94a3b8; }
-.dark .event-card__footer      { border-top-color: #2d2d42; }
+.dark .event-card:hover {
+    border-color: #3b3b5c;
+}
+.dark .event-card__banner-placeholder {
+    background: #2d2d42;
+}
+.dark .event-card__title {
+    color: #f1f5f9;
+}
+.dark .event-card__meta {
+    color: #94a3b8;
+}
+.dark .event-card__footer {
+    border-top-color: #2d2d42;
+}
 
 /* ── Page headers ── */
 .dark .st-page-title,
-.dark .me-page-title    { color: #f1f5f9; }
+.dark .me-page-title {
+    color: #f1f5f9;
+}
 .dark .st-page-count,
-.dark .me-page-count    { color: #6b7280; }
+.dark .me-page-count {
+    color: #6b7280;
+}
 
 /* ── Jobs modal ── */
-.dark .modal-backdrop   { background: rgba(0, 0, 0, 0.7); }
+.dark .modal-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
 .dark .modal-card {
     background: #1e1e2e;
     border: 1px solid #2d2d42;
 }
-.dark .modal-card__head  { border-bottom-color: #2d2d42; }
-.dark .modal-card__title { color: #f1f5f9; }
-.dark .modal-card__subtitle { color: #94a3b8; }
-.dark .modal-card__footer { border-top-color: #2d2d42; }
+.dark .modal-card__head {
+    border-bottom-color: #2d2d42;
+}
+.dark .modal-card__title {
+    color: #f1f5f9;
+}
+.dark .modal-card__subtitle {
+    color: #94a3b8;
+}
+.dark .modal-card__footer {
+    border-top-color: #2d2d42;
+}
 .dark .modal-close {
     background: #2d2d42;
     color: #94a3b8;
@@ -5971,29 +6118,41 @@ img {
     background: #3b3b5c;
     color: #f1f5f9;
 }
-.dark .modal-job-title   { color: #f1f5f9; }
-.dark .field-label       { color: #cbd5e1; }
+.dark .modal-job-title {
+    color: #f1f5f9;
+}
+.dark .field-label {
+    color: #cbd5e1;
+}
 .dark .field-textarea {
     background: #2d2d42;
     border-color: #3b3b5c;
     color: #f1f5f9;
 }
-.dark .field-textarea:focus { border-color: #e8640c; }
+.dark .field-textarea:focus {
+    border-color: #e8640c;
+}
 
 /* ── Events & Stories modals ── */
 .dark .me-modal-backdrop,
-.dark .st-modal-backdrop { background: rgba(0, 0, 0, 0.7); }
+.dark .st-modal-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
 .dark .me-modal,
 .dark .st-modal {
     background: #1e1e2e;
     border: 1px solid #2d2d42;
 }
 .dark .me-modal__header,
-.dark .st-modal__header  { border-bottom-color: #2d2d42; }
+.dark .st-modal__header {
+    border-bottom-color: #2d2d42;
+}
 .dark .me-modal__title,
-.dark .st-modal__title   { color: #f1f5f9; }
+.dark .st-modal__title {
+    color: #f1f5f9;
+}
 .dark .me-modal__close,
-.dark .st-modal__close   {
+.dark .st-modal__close {
     background: #2d2d42;
     color: #94a3b8;
 }
@@ -6002,23 +6161,42 @@ img {
     background: #3b3b5c;
     color: #f1f5f9;
 }
-.dark .me-modal__section-title { color: #f1f5f9; }
-.dark .me-modal__info-label    { color: #6b7280; }
-.dark .me-modal__info-value    { color: #f1f5f9; }
-.dark .me-modal__desc          { color: #94a3b8; }
+.dark .me-modal__section-title {
+    color: #f1f5f9;
+}
+.dark .me-modal__info-label {
+    color: #6b7280;
+}
+.dark .me-modal__info-value {
+    color: #f1f5f9;
+}
+.dark .me-modal__desc {
+    color: #94a3b8;
+}
 .dark .me-modal__footer,
-.dark .st-modal__footer        { border-top-color: #2d2d42; }
-.dark .st-modal__cover-placeholder { background: #2d2d42; }
+.dark .st-modal__footer {
+    border-top-color: #2d2d42;
+}
+.dark .st-modal__cover-placeholder {
+    background: #2d2d42;
+}
 
 /* ── Stories form fields (inside modal) ── */
-.dark .st-label            { color: #cbd5e1; }
+.dark .st-label {
+    color: #cbd5e1;
+}
 .dark .st-input {
     background: #2d2d42;
     border-color: #3b3b5c;
     color: #f1f5f9;
 }
-.dark .st-input:hover      { border-color: #4b5680; }
-.dark .st-input:focus      { border-color: #e8640c; box-shadow: 0 0 0 3px rgba(232,100,12,.15); }
+.dark .st-input:hover {
+    border-color: #4b5680;
+}
+.dark .st-input:focus {
+    border-color: #e8640c;
+    box-shadow: 0 0 0 3px rgba(232, 100, 12, 0.15);
+}
 
 /* ── st-reject-reason / pe-reject-reason ── */
 .dark .st-reject-reason,
@@ -6028,7 +6206,9 @@ img {
     color: #f1f5f9;
 }
 .dark .st-reject-reason:focus,
-.dark .pe-reject-reason:focus { border-color: #e8640c; }
+.dark .pe-reject-reason:focus {
+    border-color: #e8640c;
+}
 
 /* ── Pagination ── */
 .dark .me-pagination .page-link,
@@ -6045,4 +6225,486 @@ img {
 .dark .st-pagination .page-item.active .page-link {
     background: #e8640c;
     border-color: #e8640c;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — Full Frontend Audit (remaining pages)
+   Pages: messages/chat, group-invitations, join-group,
+          my-events, stories-create/list, events-create,
+          admin-stories/jobs/events tables, admin-content-form,
+          alumni-profile, post-show, apply-job
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Override :root CSS design tokens in dark mode ────────── */
+
+/* Admin stories / admin jobs / admin events (--aj-* vars) */
+.dark {
+    --aj-bg: #16161e;
+    --aj-surface: #1e1e2e;
+    --aj-surface-2: #2d2d42;
+    --aj-border: #2d2d42;
+    --aj-border-hover: #3b3b5c;
+    --aj-text: #f1f5f9;
+    --aj-text-2: #cbd5e1;
+    --aj-text-3: #94a3b8;
+    /* My-Events color palette (--me-*) */
+    --me-gray-50: #1e1e2e;
+    --me-gray-100: #2d2d42;
+    --me-gray-200: #3b3b5c;
+    --me-gray-300: #4b5680;
+    --me-gray-400: #6b7280;
+    --me-gray-500: #94a3b8;
+    --me-gray-600: #cbd5e1;
+    --me-gray-700: #e2e8f0;
+    --me-gray-800: #f1f5f9;
+    --me-gray-900: #f1f5f9;
+    --me-indigo-50: rgba(99, 102, 241, 0.12);
+    --me-indigo-100: rgba(99, 102, 241, 0.2);
+    --me-green-50: rgba(22, 163, 74, 0.12);
+    --me-green-100: rgba(22, 163, 74, 0.2);
+    --me-amber-50: rgba(217, 119, 6, 0.12);
+    --me-amber-100: rgba(217, 119, 6, 0.2);
+    --me-red-50: rgba(220, 38, 38, 0.12);
+    --me-red-100: rgba(220, 38, 38, 0.2);
+    --me-blue-50: rgba(37, 99, 235, 0.12);
+    --me-blue-100: rgba(37, 99, 235, 0.2);
+    /* Stories color palette (--st-*) */
+    --st-gray-50: #1e1e2e;
+    --st-gray-100: #2d2d42;
+    --st-gray-200: #3b3b5c;
+    --st-gray-300: #4b5680;
+    --st-gray-400: #6b7280;
+    --st-gray-500: #94a3b8;
+    --st-gray-600: #cbd5e1;
+    --st-gray-700: #e2e8f0;
+    --st-gray-800: #f1f5f9;
+    --st-gray-900: #f1f5f9;
+    --st-indigo-50: rgba(99, 102, 241, 0.12);
+    --st-indigo-100: rgba(99, 102, 241, 0.2);
+    --st-green-50: rgba(22, 163, 74, 0.12);
+    --st-green-100: rgba(22, 163, 74, 0.2);
+    --st-amber-50: rgba(217, 119, 6, 0.12);
+    --st-amber-100: rgba(217, 119, 6, 0.2);
+    --st-red-50: rgba(220, 38, 38, 0.12);
+    --st-red-100: rgba(220, 38, 38, 0.2);
+    /* Create-Job color tokens (--cj-*) */
+    --cj-bg: #16161e;
+    --cj-white: #1e1e2e;
+    --cj-border: #2d2d42;
+    --cj-text: #f1f5f9;
+    --cj-muted: #94a3b8;
+    --cj-light: #2d2d42;
+}
+
+/* ── Messages / Chat ─────────────────────────────────────── */
+.dark .wa-chat {
+    --wa-panel: #1e1e2e;
+    --wa-panel-soft: #16161e;
+    --wa-canvas: #16161e;
+    --wa-text: #f1f5f9;
+    --wa-muted: #94a3b8;
+    --wa-border: #2d2d42;
+    --wa-hover: #2d2d42;
+    --wa-selected: #2d2d42;
+    --wa-bubble-in: #2d2d42;
+    --wa-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+}
+.dark .wa-modal {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+    color: #f1f5f9;
+}
+.dark .wa-field {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .wa-encryption-note {
+    color: #6b7280;
+}
+
+/* ── Group Invitations (messages/invitations.blade.php) ─── */
+.dark .gi-header__title {
+    color: #f1f5f9;
+}
+.dark .gi-header__sub {
+    color: #94a3b8;
+}
+.dark .gi-header__icon {
+    background: rgba(232, 100, 12, 0.2);
+    color: #e8640c;
+}
+.dark .gi-back {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #94a3b8;
+}
+.dark .gi-back:hover {
+    background: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .gi-card {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+}
+.dark .gi-name {
+    color: #f1f5f9;
+}
+.dark .gi-meta {
+    color: #94a3b8;
+}
+.dark .gi-btn--decline {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #94a3b8;
+}
+.dark .gi-btn--decline:hover {
+    background: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .gi-empty {
+    color: #6b7280;
+}
+.dark .gi-empty__title {
+    color: #94a3b8;
+}
+
+/* ── Join Group (messages/join-group.blade.php) ─────────── */
+.dark .jg-card {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+}
+.dark .jg-name {
+    color: #f1f5f9;
+}
+.dark .jg-description {
+    color: #94a3b8;
+}
+.dark .jg-pill {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .jg-divider {
+    background: #2d2d42;
+}
+.dark .jg-state--member {
+    background: rgba(22, 163, 74, 0.12);
+    border-color: rgba(22, 163, 74, 0.25);
+}
+.dark .jg-state--member .jg-state__icon {
+    background: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+}
+.dark .jg-state--member .jg-state__title {
+    color: #4ade80;
+}
+.dark .jg-state--pending {
+    background: rgba(217, 119, 6, 0.12);
+    border-color: rgba(217, 119, 6, 0.25);
+}
+.dark .jg-state--pending .jg-state__icon {
+    background: rgba(217, 119, 6, 0.2);
+    color: #fbbf24;
+}
+.dark .jg-state--pending .jg-state__title {
+    color: #fbbf24;
+}
+.dark .jg-state__sub {
+    color: #94a3b8;
+}
+.dark .jg-btn--ghost {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .jg-btn--ghost:hover {
+    background: #3b3b5c;
+}
+.dark .jg-error {
+    color: #f87171;
+}
+
+/* ── My Events — additional missing classes ──────────────── */
+.dark .event-card__banner {
+    background: #2d2d42;
+}
+.dark .event-card__body {
+    background: #1e1e2e;
+}
+.dark .event-card__new-badge,
+.dark .event-new-reg-badge {
+    background: #e8640c;
+    color: #fff;
+}
+.dark .event-card__status {
+    background: #2d2d42;
+    color: #94a3b8;
+}
+.dark .event-card__status--active,
+.dark .event-card__status--published {
+    background: rgba(22, 163, 74, 0.15);
+    color: #4ade80;
+}
+.dark .event-card__status--draft {
+    background: #2d2d42;
+    color: #6b7280;
+}
+.dark .event-card__status--upcoming,
+.dark .event-card__status--scheduled {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+}
+.dark .event-card__status--pending {
+    background: rgba(217, 119, 6, 0.15);
+    color: #fbbf24;
+}
+.dark .event-card__status--cancelled,
+.dark .event-card__status--inactive {
+    background: rgba(220, 38, 38, 0.15);
+    color: #f87171;
+}
+.dark .event-card__status--completed,
+.dark .event-card__status--past {
+    background: #2d2d42;
+    color: #6b7280;
+}
+.dark .event-card__seats {
+    border-top-color: #2d2d42;
+}
+.dark .me-empty {
+    color: #6b7280;
+}
+.dark .me-empty__icon {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #6366f1;
+}
+.dark .me-modal__body {
+    background: #1e1e2e;
+}
+
+/* ── Stories Create / My Stories — additional classes ────── */
+.dark .st-btn--primary {
+    background: #4f46e5;
+    color: #fff;
+    border-color: #4f46e5;
+}
+.dark .st-btn--primary:hover {
+    background: #4338ca;
+    border-color: #4338ca;
+}
+.dark .st-btn--danger {
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.25) !important;
+}
+.dark .st-btn--danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+.dark .st-modal__body {
+    background: #1e1e2e;
+}
+.dark .st-page-header__left {
+    color: #f1f5f9;
+}
+.dark .st-select {
+    background-color: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .st-textarea {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .st-field-error {
+    color: #f87171;
+}
+.dark .st-field-hint {
+    color: #6b7280;
+}
+.dark .st-file-hint {
+    color: #6b7280;
+}
+
+/* ── Admin events/stories/jobs — table headers & toolbar ─── */
+.dark .ae-header,
+.dark .ae-header__left {
+    color: #f1f5f9;
+}
+.dark .ae-filters,
+.dark .ae-toolbar {
+    color: #f1f5f9;
+}
+.dark .ae-td--title,
+.dark .ae-td--status,
+.dark .ae-td--actions {
+    color: #f1f5f9;
+}
+
+/* ── Admin stat badges (aj-stat--*, aj-tag--*, aj-expired) ── */
+/* Color vars are overridden via .dark { --aj-*: ... } above;
+   only the ::before accent strips need explicit overrides     */
+.dark .aj-stat--pending::before {
+    background: #fbbf24;
+}
+.dark .aj-stat--published::before {
+    background: #4ade80;
+}
+.dark .aj-stat--rejected::before {
+    background: #f87171;
+}
+.dark .aj-tag--mode,
+.dark .aj-tag--type {
+    background: #2d2d42;
+    color: #94a3b8;
+    border-color: #3b3b5c;
+}
+.dark .aj-expired {
+    background: rgba(220, 38, 38, 0.12);
+    color: #f87171;
+    border-color: rgba(220, 38, 38, 0.2);
+}
+.dark .as-pending-badge {
+    background: #d97706;
+    color: #fff;
+}
+.dark .as-preview-modal {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+    color: #f1f5f9;
+}
+.dark .as-tag {
+    background: rgba(37, 99, 235, 0.12);
+    color: #93c5fd;
+    border-color: rgba(37, 99, 235, 0.2);
+}
+
+/* ── Admin CMS rich-text editor (Quill) ─────────────────── */
+.dark .admin-editor-wrap {
+    border-color: #2d2d42;
+}
+.dark .admin-editor-wrap .ql-toolbar {
+    background: #2d2d42;
+    border-bottom-color: #3b3b5c;
+}
+.dark .admin-editor-wrap .ql-toolbar .ql-stroke {
+    stroke: #94a3b8;
+}
+.dark .admin-editor-wrap .ql-toolbar .ql-fill {
+    fill: #94a3b8;
+}
+.dark .admin-editor-wrap .ql-toolbar button:hover .ql-stroke {
+    stroke: #f1f5f9;
+}
+.dark .admin-editor-wrap .ql-container {
+    border: none;
+}
+.dark .admin-editor-wrap .ql-editor {
+    background: #1e1e2e;
+    color: #f1f5f9;
+}
+.dark .admin-editor-wrap .ql-editor.ql-blank::before {
+    color: #6b7280;
+}
+.dark .admin-category-select-row select {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+
+/* ── Alumni Profile page (ap-* supplement) ──────────────── */
+.dark .ap-card__body {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+}
+.dark .ap-field {
+    border-bottom-color: #2d2d42;
+}
+.dark .ap-hero__top,
+.dark .ap-hero__body {
+    background: #1e1e2e;
+}
+.dark .ap-hero__actions {
+    border-top-color: #2d2d42;
+    background: #1e1e2e;
+}
+
+/* ── Post show page ─────────────────────────────────────── */
+.dark .post-page-back {
+    color: #94a3b8;
+}
+.dark .post-page-back:hover {
+    color: #f1f5f9;
+}
+
+/* ── Events Create page ─────────────────────────────────── */
+.dark .page-badge {
+    background: #2d2d42;
+    color: #94a3b8;
+    border-color: #3b3b5c;
+}
+.dark .preview-image {
+    background: #2d2d42;
+}
+.dark .preview-tag {
+    background: #2d2d42;
+    color: #94a3b8;
+    border-color: #3b3b5c;
+}
+
+/* ── Bootstrap card/form overrides for community pages ───── */
+/* (used by events/create, jobs/apply, etc. on layouts.community) */
+.dark .card-header {
+    background: #2d2d42;
+    border-bottom-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .card-body {
+    background: #1e1e2e;
+    color: #f1f5f9;
+}
+.dark .form-control {
+    background: #2d2d42;
+    border-color: #3b3b5c;
+    color: #f1f5f9;
+}
+.dark .form-control:focus {
+    background: #2d2d42;
+    border-color: #e8640c;
+    color: #f1f5f9;
+    box-shadow: 0 0 0 3px rgba(232, 100, 12, 0.15);
+}
+.dark .form-control::placeholder {
+    color: #6b7280;
+}
+.dark .form-label {
+    color: #cbd5e1;
+}
+.dark .alert-danger {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #f87171;
+}
+.dark .text-muted {
+    color: #94a3b8 !important;
+}
+
+.dark #approveStoryTitle {
+    color: #ffffff;
+}
+
+.dark .approveStoryTitle {
+    color: #ffffff;
+}
+
+.dark .storymodal {
+    color: #ececec;
+}
+
+.storymodal {
+    font-size: 14px;
+    color: var(--st-gray-600);
+    line-height: 1.6;
+    margin: 0;
 }

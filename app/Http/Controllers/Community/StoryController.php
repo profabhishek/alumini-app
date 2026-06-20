@@ -113,6 +113,12 @@ class StoryController extends Controller
 
     public function myStories(Request $request)
     {
+        // Mark story approval/rejection notifications as read
+        \App\Models\AlumniNotification::where('recipient_id', session('alumni_id'))
+            ->whereIn('type', ['story_approved', 'story_rejected'])
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
         $myStoriesLastSeen = session('my_stories_last_seen')
             ? \Carbon\Carbon::parse(session('my_stories_last_seen'))
             : now();

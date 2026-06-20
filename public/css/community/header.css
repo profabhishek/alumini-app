@@ -36,7 +36,7 @@
 }
 
 .comm-logo__img {
-    height: 34px;
+    height: 45px;
     width: auto;
     object-fit: contain;
 }
@@ -44,18 +44,18 @@
 .comm-logo__fallback {
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1;
 }
 
 .comm-logo__abbr {
-    font-size: 16px;
+    font-size: 25px;
     font-weight: 700;
     color: var(--iccr-gold);
     letter-spacing: 1px;
 }
 
 .comm-logo__full {
-    font-size: 10px;
+    font-size: 15px;
     font-weight: 500;
     color: var(--text-on-dark-2);
     letter-spacing: 0.3px;
@@ -352,6 +352,30 @@
     border-bottom: 1px solid #f1f1f1;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.notif-clear-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s;
+}
+.notif-clear-btn:hover {
+    color: #e84040;
+}
+.notif-clear-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .notif-dropdown__body {
@@ -577,4 +601,139 @@
 .notif-item__icon--event {
     background: #fff7ed;
     color: #e8640c;
+}
+
+/* =============================================================
+   DARK MODE
+============================================================= */
+
+/* ── User dropdown ── */
+.dark .dropdown-item--danger:hover {
+    background: rgba(220, 38, 38, 0.12);
+}
+
+/* ── Bell notification dropdown ── */
+.dark .notif-dropdown {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+}
+
+.dark .notif-dropdown__header {
+    color: #f1f5f9;
+    border-bottom-color: #2d2d42;
+}
+
+.dark .notif-clear-btn {
+    color: #d6e0ee;
+}
+.dark .notif-clear-btn:hover {
+    color: #f87171;
+}
+
+.dark .notif-item {
+    border-bottom-color: #2d2d42;
+    color: #f1f5f9;
+}
+
+.dark .notif-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .notif-item--unread {
+    background: rgba(232, 100, 12, 0.06);
+}
+
+.dark .notif-item__title {
+    color: #f1f5f9;
+}
+
+.dark .notif-item__time,
+.dark .notif-item__label {
+    color: #64748b;
+}
+
+.dark .notif-item__preview {
+    color: #94a3b8;
+}
+
+.dark .notif-empty {
+    color: #64748b;
+}
+
+/* ── Icon backgrounds in dark mode ── */
+.dark .notif-item__icon--news {
+    background: rgba(232, 100, 12, 0.15);
+    color: #fb923c;
+}
+.dark .notif-item__icon--notice {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+.dark .notif-item__icon--story {
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+}
+.dark .notif-item__icon--job {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+.dark .notif-item__icon--event {
+    background: rgba(232, 100, 12, 0.15);
+    color: #fb923c;
+}
+
+/* ── Search dropdown ── */
+.dark .comm-search__dropdown {
+    background: #1e1e2e;
+    border-color: #2d2d42;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.dark .comm-search__item {
+    color: #f1f5f9;
+}
+
+.dark .comm-search__item:hover,
+.dark .comm-search__item.is-active {
+    background: #2d2d42;
+}
+
+.dark .comm-search__item-icon {
+    background: #2d2d42;
+    color: #94a3b8;
+}
+
+.dark .comm-search__item-icon--alumni {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+.dark .comm-search__item-icon--event {
+    background: rgba(232, 100, 12, 0.15);
+    color: #fb923c;
+}
+.dark .comm-search__item-icon--story {
+    background: rgba(180, 34, 24, 0.15);
+    color: #f87171;
+}
+.dark .comm-search__item-icon--job {
+    background: rgba(22, 163, 74, 0.15);
+    color: #4ade80;
+}
+.dark .comm-search__item-icon--notice {
+    background: rgba(29, 78, 216, 0.15);
+    color: #60a5fa;
+}
+.dark .comm-search__item-icon--news {
+    background: rgba(109, 40, 217, 0.15);
+    color: #a78bfa;
+}
+
+.dark .comm-search__item-sub {
+    color: #64748b;
+}
+
+.dark .comm-search__empty,
+.dark .comm-search__loading {
+    color: #64748b;
 }

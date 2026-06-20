@@ -31,7 +31,7 @@
 .pj-confirm-icon--approve { background:#ecfdf5; border:1.5px solid #a7f3d0; color:#059669; }
 .dark .pj-confirm-icon--approve { background:#052e16; border-color:#166534; color:#4ade80; }
 .pj-confirm-text { text-align:center; font-size:14px; color:#374151; line-height:1.6; margin:0; }
-.dark .pj-confirm-text { color:#94a3b8; }
+.dark .pj-confirm-text { color:#dddddd; }
 
 @keyframes pj-spin { to { transform: rotate(360deg); } }
 </style>

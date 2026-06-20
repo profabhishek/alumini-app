@@ -153,7 +153,7 @@
 
                 <div class="ev-feature__footer">
                     <div class="ev-feature__price">
-                        {{ $featured->event_type === 'Free' ? 'Free' : '₹' . number_format($featured->ticket_price, 0) }}
+                        {{ $featured->event_type === 'Free' ? 'Free' : '$' . number_format($featured->ticket_price, 0) }}
                         <span>{{ $featured->event_type === 'Free' ? 'No fee' : 'per person' }}</span>
                     </div>
                     <span class="ev-feature__cta">
@@ -284,7 +284,7 @@
                         <div class="ev-card__footer">
                             <div>
                                 <span class="ev-card__price">
-                                    {{ $event->event_type === 'Free' ? 'Free' : '₹'.number_format($event->ticket_price,0) }}
+                                    {{ $event->event_type === 'Free' ? 'Free' : '$'.number_format($event->ticket_price,0) }}
                                 </span>
                                 <span class="ev-card__price-label">
                                     {{ $event->event_type === 'Free' ? 'No fee' : 'per person' }}

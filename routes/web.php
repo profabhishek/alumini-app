@@ -577,6 +577,9 @@ Route::middleware('alumni.auth')->group(function () {
     Route::get('/notifications/feed', [\App\Http\Controllers\Community\NotificationController::class, 'feed'])
         ->name('notifications.feed');
 
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\Community\NotificationController::class, 'clearAll'])
+        ->name('notifications.clear-all');
+
 
     // ── Community Groups ────────────────────────────────────────────────
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');

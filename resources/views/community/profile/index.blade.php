@@ -60,8 +60,8 @@
                     @endif
                 </p>
                 <div class="profile-header-tags">
-                    @if($user->country)
-                        <span class="profile-tag">🌍 {{ $user->country }}</span>
+                    @if($user->nationality)
+                        <span class="profile-tag">🌍 {{ $user->nationality }}</span>
                     @endif
                     @if($user->passing_year)
                         <span class="profile-tag">🎓 Class of {{ $user->passing_year }}</span>
@@ -138,11 +138,11 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Country</label>
-                        <input type="text" name="country"
-                               value="{{ old('country', $user->country) }}"
-                               class="form-input @error('country') is-error @enderror">
-                        @error('country')<span class="form-error">{{ $message }}</span>@enderror
+                        <label>Nationality</label>
+                        <input type="text" name="nationality"
+                            value="{{ old('nationality', $user->nationality) }}"
+                            class="form-input @error('nationality') is-error @enderror">
+                        @error('nationality')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
 
                     <div class="form-group">
@@ -295,7 +295,7 @@
         <input type="hidden" name="current_job_title" value="{{ $user->current_job_title }}">
         <input type="hidden" name="current_company" value="{{ $user->current_company }}">
         <input type="hidden" name="current_city" value="{{ $user->current_city }}">
-        <input type="hidden" name="country" value="{{ $user->country }}">
+        <input type="hidden" name="nationality" value="{{ $user->nationality }}">
 
             <div class="profile-form-section">
                 <h2 class="profile-section-title">Social Links</h2>

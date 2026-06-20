@@ -181,12 +181,12 @@
             </button>
         </div>
         <div class="st-modal__body" style="text-align:center;padding:28px 24px;">
-            <div style="width:56px;height:56px;border-radius:50%;background:#f0fdf4;border:1.5px solid #bbf7d0;color:#16a34a;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+            <div class="st-confirm-icon st-confirm-icon--approve">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <p style="font-size:14px;color:var(--st-gray-600);line-height:1.6;margin:0;">
-                Approve <strong id="approveStoryTitle"></strong>?<br>
-                It will be <strong>published</strong> and visible to all alumni.
+            <p class="storymodal">
+                Approve <strong id="approveStoryTitle"></strong>&nbsp;?<br>
+                It will be <strong class="approveStoryTitle">published</strong> and visible to all alumni.
             </p>
         </div>
         <div class="st-modal__footer">

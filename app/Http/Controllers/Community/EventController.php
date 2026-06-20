@@ -155,6 +155,12 @@ class EventController extends Controller
 
     public function myEvents(Request $request)
     {
+        // Mark event approval/rejection notifications as read
+        \App\Models\AlumniNotification::where('recipient_id', session('alumni_id'))
+            ->whereIn('type', ['event_approved', 'event_rejected'])
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
         $query = Event::with('creator')
             ->where('created_by', session('alumni_id'))
             ->latest();

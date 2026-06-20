@@ -64,18 +64,16 @@ class GroupController extends Controller
         $myRole      = session('alumni_role');
         $isSiteAdmin = in_array($myRole, ['admin', 'super_admin']);
 
-        // New posts awaiting first approval
         $pendingPosts = \App\Models\Post::where('group_id', $group->id)
             ->where('status', 'pending_review')
-            ->with('author')
+            ->with(['author', 'media'])
             ->oldest()
             ->get();
 
-        // Published posts with a pending edit
         $pendingEdits = \App\Models\Post::where('group_id', $group->id)
             ->where('status', 'active')
             ->whereNotNull('pending_body')
-            ->with('author')
+            ->with(['author', 'media'])
             ->oldest()
             ->get();
 

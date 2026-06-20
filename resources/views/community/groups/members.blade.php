@@ -41,54 +41,6 @@
         </div>
     </div>
 
-    {{-- Pending requests --}}
-    <div class="gm-section">
-        <div class="gm-section__header">
-            <span class="gm-section__title">Pending Requests</span>
-            @if($pending->count() > 0)
-                <span class="gm-section__count">{{ $pending->count() }}</span>
-            @endif
-        </div>
-
-        @forelse($pending as $member)
-            @php $alumni = $member->alumni; @endphp
-            <div class="gm-row">
-                <div class="gm-avatar">
-                    @if(!empty($alumni?->photo))
-                        <img loading="lazy" src="{{ asset('storage/' . $alumni->photo) }}" alt="{{ $alumni->full_name }}">
-                    @else
-                        {{ $alumni?->initials ?? '?' }}
-                    @endif
-                </div>
-                <div class="gm-info">
-                    <div class="gm-name">{{ $alumni?->full_name ?? 'Unknown' }}</div>
-                    <div class="gm-meta">
-                        Requested {{ $member->created_at->diffForHumans() }}
-                        @if(!empty($alumni?->department))
-                            &nbsp;·&nbsp; {{ $alumni->department }}
-                        @endif
-                    </div>
-                </div>
-                <div class="gm-actions">
-                    <form method="POST" action="{{ route('groups.members.approve', [$group->slug, $member->id]) }}">
-                        @csrf
-                        <button type="submit" class="groups-btn groups-btn--primary groups-btn--sm">Approve</button>
-                    </form>
-                    <form method="POST" action="{{ route('groups.members.reject', [$group->slug, $member->id]) }}"
-                          data-confirm-title="Reject this request?"
-                          data-confirm-body="{{ $alumni?->full_name }}'s request to join {{ $group->name }} will be declined."
-                          data-confirm-text="Reject"
-                          data-confirm-danger="true">
-                        @csrf
-                        <button type="submit" class="groups-btn groups-btn--danger groups-btn--sm">Reject</button>
-                    </form>
-                </div>
-            </div>
-        @empty
-            <div class="gm-empty">No pending requests right now.</div>
-        @endforelse
-    </div>
-
     {{-- Approved members --}}
     <div class="gm-section">
         <div class="gm-section__header">

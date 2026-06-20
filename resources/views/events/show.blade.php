@@ -136,7 +136,7 @@
                         @if($event->event_type === 'Free')
                             Free
                         @else
-                            ₹{{ number_format($event->ticket_price, 0) }}
+                            ${{ number_format($event->ticket_price, 0) }}
                         @endif
                     </div>
                     <div class="ev-ticket-card__price-label">
@@ -304,7 +304,7 @@
                         </div>
                         <div class="ev-card__footer" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--ev-border-lt);">
                             <span class="ev-card__price">
-                                {{ $rel->event_type === 'Free' ? 'Free' : '₹'.number_format($rel->ticket_price,0) }}
+                                {{ $rel->event_type === 'Free' ? 'Free' : '$'.number_format($rel->ticket_price,0) }}
                                 <span class="ev-card__price-label">{{ $rel->event_type === 'Free' ? 'No fee' : 'per person' }}</span>
                             </span>
                             <a href="{{ $relUrl }}" class="ev-card__details">View →</a>

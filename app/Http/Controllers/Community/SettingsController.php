@@ -54,15 +54,19 @@ class SettingsController extends Controller
     {
         $request->validate([
             'appearance'         => 'required|in:light,dark',
-            'profile_visibility' => 'required|in:public,alumni-only',
+            'profile_visibility' => 'nullable|in:public,alumni-only',
         ]);
 
         $user = AlumniUser::findOrFail(session('alumni_id'));
 
-        $user->update([
-            'appearance'         => $request->appearance,
-            'profile_visibility' => $request->profile_visibility,
-        ]);
+        $updates = ['appearance' => $request->appearance];
+
+        if ($request->filled('profile_visibility')) {
+            $updates['profile_visibility'] = $request->profile_visibility;
+        }
+
+        $user->update($updates);
+
         return back()->with('success', 'Preferences updated.')->with('tab', 'preferences');
     }
 

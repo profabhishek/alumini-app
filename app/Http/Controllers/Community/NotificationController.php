@@ -102,6 +102,18 @@ class NotificationController extends Controller
         $isAdmin = in_array($role, ['admin', 'super_admin']);
         $isStaff = in_array($role, ['admin', 'super_admin', 'moderator']);
 
+        // Unread approval notifications (one query for all three types)
+        $approvalCounts = \App\Models\AlumniNotification::where('recipient_id', $alumniId)
+            ->whereIn('type', ['event_approved','event_rejected','job_approved','job_rejected','story_approved','story_rejected'])
+            ->where('is_read', false)
+            ->selectRaw('type, COUNT(*) as cnt')
+            ->groupBy('type')
+            ->pluck('cnt', 'type');
+
+        $eventApprovalBadge = ($approvalCounts->get('event_approved', 0) + $approvalCounts->get('event_rejected', 0));
+        $jobApprovalBadge   = ($approvalCounts->get('job_approved',   0) + $approvalCounts->get('job_rejected',   0));
+        $storyApprovalBadge = ($approvalCounts->get('story_approved',  0) + $approvalCounts->get('story_rejected',  0));
+
         // Job badges
         $lastSeen = session('applications_last_seen')
             ? \Carbon\Carbon::parse(session('applications_last_seen')) : now();
@@ -117,6 +129,7 @@ class NotificationController extends Controller
         })->where('created_at', '>', $myJobsLastSeen)->count();
 
         $moderationQueueBadge = $isAdmin ? \App\Models\Job::where('status', 'pending')->count() : 0;
+        $myJobsNewApplicantsBadge += $jobApprovalBadge;
         $jobTotal = $myApplicationsBadge + $moderationQueueBadge + $myJobsNewApplicantsBadge;
 
         // Event badges
@@ -130,16 +143,12 @@ class NotificationController extends Controller
                     ->where('created_at', '>', $since)->count();
             }
         }
+        $myEventsNewRegsBadge += $eventApprovalBadge;
         $pendingEventsBadge = $isStaff ? \App\Models\Event::where('status', 'pending')->count() : 0;
         $eventTotal = $myEventsNewRegsBadge + $pendingEventsBadge;
 
         // Story badges
-        $myStoriesLastSeen = session('my_stories_last_seen')
-            ? \Carbon\Carbon::parse(session('my_stories_last_seen')) : now();
-        $myStoriesUpdatesBadge = \App\Models\Story::where('created_by', $alumniId)
-            ->where('status', '!=', 'pending')
-            ->where('updated_at', '>', $myStoriesLastSeen)
-            ->count();
+        $myStoriesUpdatesBadge = $storyApprovalBadge;
         $pendingStoriesBadge = $isStaff ? \App\Models\Story::where('status', 'pending')->count() : 0;
         $storyTotal = $myStoriesUpdatesBadge + $pendingStoriesBadge;
 
@@ -172,7 +181,10 @@ class NotificationController extends Controller
         if ($alumniId) {
             $socialTypes = ['post_like','comment_like','comment','reply',
                             'group_invitation','group_join','group_post_pending','group_post_approved','group_member_joined','group_new_post',
-                            'chat_join_request','chat_group_invitation'];
+                            'chat_join_request','chat_group_invitation',
+                            'event_approved','event_rejected',
+                            'job_approved','job_rejected',
+                            'story_approved','story_rejected'];
 
             \App\Models\AlumniNotification::where('recipient_id', $alumniId)
                 ->whereIn('type', $socialTypes)
@@ -201,10 +213,17 @@ class NotificationController extends Controller
         // Detect whether the published_at column exists yet (migration may not have run)
         $hasPubAt = \Illuminate\Support\Facades\Schema::hasColumn('jobs', 'published_at');
 
+        // Respect "Clear All" — only show content published after the user last cleared
+        $feedUser      = AlumniUser::find($alumniId);
+        $feedClearedAt = $feedUser?->feed_cleared_at;
+
         // Jobs
         $jobCols  = $hasPubAt ? ['id','title','slug','published_at','created_at'] : ['id','title','slug','created_at'];
         $jobQuery = \App\Models\Job::where('status', 'published');
         if ($hasPubAt) { $jobQuery->orderByDesc('published_at'); } else { $jobQuery->latest(); }
+        if ($feedClearedAt) {
+            $jobQuery->where($hasPubAt ? 'published_at' : 'created_at', '>', $feedClearedAt);
+        }
         $jobQuery->take(5)->get($jobCols)->each(function ($j) use ($items, $hasPubAt) {
             $ts = \Carbon\Carbon::parse(($hasPubAt ? $j->published_at : null) ?? $j->created_at);
             $items->push([
@@ -222,6 +241,9 @@ class NotificationController extends Controller
         $evCols  = $hasEvPubAt ? ['id','title','slug','published_at','created_at'] : ['id','title','slug','created_at'];
         $evQuery = \App\Models\Event::where('status', 'published');
         if ($hasEvPubAt) { $evQuery->orderByDesc('published_at'); } else { $evQuery->latest(); }
+        if ($feedClearedAt) {
+            $evQuery->where($hasEvPubAt ? 'published_at' : 'created_at', '>', $feedClearedAt);
+        }
         $evQuery->take(5)->get($evCols)->each(function ($e) use ($items, $hasEvPubAt) {
             $ts = \Carbon\Carbon::parse(($hasEvPubAt ? $e->published_at : null) ?? $e->created_at);
             $items->push([
@@ -239,6 +261,9 @@ class NotificationController extends Controller
         $stCols  = $hasStPubAt ? ['id','title','slug','published_at','created_at'] : ['id','title','slug','created_at'];
         $stQuery = \App\Models\Story::where('status', 'published');
         if ($hasStPubAt) { $stQuery->orderByDesc('published_at'); } else { $stQuery->latest(); }
+        if ($feedClearedAt) {
+            $stQuery->where($hasStPubAt ? 'published_at' : 'created_at', '>', $feedClearedAt);
+        }
         $stQuery->take(5)->get($stCols)->each(function ($s) use ($items, $hasStPubAt) {
             $ts = \Carbon\Carbon::parse(($hasStPubAt ? $s->published_at : null) ?? $s->created_at);
             $items->push([
@@ -252,9 +277,9 @@ class NotificationController extends Controller
         });
 
         // Notices
-        \App\Models\Notice::where('status', 'published')
-            ->whereNotNull('published_at')
-            ->orderByDesc('published_at')->take(5)->get(['id','title','slug','published_at'])
+        $noticeQuery = \App\Models\Notice::where('status', 'published')->whereNotNull('published_at');
+        if ($feedClearedAt) { $noticeQuery->where('published_at', '>', $feedClearedAt); }
+        $noticeQuery->orderByDesc('published_at')->take(5)->get(['id','title','slug','published_at'])
             ->each(function ($n) use ($items) {
                 $ts = \Carbon\Carbon::parse($n->published_at);
                 $items->push([
@@ -268,9 +293,9 @@ class NotificationController extends Controller
             });
 
         // News
-        $newsRows = \App\Models\News::where('status', 'published')
-            ->whereNotNull('published_at')
-            ->orderByDesc('published_at')->take(5)->get(['id','title','slug','published_at']);
+        $newsQuery = \App\Models\News::where('status', 'published')->whereNotNull('published_at');
+        if ($feedClearedAt) { $newsQuery->where('published_at', '>', $feedClearedAt); }
+        $newsRows = $newsQuery->orderByDesc('published_at')->take(5)->get(['id','title','slug','published_at']);
         \Illuminate\Support\Facades\Log::info('FEED news rows: ' . $newsRows->count() . ' | ' . $newsRows->pluck('title')->implode(', '));
         $newsRows->each(function ($n) use ($items) {
                 $ts = \Carbon\Carbon::parse($n->published_at);
@@ -311,6 +336,25 @@ class NotificationController extends Controller
         return response()->json([
             'items' => $merged,
         ]);
+    }
+
+    public function clearAll()
+    {
+        $alumniId = session('alumni_id');
+        if (!$alumniId) {
+            return response()->json(['ok' => false], 401);
+        }
+
+        \App\Models\AlumniNotification::where('recipient_id', $alumniId)->delete();
+
+        $user = AlumniUser::find($alumniId);
+        if ($user) {
+            $user->notifications_read_at = now();
+            $user->feed_cleared_at = now();
+            $user->save();
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function markOneRead(Request $request, $id)

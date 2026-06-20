@@ -50,38 +50,66 @@ class AlumniAuth
     // ── Private ───────────────────────────────────────────────────────────
 
     /**
-     * Keep an AlumniSession row in sync with this browser session, so the
-     * Settings > Active Sessions tab can list and revoke it.
+     * Keep ONE AlumniSession row per device (user_agent) in sync.
+     * Netflix-style: same browser on same OS = one entry, last_active_at
+     * updates on each request. A new login rotates the session_id on the
+     * existing device row rather than creating a duplicate.
      *
      * Returns false if this session was previously tracked but its row no
-     * longer exists — i.e. it was revoked — signalling the caller to log
-     * the user out.
+     * longer exists — i.e. it was revoked — signalling the caller to log out.
      */
     private function trackSession(Request $request): bool
     {
         $sessionId = session()->getId();
+        $alumniId  = session('alumni_id');
+        $userAgent = $request->userAgent() ?? '';
+        $device    = AlumniSession::parseDevice($userAgent);
 
-        $exists = AlumniSession::where('session_id', $sessionId)->exists();
+        // ── 1. Check if this exact session_id is already tracked ─────────
+        $row = AlumniSession::where('session_id', $sessionId)->first();
 
-        if (! $exists && session('alumni_session_tracked')) {
+        if ($row) {
+            // Throttle DB writes: only update once per minute per session
+            if (! $row->last_active_at || $row->last_active_at->diffInSeconds(now()) >= 60) {
+                $row->update(['last_active_at' => now(), 'ip_address' => $request->ip()]);
+            }
+            session(['alumni_session_tracked' => true]);
+            return true;
+        }
+
+        // ── 2. No row for this session_id ─────────────────────────────────
+        // If we previously flagged this session as tracked but the row is
+        // gone, it was revoked — boot the user.
+        if (session('alumni_session_tracked')) {
             return false;
         }
 
-        $userAgent = $request->userAgent() ?? '';
+        // ── 3. First request of a new session — find existing device row ──
+        // Same user + same user_agent = same physical device/browser.
+        // Reuse that row (update session_id) instead of creating a duplicate.
+        $existing = AlumniSession::where('alumni_user_id', $alumniId)
+            ->where('user_agent', $userAgent)
+            ->first();
 
-        AlumniSession::updateOrCreate(
-            ['session_id' => $sessionId],
-            [
-                'alumni_user_id' => session('alumni_id'),
+        if ($existing) {
+            $existing->update([
+                'session_id'     => $sessionId,
+                'ip_address'     => $request->ip(),
+                'last_active_at' => now(),
+            ]);
+        } else {
+            // Genuinely new device/browser — create a fresh row
+            AlumniSession::create([
+                'session_id'     => $sessionId,
+                'alumni_user_id' => $alumniId,
                 'ip_address'     => $request->ip(),
                 'user_agent'     => $userAgent,
-                'device'         => AlumniSession::parseDevice($userAgent),
+                'device'         => $device,
                 'last_active_at' => now(),
-            ]
-        );
+            ]);
+        }
 
         session(['alumni_session_tracked' => true]);
-
         return true;
     }
 

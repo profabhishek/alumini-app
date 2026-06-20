@@ -406,18 +406,8 @@ class AuthController extends Controller
             session(['events_regs_seen' => $seenMap]);
         }
 
-        // ── Record this device in alumni_sessions ─────────────────────────
-        \App\Models\AlumniSession::updateOrCreate(
-            [
-                'alumni_user_id' => $user->id,
-                'ip_address'     => request()->ip(),
-                'user_agent'     => request()->userAgent() ?? '',
-            ],
-            [
-                'device'         => \App\Models\AlumniSession::parseDevice(request()->userAgent() ?? ''),
-                'last_active_at' => now(),
-            ]
-        );
+        // ── Session tracking is handled entirely by AlumniAuth middleware ────
+        // (No insert here — middleware upserts by user_agent to deduplicate)
     }
 
     // ── OTP helper ────────────────────────────────────────────────────────

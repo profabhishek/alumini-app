@@ -104,7 +104,8 @@
                                     Edit
                                 </a>
                                 <form action="{{ route('admin.news.destroy', $item) }}" method="POST"
-                                      onsubmit="return confirm('Delete \'{{ addslashes($item->title) }}\'? This cannot be undone.')">
+                                      data-confirm="Delete '{{ addslashes($item->title) }}'? This cannot be undone."
+                                      data-confirm-ok="Delete">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="admin-btn admin-btn--reject">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
@@ -122,6 +123,25 @@
         <div class="admin-pagination">{{ $newsItems->links() }}</div>
     @endif
 
+</div>
+
+{{-- Confirm Modal --}}
+<div class="admin-modal-backdrop" id="adminConfirmModal" hidden>
+    <div class="admin-modal">
+        <div class="admin-modal__header">
+            <h3>Confirm Action</h3>
+            <button type="button" class="admin-modal__close" id="adminConfirmClose">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="admin-modal__body">
+            <p id="adminConfirmMessage" style="margin:0 0 1.5rem;"></p>
+            <div style="display:flex;gap:.625rem;justify-content:flex-end;">
+                <button type="button" class="admin-btn admin-btn--ghost" id="adminConfirmCancel">Cancel</button>
+                <button type="button" class="admin-btn admin-btn--reject" id="adminConfirmOk">Confirm</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- Category Manager Modal --}}
@@ -147,6 +167,40 @@
 @endsection
 
 @push('scripts')
+<script>
+(function () {
+    var modal    = document.getElementById('adminConfirmModal');
+    var msgEl    = document.getElementById('adminConfirmMessage');
+    var okBtn    = document.getElementById('adminConfirmOk');
+    var closeEl  = document.getElementById('adminConfirmClose');
+    var cancelEl = document.getElementById('adminConfirmCancel');
+    var _resolve = null;
+    function open(msg, okLabel) {
+        msgEl.textContent = msg;
+        okBtn.textContent = okLabel || 'Confirm';
+        modal.hidden = false;
+        return new Promise(function (res) { _resolve = res; });
+    }
+    function close(result) {
+        modal.hidden = true;
+        var r = _resolve; _resolve = null;
+        if (r) r(result);
+    }
+    window.adminConfirm = open;
+    document.addEventListener('submit', function (e) {
+        var form = e.target.closest('form[data-confirm]');
+        if (!form) return;
+        e.preventDefault();
+        open(form.dataset.confirm, form.dataset.confirmOk || 'Confirm').then(function (ok) {
+            if (ok) { form.removeAttribute('data-confirm'); form.submit(); }
+        });
+    });
+    okBtn.addEventListener('click', function () { close(true); });
+    closeEl.addEventListener('click', function () { close(false); });
+    cancelEl.addEventListener('click', function () { close(false); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(false); });
+})();
+</script>
 <script src="{{ asset('js/community/admin-content.js') }}?v=1"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
