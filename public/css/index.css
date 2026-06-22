@@ -1361,6 +1361,16 @@ ul {
     .alumni-card.featured .alumni-dept {
         justify-content: center;
     }
+
+    .alumni-card.featured .alumni-avatar {
+        width: 50px;
+        height: 50px;
+        margin-top: 30px;
+    }
+
+    .alumni-name {
+        font-size: 12px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -48,6 +48,13 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
             Preferences
         </button>
+        <button class="settings-tab" data-tab="blocked">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            Blocked Users
+            @if($blockedUsers->isNotEmpty())
+                <span style="background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;">{{ $blockedUsers->count() }}</span>
+            @endif
+        </button>
         <button class="settings-tab" data-tab="sessions">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             Active Sessions
@@ -186,6 +193,53 @@
         </form>
     </div>
 
+    {{-- ── Tab: Blocked Users ───────────────────────────────────────────── --}}
+    <div class="settings-tab-panel" id="tab-blocked">
+        <div class="settings-form-section">
+            <h2 class="settings-section-title">Blocked Users</h2>
+            <p class="settings-section-desc">Blocked users can't see your profile, message you, or appear in your feed or directory. You can unblock them at any time.</p>
+
+            @if($blockedUsers->isEmpty())
+                <div class="sessions-empty">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    <p>You haven't blocked anyone.</p>
+                </div>
+            @else
+                <div class="sessions-list" id="blockedUsersList">
+                @foreach($blockedUsers as $block)
+                    @php $bUser = $block->blocked; @endphp
+                    @if(!$bUser) @continue @endif
+                    <div class="session-item" id="blocked-row-{{ $bUser->id }}">
+                        <div class="session-icon" style="background:{{ $bUser->photo ? 'transparent' : '#f3f4f6' }};overflow:hidden;border-radius:50%;width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                            @if($bUser->photo)
+                                <img src="{{ asset('storage/' . $bUser->photo) }}" alt="{{ $bUser->full_name }}"
+                                    style="width:40px;height:40px;object-fit:cover;border-radius:50%;" loading="lazy">
+                            @else
+                                <span style="font-size:14px;font-weight:700;color:#6b7280;">{{ $bUser->initials }}</span>
+                            @endif
+                        </div>
+                        <div class="session-info">
+                            <span class="session-device">{{ $bUser->full_name }}</span>
+                            <span class="session-meta">
+                                {{ $bUser->department ?: 'ICCR Alumni' }}
+                                @if($bUser->passing_year) · {{ $bUser->passing_year }} @endif
+                                · Blocked {{ $block->created_at->diffForHumans() }}
+                            </span>
+                        </div>
+                        <button type="button"
+                            class="btn-revoke"
+                            onclick="unblockUser({{ $bUser->id }}, this)"
+                            data-user-id="{{ $bUser->id }}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                            Unblock
+                        </button>
+                    </div>
+                @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
+
     {{-- ── Tab: Sessions ─────────────────────────────────────────────────  --}}
     <div class="settings-tab-panel" id="tab-sessions">
 
@@ -250,6 +304,50 @@
 
 @push('scripts')
 <script src="{{ asset('js/community/settings.js') }}"></script>
+
+<script>
+const _SETTINGS_CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+async function unblockUser(userId, btn) {
+    const ok = await window.CommunityConfirm.show({
+        title: 'Unblock this user?',
+        body: "They'll be able to message you and see your profile again.",
+        confirmText: 'Unblock',
+        cancelText: 'Cancel',
+        danger: false,
+    });
+    if (!ok) return;
+    btn.disabled = true;
+    btn.textContent = 'Unblocking…';
+    fetch('/users/' + userId + '/unblock', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': _SETTINGS_CSRF, 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(() => {
+        const row = document.getElementById('blocked-row-' + userId);
+        if (row) row.remove();
+        // If list is now empty, show empty state
+        const list = document.getElementById('blockedUsersList');
+        if (list && !list.querySelector('.session-item')) {
+            list.outerHTML = '<div class="sessions-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg><p>You haven\'t blocked anyone.</p></div>';
+        }
+        // Remove the badge count from the tab if zero
+        const badge = document.querySelector('[data-tab="blocked"] span');
+        if (badge) {
+            const remaining = document.querySelectorAll('[id^="blocked-row-"]').length;
+            if (remaining === 0) badge.remove();
+            else badge.textContent = remaining;
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.textContent = 'Unblock';
+        alert('Something went wrong. Please try again.');
+    });
+}
+</script>
 
 @if(session('tab'))
 <script>

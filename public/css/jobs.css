@@ -561,6 +561,11 @@
     color: var(--jr-amber);
     border: 1px solid rgba(217, 119, 6, 0.2);
 }
+.jr-badge--urgent {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid rgba(220, 38, 38, 0.25);
+}
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
 .jr-btn {

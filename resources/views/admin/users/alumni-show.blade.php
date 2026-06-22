@@ -42,9 +42,16 @@
                 <div class="admin-detail-name">{{ $user->full_name }}</div>
                 <div class="admin-detail-email">{{ $user->email }}</div>
 
-                <span class="admin-status-badge {{ $user->is_approved ? 'admin-status-badge--approved' : 'admin-status-badge--pending' }}" style="margin:8px 0;">
-                    {{ $user->is_approved ? 'Approved' : 'Pending' }}
-                </span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:8px 0;">
+                    <span class="admin-status-badge {{ $user->is_approved ? 'admin-status-badge--approved' : 'admin-status-badge--pending' }}">
+                        {{ $user->is_approved ? 'Approved' : 'Pending' }}
+                    </span>
+                    @if($user->is_iccr_alumni)
+                        <span class="admin-status-badge" style="background:#e0edff;color:#1a56db;border:1px solid #b8d4f8;">
+                            ICCR Alumni
+                        </span>
+                    @endif
+                </div>
 
                 <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:12px;">
                     <form action="{{ route('admin.alumni.toggle-approval', $user) }}" method="POST">
@@ -74,9 +81,10 @@
                 <dl class="admin-detail-list">
                     <div class="admin-detail-row"><dt>Full Name</dt><dd>{{ $user->full_name }}</dd></div>
                     <div class="admin-detail-row"><dt>Email</dt><dd>{{ $user->email }}</dd></div>
-                    <div class="admin-detail-row"><dt>Phone</dt><dd>{{ $user->phone }}</dd></div>
-                    <div class="admin-detail-row"><dt>Gender</dt><dd>{{ $user->gender }}</dd></div>
-                    <div class="admin-detail-row"><dt>Birth Date</dt><dd>{{ \Carbon\Carbon::parse($user->birth_date)->format('d M Y') }}</dd></div>
+                    <div class="admin-detail-row"><dt>Nationality</dt><dd>{{ $user->nationality ?: '—' }}</dd></div>
+                    <div class="admin-detail-row"><dt>Phone</dt><dd>{{ $user->phone ?: '—' }}</dd></div>
+                    <div class="admin-detail-row"><dt>Gender</dt><dd>{{ $user->gender ?: '—' }}</dd></div>
+                    <div class="admin-detail-row"><dt>Birth Date</dt><dd>{{ $user->birth_date ? \Carbon\Carbon::parse($user->birth_date)->format('d M Y') : '—' }}</dd></div>
                     <div class="admin-detail-row"><dt>Country</dt><dd>{{ $user->country ?: '—' }}</dd></div>
                     <div class="admin-detail-row"><dt>Current City</dt><dd>{{ $user->current_city ?: '—' }}</dd></div>
                 </dl>
@@ -103,18 +111,45 @@
                 </dl>
             </div>
 
-            @if($user->current_job_title || $user->current_company || $user->bio)
-            <div class="admin-card">
+            <div class="admin-card" style="margin-bottom:16px;">
                 <div class="admin-detail-section-title">Professional</div>
                 <dl class="admin-detail-list">
-                    <div class="admin-detail-row"><dt>Job Title</dt><dd>{{ $user->current_job_title ?: '—' }}</dd></div>
+                    <div class="admin-detail-row"><dt>Job Title</dt><dd>{{ $user->current_job_title ?: ($user->current_position ?: '—') }}</dd></div>
                     <div class="admin-detail-row"><dt>Company</dt><dd>{{ $user->current_company ?: '—' }}</dd></div>
+                    @if($user->linkedin_url || $user->facebook_url)
+                    <div class="admin-detail-row">
+                        <dt>Social</dt>
+                        <dd>
+                            @if($user->linkedin_url)
+                                <a href="{{ $user->linkedin_url }}" target="_blank" class="admin-link" style="margin-right:8px;">LinkedIn</a>
+                            @endif
+                            @if($user->facebook_url)
+                                <a href="{{ $user->facebook_url }}" target="_blank" class="admin-link">Facebook</a>
+                            @endif
+                        </dd>
+                    </div>
+                    @endif
                     @if($user->bio)
                     <div class="admin-detail-row admin-detail-row--full">
                         <dt>Bio</dt><dd>{{ $user->bio }}</dd>
                     </div>
                     @endif
                 </dl>
+            </div>
+
+            @if($user->is_iccr_alumni)
+            <div class="admin-card" style="border-left:3px solid #1a56db;">
+                <div class="admin-detail-section-title" style="color:#1a56db;">ICCR Alumni Data Sync</div>
+                @php $hasAlumniRecord = \App\Models\AlumniData::where('email', $user->email)->exists(); @endphp
+                @if($hasAlumniRecord)
+                    <p style="font-size:13px;color:var(--text-muted);margin:0;">
+                        ✅ A matching record exists in alumni_data. Fields were {{ $user->is_approved ? 'auto-populated on approval' : 'auto-populated when approved' }}.
+                    </p>
+                @else
+                    <p style="font-size:13px;color:var(--text-muted);margin:0;">
+                        ⚠️ No matching record found in alumni_data for <strong>{{ $user->email }}</strong>. Fields will remain blank until a CSV import includes this email.
+                    </p>
+                @endif
             </div>
             @endif
         </div>

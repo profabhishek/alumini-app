@@ -38,7 +38,24 @@ class EventController extends Controller
             ->when($request->filter === 'past', fn($q) =>
                 $q->whereDate('end_date', '<', $today)
             )
-            ->orderBy('start_date')
+            // Smart ordering when no filter: upcoming first (can still register), then ongoing, then past.
+            // Within upcoming: soonest start first. Within ongoing: ending soonest first. Past: most recent first.
+            ->when(
+                !$request->filled('filter'),
+                fn($q) => $q
+                    ->orderByRaw("CASE
+                        WHEN start_date > CURDATE() THEN 0
+                        WHEN start_date <= CURDATE() AND end_date >= CURDATE() THEN 1
+                        ELSE 2
+                    END")
+                    ->orderByRaw("CASE
+                        WHEN start_date > CURDATE() THEN start_date
+                        WHEN end_date >= CURDATE() THEN end_date
+                        ELSE NULL
+                    END")
+                    ->orderBy('end_date', 'desc'),
+                fn($q) => $q->orderBy('start_date')
+            )
             ->paginate(9)
             ->withQueryString();
 
@@ -50,7 +67,17 @@ class EventController extends Controller
                 ->toArray();
         }
 
-        return view('events.index', compact('events', 'registeredEventIds'));
+        // Stats for masthead — computed once in controller, not inline in Blade
+        $upcomingCount = Event::where('status', 'published')
+            ->whereDate('start_date', '>', $today)
+            ->count();
+
+        $ongoingCount = Event::where('status', 'published')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date',   '>=', $today)
+            ->count();
+
+        return view('events.index', compact('events', 'registeredEventIds', 'upcomingCount', 'ongoingCount'));
     }
 
     public function show(Event $event)

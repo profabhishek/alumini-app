@@ -325,6 +325,23 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                         </div>
                     </div>
 
+                    {{-- Alumni Code --}}
+                    <div class="ad-fg">
+                        <label>Alumni Code</label>
+                        <input type="text" name="alumni_code" value="{{ $filters['alumni_code'] ?? '' }}" class="ad-input" placeholder="e.g. ICCR-1234">
+                    </div>
+
+                    {{-- User Type --}}
+                    <div class="ad-fg">
+                        <label>User Type</label>
+                        <select name="user_type" class="ad-select js-auto-filter">
+                            <option value="">All Types</option>
+                            @foreach($userTypeOptions as $opt)
+                                <option value="{{ $opt }}" @selected(($filters['user_type'] ?? '') === $opt)>{{ ucfirst($opt) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     {{-- Gender --}}
                     <div class="ad-fg">
                         <label>Gender</label>
@@ -482,6 +499,26 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                         </select>
                     </div>
 
+                    {{-- Has Phone --}}
+                    <div class="ad-fg">
+                        <label>Phone</label>
+                        <select name="has_phone" class="ad-select js-auto-filter">
+                            <option value="">Any</option>
+                            <option value="1" @selected(($filters['has_phone'] ?? '') === '1')>Has Phone</option>
+                            <option value="0" @selected(($filters['has_phone'] ?? '') === '0')>No Phone</option>
+                        </select>
+                    </div>
+
+                    {{-- Has LinkedIn --}}
+                    <div class="ad-fg">
+                        <label>LinkedIn</label>
+                        <select name="has_linkedin" class="ad-select js-auto-filter">
+                            <option value="">Any</option>
+                            <option value="1" @selected(($filters['has_linkedin'] ?? '') === '1')>Has LinkedIn</option>
+                            <option value="0" @selected(($filters['has_linkedin'] ?? '') === '0')>No LinkedIn</option>
+                        </select>
+                    </div>
+
                     {{-- Employed --}}
                     <div class="ad-fg">
                         <label>Employment</label>
@@ -490,6 +527,32 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                             <option value="1" @selected(($filters['employed'] ?? '') === '1')>Employed</option>
                             <option value="0" @selected(($filters['employed'] ?? '') === '0')>Not Employed</option>
                         </select>
+                    </div>
+
+                    {{-- Address City --}}
+                    <div class="ad-fg">
+                        <label>Address City</label>
+                        <input type="text" name="address_city" value="{{ $filters['address_city'] ?? '' }}" class="ad-input" placeholder="e.g. Delhi">
+                    </div>
+
+                    {{-- Registration Date --}}
+                    <div class="ad-fg">
+                        <label>Registration Date</label>
+                        <div class="ad-range">
+                            <input type="date" name="reg_from" value="{{ $filters['reg_from'] ?? '' }}" class="ad-input">
+                            <span>–</span>
+                            <input type="date" name="reg_to" value="{{ $filters['reg_to'] ?? '' }}" class="ad-input">
+                        </div>
+                    </div>
+
+                    {{-- Record Updated --}}
+                    <div class="ad-fg">
+                        <label>Record Updated</label>
+                        <div class="ad-range">
+                            <input type="date" name="updated_from" value="{{ $filters['updated_from'] ?? '' }}" class="ad-input">
+                            <span>–</span>
+                            <input type="date" name="updated_to" value="{{ $filters['updated_to'] ?? '' }}" class="ad-input">
+                        </div>
                     </div>
 
                     {{-- Record Created --}}
@@ -554,6 +617,7 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Alumni Code</th>
+                            <th>User Type</th>
                             <th>Legacy ID</th>
                             <th>Gender</th>
                             <th>Date of Birth</th>
@@ -577,6 +641,7 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                             <th>Addr State</th>
                             <th>Addr Country</th>
                             <th>Pincode</th>
+                            <th>Registration Date</th>
                             <th>Record Created</th>
                             <th>Record Updated</th>
                             <th class="pin-r">Action</th>
@@ -598,6 +663,13 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                             <td>
                                 @if($row->alumni_code)
                                     <span class="badge badge--orange">{{ $row->alumni_code }}</span>
+                                @else
+                                    <span class="ad-null">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($row->user_type)
+                                    <span class="badge badge--gray">{{ ucfirst($row->user_type) }}</span>
                                 @else
                                     <span class="ad-null">—</span>
                                 @endif
@@ -649,6 +721,7 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
                             <td>{{ $row->address_state ?: '—' }}</td>
                             <td>{{ $row->address_country ?: '—' }}</td>
                             <td>{{ $row->address_pincode ?: '—' }}</td>
+                            <td>{{ $row->registration_date ? \Carbon\Carbon::parse($row->registration_date)->format('d M Y') : '—' }}</td>
                             <td>
                                 @php
                                     $created = $row->record_created_at ?? $row->created_at;
@@ -740,9 +813,11 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
 
         {{-- Hidden export form — carries all current filters --}}
         <form method="GET" action="{{ route('admin.alumni-data.export') }}" id="exportForm" style="display:none">
-            <input type="hidden" name="format"   id="expFormat"  value="csv">
-            <input type="hidden" name="columns"  id="expColumns" value="">
+            <input type="hidden" name="format"         id="expFormat"  value="csv">
+            <input type="hidden" name="columns"        id="expColumns" value="">
             <input type="hidden" name="q"              value="{{ $q }}">
+            <input type="hidden" name="alumni_code"    value="{{ $filters['alumni_code'] ?? '' }}">
+            <input type="hidden" name="user_type"      value="{{ $filters['user_type'] ?? '' }}">
             <input type="hidden" name="gender"         value="{{ $filters['gender'] ?? '' }}">
             <input type="hidden" name="level_of_study" value="{{ $filters['level_of_study'] ?? '' }}">
             <input type="hidden" name="course"         value="{{ $filters['course'] ?? '' }}">
@@ -759,10 +834,17 @@ input[type="date"].ad-input{padding:0 6px;font-size:.78rem}
             <input type="hidden" name="city"           value="{{ $filters['city'] ?? '' }}">
             <input type="hidden" name="company"        value="{{ $filters['company'] ?? '' }}">
             <input type="hidden" name="designation"    value="{{ $filters['designation'] ?? '' }}">
+            <input type="hidden" name="address_city"   value="{{ $filters['address_city'] ?? '' }}">
             <input type="hidden" name="address_state"  value="{{ $filters['address_state'] ?? '' }}">
             <input type="hidden" name="address_country" value="{{ $filters['address_country'] ?? '' }}">
             <input type="hidden" name="has_email"      value="{{ $filters['has_email'] ?? '' }}">
+            <input type="hidden" name="has_phone"      value="{{ $filters['has_phone'] ?? '' }}">
+            <input type="hidden" name="has_linkedin"   value="{{ $filters['has_linkedin'] ?? '' }}">
             <input type="hidden" name="employed"       value="{{ $filters['employed'] ?? '' }}">
+            <input type="hidden" name="reg_from"       value="{{ $filters['reg_from'] ?? '' }}">
+            <input type="hidden" name="reg_to"         value="{{ $filters['reg_to'] ?? '' }}">
+            <input type="hidden" name="updated_from"   value="{{ $filters['updated_from'] ?? '' }}">
+            <input type="hidden" name="updated_to"     value="{{ $filters['updated_to'] ?? '' }}">
             <input type="hidden" name="created_from"   value="{{ $filters['created_from'] ?? '' }}">
             <input type="hidden" name="created_to"     value="{{ $filters['created_to'] ?? '' }}">
         </form>

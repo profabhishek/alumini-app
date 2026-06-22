@@ -276,6 +276,8 @@ window.ChatConfig = {!! json_encode([
         'onlineStatus'      => route('chat.online-status'),
         'tickUpdates' => url('/chat/conversations/__ID__/tick-updates'),
         'markOffline' => route('chat.mark-offline'),
+        'blockUser'   => url('/users/__ID__/block'),
+        'unblockUser' => url('/users/__ID__/unblock'),
     ],
 ]) !!};
     </script>

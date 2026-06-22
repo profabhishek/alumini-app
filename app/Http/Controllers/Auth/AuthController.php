@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -18,6 +19,151 @@ class AuthController extends Controller
 
     private const REMEMBER_LIFETIME_DAYS = 90;
     private const REMEMBER_COOKIE_NAME   = 'alumni_remember';
+
+    // ── All 134 ICCR-empanelled institutes (A.Y. 2023-24 onwards) ────────
+    // Source: Official ICCR PDF list — names match dropdown values exactly
+    private const VALID_INSTITUTES = [
+        // Central Universities (1–16)
+        'Aligarh Muslim University, Aligarh, Uttar Pradesh',
+        'Babasaheb Bhimrao Ambedkar University, Lucknow, Uttar Pradesh',
+        'Banaras Hindu University, Varanasi, Uttar Pradesh',
+        'Central University of Gujarat, Gandhinagar, Gujarat',
+        'Central University of Punjab, Bathindia, Punjab',
+        'English and Foreign Language University, Hyderabad, Telangana',
+        'Jamia Milia Islamia, New Delhi, Delhi',
+        'Mahatma Gandhi Antarrashtriya Hindi Vishwavidhyalaya, Wardha, Maharashtra',
+        'Manipur University, Imphal, Manipur',
+        'Mizoram University, Aizawi, Mizoram',
+        'Nalanda University, Rajgir, Bihar',
+        'National Forensic Science University, Gandhinagar, Gujarat',
+        'Tezpur University, Tezpur, Assam',
+        'University of Delhi, New Delhi, Delhi',
+        'University of Hyderabad, Hyderabad, Telangana',
+        'Visva Bharati University, Santiniketan, West Bengal',
+        // State Universities (17–54)
+        'Alagappa University, Karaikudi, Tamil Nadu',
+        'Andhra University, Visakhapatnam, Andhra Pradesh',
+        'Anna University, Chennai, Tamil Nadu',
+        'Bangalore University, Bangalore, Karnataka',
+        'Bharathiar University, Coimbatore, Tamil Nadu',
+        'Cochin University of Science and Technology, Kochi, Kerala',
+        'Delhi Technological University, New Delhi, Delhi',
+        'Dibrugarh University, Dibrugarh, Assam',
+        'Dr. Babasaheb Ambedkar Marathawada University, Aurangabad',
+        'Gauhati University, Guwahati, Assam',
+        'Goa University, Taleigao, Goa',
+        'Gujarat Technological University, Ahmedabad, Gujarat',
+        'Gujarat University, Ahmedabad, Gujarat',
+        'Guru Gobind Singh Indraprastha University, New Delhi, Delhi',
+        'Guru Nanak Dev University, Amritsar',
+        'Indraprastha Institute of Information Technology, New Delhi, Delhi',
+        'Jawaharlal Nehru Technological University, Hyderabad, Telangana',
+        'Kerala University, Thiruvananthapuram, Kerala',
+        'Kurukshetra University, Thanesar, Haryana',
+        'Mahatma Gandhi University, Kottayam, Kerala',
+        'Mangalore University, Mangaluru, Karnataka',
+        'Mumbai University, Mumbai, Maharashtra',
+        'Osmania University, Hyderabad, Telangana',
+        'Panjab University, Chandigarh',
+        'Punjabi University, Patiala, Punjab',
+        'Rabindra Bharati University, Kolkata, West Bengal',
+        'Sardar Patel University, Vallabh Vidyanagar, Gujarat',
+        'Savitribai Phule Pune University, Pune, Maharashtra',
+        'Shivaji University, Kolhapur, Maharashtra',
+        'Shree Somnath Sanskrit University, Veraval, Gujarat',
+        'The Maharaja Sayajirao University, Vadodara, Gujarat',
+        'University of Calcutta, Kolkata, West Bengal',
+        'University of Kashmir, Srinagar, Jammu and Kashmir',
+        'University of Lucknow, Lucknow, Uttar Pradesh',
+        'University of Mysore, Mysore, Karnataka',
+        'University of Jammu, Jammu, Jammu and Kashmir',
+        'Utkal University, Bhubaneswar, Odisha',
+        'Veer Narmad South Gujarat University, Surat, Gujarat',
+        // Centrally Funded Technical Institutes (55–80)
+        'IIT Roorkee, Uttarakhand',
+        'IIT Kanpur, Uttar Pradesh',
+        'IIT (BHU), Varanasi, Uttar Pradesh',
+        'IIT Gandhinagar, Palaj, Gujarat',
+        'IIT Patna, Bihar',
+        'IIT Kharagpur, West Bengal',
+        'IIT Madras, Chennai, Tamil Nadu',
+        'IIT (ISM) Dhanbad, Jharkhand',
+        'IIT Bombay, Maharashtra',
+        'IIT Indore, Madhya Pradesh',
+        'IIT Hyderabad, Kandi, Telangana',
+        'IIT Ropar, Punjab',
+        'IIT Delhi, New Delhi, Delhi',
+        'MNIT Jaipur, Rajasthan',
+        'NIT Calicut, Kattangal, Kerala',
+        'NIT Durgapur, West Bengal',
+        'NIT Hamirpur, Himachal Pradesh',
+        'NIT Jalandhar, Punjab',
+        'NIT Kurukshetra, Thanesar, Haryana',
+        'NIT Meghalaya, Shillong, Meghalaya',
+        'NIT Rourkela, Rourkela, Odisha',
+        'NIT Tiruchirappalli, Tamil Nadu',
+        'NIT Warangal, Hanamkonda, Telangana',
+        'NIT Surathkal, Mangaluru, Karnataka',
+        'NIT Silchar, Assam',
+        'Sardar Vallabhbhai National Institute Of Technology (SVNIT), Surat, Gujarat',
+        // Dance/Music/Traditional Knowledge Institutes (81–88)
+        'Dev Sanskriti Vishwavidyalaya, Shantikunj Gayatrikunj, Haridwar, Uttarakhand',
+        'Indira Kala Sangeet Vishwavidyalaya, Khairagarh, Chhattisgarh',
+        'Kalakshetra Foundation, Chennai, Tamil Nadu',
+        'Kathak Kendra, New Delhi, Delhi',
+        'Kendriya Hindi Sansthan, New Delhi, Delhi',
+        'Pracheen Kala Kendra, Chandigarh',
+        'National School of Drama, New Delhi, Delhi',
+        'Satyajit Ray Film and Television Institute, Kolkata, West Bengal',
+        // Agricultural Universities (89–102)
+        'Acharya Narendra Deva University of Agriculture and Technology, Kumarganj, Uttar Pradesh',
+        'Ch. Sarwan Kumar Krishi Vishvavidyalaya, Palampur, Himachal Pradesh',
+        'Chaudhary Charan Singh Haryana Agricultural University, Hisar, Haryana',
+        'Dr. Yaswant Singh Parmar University of Horticulture & Forestry, Nauni-Solan, Himachal Pradesh',
+        'Guru Angad Dev Veterinary and Animal Sciences University (GADVASU), Ludhiana',
+        'Jawaharlal Nehru Krishi Vishwa Vidyalaya, Jabalpur, Madhya Pradesh',
+        'Kerala Agricultural University, Thrissur, Kerala',
+        'Nanaji Deshmukh Veterinary Science University, Jabalpur, Madhya Pradesh',
+        'Punjab Agricultural University, Ludhiana, Punjab',
+        'Sardar Vallabhbhai Patel University of Agriculture and Technology, Meerut, Uttar Pradesh',
+        'Sher-e-Kashmir University of Agricultural Sciences and Technology of Jammu, Jammu & Kashmir',
+        'Sher-e-Kashmir University of Agricultural Sciences and Technology of Kashmir, Srinagar',
+        'University of Agricultural Sciences, Dharwad, Karnataka',
+        'University of Agricultural Sciences, Bangalore, Karnataka',
+        // Ayurveda Universities (103–134)
+        'Bhartiya Sanskriti Darshan Trust Ayurved Mahavidyalaya, Wagholi, Pune, Maharashtra',
+        'Ch. Brahm Prakash Ayurved Charak Sansthan, Khera Dabar, Najafgarh',
+        'Dr BRKR Govt Ayurveda College, Hyderabad',
+        'Government Ayurved College Wazirabad, Nanded, Maharashtra',
+        'Government Ayurveda Medical College, Dhanvantari Road, Bangalore',
+        'Govt Ayurved Mahavidyalaya Raje Raghuji Nagar, Nagpur, Maharashtra',
+        'Govt Ayurvedic College, Gwalior, Madhya Pradesh',
+        'Govt Nizamia Tibbi College, Hyderabad, Telangana',
+        'Govt Siddha Medical College, Palayamkottai, Tirunelveli, Tamil Nadu',
+        'Institute of Training and Research in Ayurved, Jamnagar',
+        'JS Ayurved Mahavidyalaya, Nadiad, Gujarat',
+        'JSPS Govt Homoeopathic Medical College, Hyderabad, Telangana',
+        'Kaivalyadhama Yoga Institute, Lonavia, Pune, Maharashtra',
+        'KLE Shri B.M. Kankanawadi Ayurveda Mahavidyalaya, Belagavi, Karnataka',
+        'Maharashtra Arogya Mandala Sumati Bhai Shah Ayurved Mahavidyalaya, Pune, Maharashtra',
+        'Morarji Desai National Institute of Yoga, New Delhi, Delhi',
+        'National Institute of Ayurved, Jaipur, Rajasthan',
+        'National Institute of Homoeopathy, Kolkata, West Bengal',
+        'National Institute of Siddha, Chennai, Tamil Nadu',
+        'National Institute of Unani Medicine, Bengaluru',
+        'Pt. Khushilal Sharma Government Ayurveda College, Bhopal, Madhya Pradesh',
+        'RA Podar Ayurved College, Worli, Mumbai, Maharashtra',
+        'Rajiv Gandhi Government Post Graduate Ayurvedic College, Paprola, Himachal Pradesh',
+        'SDM College of Ayurveda and Hospital, Kuthpady, Udupi',
+        'Shri Radha Krishna Toshniwal Ayurved Mahavidyalaya, Akola, Maharashtra',
+        'Sri Dharmasthala Manjunatheshwara College of Ayurveda and Hospital, Hassan',
+        'The North Eastern Institute of Ayurveda and Homoeopathy, Shillong, Meghalaya',
+        'Tilak Ayurveda Mahavidyalaya, Pune, Maharashtra',
+        'Swami Vivekananda Yoga Anusandhana Samsthana (SVYASA), Bengaluru, Karnataka',
+        'Government Ayurveda College, Tripunithura, Ernakulam, Kerala',
+        'Government Ayurveda College, Kannur, Pariyaram, Kerala',
+        'Government Siddha Medical College, Chennai, Tamil Nadu',
+    ];
 
     // ── All 195 UN-recognised nationalities ──────────────────────────────
     private const VALID_NATIONALITIES = [
@@ -151,64 +297,92 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $validNationalities = self::VALID_NATIONALITIES;
-        $currentYear = (int) date('Y');
+        $currentYear    = (int) date('Y');
+        $isIccrAlumni   = $request->input('is_iccr_alumni');
 
-        $request->validate([
-            'full_name'        => 'required|string|max:150|regex:/^[\pL\s\-\'\.]+$/u',
-            'batch_name'       => "required|integer|min:1980|max:{$currentYear}",
-            'phone'            => 'required|string|min:7|max:20|regex:/^\+?[0-9\s\-\(\)]+$/',
-            'email'            => 'required|email:rfc,dns|max:255|unique:alumni_users,email',
-            'department'       => 'required|in:STEM,Non-STEM',
-            'passing_year'     => "required|integer|min:1980|max:{$currentYear}",
-            'roll_number'      => 'nullable|string|max:50',
-            'birth_date'       => 'nullable|date|before:today',
-            'gender'           => 'required|in:Male,Female,Other',
-            'institute'        => 'required|string|max:255',
-            'nationality'      => ['required', 'string', 'in:' . implode(',', $validNationalities)],
+        // ── Base rules (both YES and NO paths) ───────────────────────────
+        $rules = [
             'is_iccr_alumni'   => 'required|in:yes,no',
-            'current_position' => 'nullable|string|max:255',
+            'full_name'        => 'required|string|max:150|regex:/^[\pL\s\-\'\.]+$/u',
+            'email'            => 'required|email:rfc,dns|max:255|unique:alumni_users,email',
+            'nationality'      => ['required', 'string', 'in:' . implode(',', self::VALID_NATIONALITIES)],
             'password'         => 'required|confirmed|min:8|max:128',
             'terms'            => 'accepted',
             'captcha'          => 'required|captcha',
-        ], [
-            'captcha.required'        => 'Please enter the CAPTCHA code.',
-            'captcha.captcha'         => 'The CAPTCHA code is incorrect. Please try again.',
-            'terms.accepted'          => 'You must accept the Terms & Conditions.',
-            'email.unique'            => 'This email address is already registered.',
-            'email.email'             => 'Please enter a valid email address.',
-            'department.in'           => 'Department must be STEM or Non-STEM.',
-            'nationality.required'    => 'Nationality is required.',
-            'nationality.in'          => 'Please select a valid nationality from the list.',
+        ];
+
+        // ── Extra rules for NO path only ─────────────────────────────────
+        if ($isIccrAlumni === 'no') {
+            $rules['batch_name']       = "required|integer|min:1980|max:{$currentYear}";
+            $rules['phone']            = 'required|string|min:7|max:20|regex:/^\+?[0-9\s\-\(\)]+$/';
+            $rules['department']       = 'required|in:STEM,Non-STEM';
+            $rules['passing_year']     = "required|integer|min:1980|max:{$currentYear}";
+            $rules['gender']           = 'required|in:Male,Female,Other';
+            $rules['institute']        = ['required', 'string', Rule::in(array_merge(self::VALID_INSTITUTES, ['other']))];
+            $rules['institute_other']  = $request->input('institute') === 'other'
+                ? 'required|string|max:255'
+                : 'nullable|string|max:255';
+            $rules['roll_number']      = 'nullable|string|max:50';
+            $rules['birth_date']       = 'nullable|date|before:today';
+            $rules['current_position'] = 'nullable|string|max:255';
+        }
+
+        $request->validate($rules, [
             'is_iccr_alumni.required' => 'Please indicate whether you are an ICCR Alumni.',
             'is_iccr_alumni.in'       => 'Please select Yes or No for ICCR Alumni.',
+            'full_name.required'      => 'Full name is required.',
             'full_name.regex'         => 'Full name may only contain letters, spaces, hyphens, apostrophes, and dots.',
-            'phone.regex'             => 'Phone number contains invalid characters.',
+            'email.required'          => 'Email address is required.',
+            'email.email'             => 'Please enter a valid email address.',
+            'email.unique'            => 'This email address is already registered.',
+            'nationality.required'    => 'Nationality is required.',
+            'nationality.in'          => 'Please select a valid nationality from the list.',
+            'password.required'       => 'Password is required.',
+            'password.confirmed'      => 'Password confirmation does not match.',
+            'password.min'            => 'Password must be at least 8 characters.',
+            'password.max'            => 'Password must not exceed 128 characters.',
+            'terms.accepted'          => 'You must accept the Terms & Conditions.',
+            'captcha.required'        => 'Please enter the CAPTCHA code.',
+            'captcha.captcha'         => 'The CAPTCHA code is incorrect. Please try again.',
+            'batch_name.required'     => 'Batch year is required.',
+            'batch_name.integer'      => 'Batch year must be a valid year.',
             'batch_name.min'          => 'Batch year must be 1980 or later.',
             'batch_name.max'          => "Batch year cannot exceed {$currentYear}.",
+            'phone.required'          => 'Phone number is required.',
+            'phone.regex'             => 'Phone number contains invalid characters.',
+            'department.required'     => 'Department is required.',
+            'department.in'           => 'Department must be STEM or Non-STEM.',
+            'passing_year.required'   => 'Passing year is required.',
+            'passing_year.integer'    => 'Passing year must be a valid year.',
             'passing_year.min'        => 'Passing year must be 1980 or later.',
             'passing_year.max'        => "Passing year cannot exceed {$currentYear}.",
-            'birth_date.before'       => 'Birth date must be in the past.',
+            'gender.required'         => 'Gender is required.',
             'gender.in'               => 'Please select a valid gender.',
-            'password.max'            => 'Password must not exceed 128 characters.',
+            'institute.required'        => 'Please select your institute.',
+            'institute.in'              => 'Please select a valid ICCR-empanelled institute from the list.',
+            'institute_other.required'  => 'Please enter your institution name.',
+            'birth_date.before'       => 'Birth date must be in the past.',
         ]);
 
         session([
             'otp_signup_data' => [
                 'full_name'        => $request->full_name,
-                'batch_name'       => $request->batch_name,
-                'phone'            => $request->phone,
                 'email'            => $request->email,
-                'department'       => $request->department,
-                'passing_year'     => $request->passing_year,
-                'roll_number'      => $request->roll_number ?? null,
-                'birth_date'       => $request->birth_date,
-                'gender'           => $request->gender,
-                'institute'        => $request->institute,
                 'nationality'      => $request->nationality,
-                'is_iccr_alumni'   => $request->is_iccr_alumni === 'yes',
-                'current_position' => $request->current_position,
+                'is_iccr_alumni'   => $isIccrAlumni === 'yes',
                 'password'         => Hash::make($request->password),
+                // NO-path fields — null for YES-path users
+                'batch_name'       => $isIccrAlumni === 'no' ? $request->batch_name       : null,
+                'phone'            => $isIccrAlumni === 'no' ? $request->phone             : null,
+                'department'       => $isIccrAlumni === 'no' ? $request->department        : null,
+                'passing_year'     => $isIccrAlumni === 'no' ? $request->passing_year      : null,
+                'gender'           => $isIccrAlumni === 'no' ? $request->gender            : null,
+                'institute'        => $isIccrAlumni === 'no'
+                    ? ($request->institute === 'other' ? trim($request->institute_other) : $request->institute)
+                    : null,
+                'roll_number'      => $isIccrAlumni === 'no' ? ($request->roll_number ?? null) : null,
+                'birth_date'       => $isIccrAlumni === 'no' ? ($request->birth_date ?: null) : null,
+                'current_position' => $isIccrAlumni === 'no' ? ($request->current_position ?? null) : null,
             ],
         ]);
 

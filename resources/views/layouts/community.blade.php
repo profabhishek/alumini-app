@@ -1058,10 +1058,16 @@
             }
     
             fetchUnread();
-            setInterval(fetchUnread, 10000);
-    
+            let unreadTimer = setInterval(fetchUnread, 10000);
+
             document.addEventListener('visibilitychange', function () {
-                if (!document.hidden) fetchUnread();
+                if (document.hidden) {
+                    clearInterval(unreadTimer);
+                    unreadTimer = null;
+                } else {
+                    fetchUnread();
+                    if (!unreadTimer) unreadTimer = setInterval(fetchUnread, 10000);
+                }
             });
         })();
         </script>

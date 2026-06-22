@@ -511,6 +511,11 @@
     background: var(--ev-champagne);
     color: var(--ev-ink-3);
 }
+.ev-badge--urgent {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
 
 .ev-feature__content {
     background: var(--ev-indigo);
@@ -745,6 +750,10 @@
     position: absolute;
     top: 16px;
     right: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
 }
 
 /* Free badge */
@@ -1558,8 +1567,6 @@
     position: fixed;
     inset: 0;
     background: rgba(15, 14, 46, 0.65);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -1857,25 +1864,6 @@
    REVEAL ANIMATION
 ══════════════════════════════════════════════════════════════════ */
 
-.ev-reveal {
-    opacity: 0;
-    transform: translateY(32px);
-    transition:
-        opacity 0.65s var(--ev-ease),
-        transform 0.65s var(--ev-ease);
-}
-.ev-reveal.ev-reveal--show {
-    opacity: 1;
-    transform: none;
-}
-.ev-reveal--delay-1 {
-    transition-delay: 0.1s;
-}
-.ev-reveal--delay-2 {
-    transition-delay: 0.2s;
-}
-
-/* ══════════════════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════════════════ */
 
@@ -2006,17 +1994,6 @@
 }
 .ev-card {
     contain: layout style paint;
-}
-
-.ev-reveal {
-    transition:
-        opacity 0.35s var(--ev-ease),
-        transform 0.35s var(--ev-ease);
-    will-change: opacity, transform;
-}
-
-.ev-reveal.ev-reveal--show {
-    will-change: auto;
 }
 
 /* ══════════════════════════════════════════════════════

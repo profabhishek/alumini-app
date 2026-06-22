@@ -652,6 +652,22 @@
         dotEl.hidden = !isOnline;
 
         updateChatMeta();
+
+        // Show / hide blocked-conversation notice above the composer
+        const existingNotice = document.getElementById("chatBlockedNotice");
+        existingNotice?.remove();
+        if (conv.type === "direct" && conv.is_blocked) {
+            const notice = document.createElement("div");
+            notice.id = "chatBlockedNotice";
+            notice.className = "wa-blocked-notice";
+            notice.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+                You can't send messages in this conversation.`;
+            el.messageForm?.before(notice);
+        }
     }
 
     // ── Messages ──────────────────────────────────────────────────────────
@@ -1095,6 +1111,9 @@
                 ? lastSeenText(conv.other_user_id)
                 : conv.other_last_seen || "";
 
+            const isBlocked = !!conv.is_blocked;
+            const blockBtnId = "chatInfoBlockBtn";
+
             el.infoBody.innerHTML = `
                 <div class="wa-info-profile">
                     <span class="wa-avatar-wrap">
@@ -1109,7 +1128,52 @@
                 <div class="wa-info-card">
                     <strong>Privacy</strong>
                     <p>Messages are visible only to participants in this conversation.</p>
-                </div>`;
+                </div>
+                ${conv.other_user_id ? `
+                <div class="wa-info-card">
+                    <strong>Actions</strong>
+                    <button id="${blockBtnId}" class="wa-info-block-btn ${isBlocked ? "wa-info-block-btn--blocked" : ""}"
+                        data-user-id="${escAttr(String(conv.other_user_id))}"
+                        data-blocked="${isBlocked ? "1" : "0"}">
+                        ${isBlocked ? "Unblock User" : "Block User"}
+                    </button>
+                </div>` : ""}`;
+
+            // Wire up the block button
+            if (conv.other_user_id) {
+                const blockBtn = document.getElementById(blockBtnId);
+                blockBtn?.addEventListener("click", async function () {
+                    const uid = Number(this.dataset.userId);
+                    const blocked = this.dataset.blocked === "1";
+                    const label = blocked ? "Unblock" : "Block";
+                    if (!blocked) {
+                        const ok = await window.CommunityConfirm.show({
+                            title: `Block ${esc(conv.name)}?`,
+                            body: "They won't be able to message you, see your profile, or appear in your feed.",
+                            confirmText: 'Block',
+                            cancelText: 'Cancel',
+                            danger: true,
+                        });
+                        if (!ok) return;
+                    }
+                    this.disabled = true;
+                    this.textContent = "Please wait…";
+                    try {
+                        const url = route(blocked ? config.routes.unblockUser : config.routes.blockUser, uid);
+                        await api(url, { method: "POST" });
+                        // Update conversation state
+                        conv.is_blocked = !blocked;
+                        const idx = state.conversations.findIndex(c => c.id === conv.id);
+                        if (idx !== -1) state.conversations[idx].is_blocked = !blocked;
+                        toast(blocked ? "User unblocked." : "User blocked.", "success");
+                        openInfoPanel(); // re-render the panel
+                    } catch (e) {
+                        toast(e.message || "Something went wrong.", "error");
+                        this.disabled = false;
+                        this.textContent = `${label} User`;
+                    }
+                });
+            }
             return;
         }
 

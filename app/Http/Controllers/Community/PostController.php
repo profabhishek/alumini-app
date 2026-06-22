@@ -82,6 +82,12 @@ class PostController extends Controller
 
         $query = Post::feed($groupId)->whereNull('deleted_at');
 
+        // Hide posts from blocked / blocking users
+        $blockedIds = \App\Models\UserBlock::mutualIds($myId);
+        if (!empty($blockedIds)) {
+            $query->whereNotIn('alumni_id', $blockedIds);
+        }
+
         if ($groupId && !$isGroupMod) {
             $query->where(function ($q) use ($myId) {
                 $q->where(function ($q2) use ($myId) {

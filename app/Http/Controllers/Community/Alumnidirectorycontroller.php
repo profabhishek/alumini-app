@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Community;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlumniUser;
+use App\Models\UserBlock;
 use Illuminate\Http\Request;
 
 class AlumniDirectoryController extends Controller
@@ -18,6 +19,15 @@ class AlumniDirectoryController extends Controller
         $query = AlumniUser::query()
             ->where('role', 'alumni')
             ->where('is_approved', 1);
+
+        // Exclude blocked / blocking users from directory
+        $myId = (int) session('alumni_id');
+        if ($myId) {
+            $blockedIds = UserBlock::mutualIds($myId);
+            if (!empty($blockedIds)) {
+                $query->whereNotIn('id', $blockedIds);
+            }
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {

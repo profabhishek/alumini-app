@@ -280,35 +280,121 @@
     text-decoration: underline;
 }
 
+/* Tablet: stack panels, reduce outer padding */
 @media (max-width: 1200px) {
     .signup-container {
         grid-template-columns: 1fr;
     }
-
     .signup-showcase {
         padding-right: 0;
     }
+    .signup-page {
+        padding: 32px 40px 48px;
+    }
 }
 
+/* Mobile: ≤ 768px */
 @media (max-width: 768px) {
     .signup-page {
-        padding: 20px;
+        padding: 20px 16px 36px;
     }
-
     .signup-showcase h1 {
-        font-size: 2.2rem;
+        font-size: 2rem;
     }
-
+    .signup-showcase p {
+        font-size: 1rem;
+        margin-bottom: 24px;
+    }
+    /* Keep 2×2 stats grid — single column is too stretched */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .stat-card {
+        padding: 20px 16px;
+    }
+    .stat-card h3 {
+        font-size: 1.6rem;
+    }
+    .signup-card {
+        padding: 28px 22px;
+        border-radius: 22px;
+    }
+    .form-header h2 {
+        font-size: 1.7rem;
+    }
     .form-grid {
         grid-template-columns: 1fr;
+        gap: 0;
     }
-
-    .signup-card {
-        padding: 25px;
+    .form-group {
+        margin-bottom: 14px;
     }
+    .form-group input,
+    .form-group select {
+        height: 50px;
+        font-size: 14px;
+        border-radius: 12px;
+    }
+    .captcha-section input {
+        height: 50px;
+    }
+    .signup-btn {
+        height: 52px;
+        font-size: 15px;
+        border-radius: 14px;
+    }
+}
 
+/* Small mobile: ≤ 480px */
+@media (max-width: 480px) {
+    .signup-page {
+        padding: 14px 12px 28px;
+    }
+    .showcase-badge {
+        font-size: 12px;
+        padding: 8px 14px;
+    }
+    .signup-showcase h1 {
+        font-size: 1.7rem;
+    }
     .stats-grid {
-        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .stat-card {
+        padding: 16px 12px;
+    }
+    .stat-card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 4px;
+    }
+    .signup-card {
+        padding: 22px 16px;
+        border-radius: 18px;
+    }
+    .form-header {
+        margin-bottom: 24px;
+    }
+    .form-header h2 {
+        font-size: 1.5rem;
+    }
+    .form-group input,
+    .form-group select {
+        height: 48px;
+        font-size: 14px;
+    }
+    .captcha-wrapper {
+        flex-wrap: wrap;
+    }
+    .captcha-wrapper img {
+        flex: 1;
+        min-width: 0;
+    }
+    .password-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .signup-btn {
+        height: 50px;
     }
 }
 

@@ -52,7 +52,7 @@ class ContactController extends Controller
                     </div>
                 </div>
                 <div style='padding:12px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af'>
-                    Sent from iccr.hialumni.com &nbsp;·&nbsp; {$time}
+                    Sent from ICCR &nbsp;·&nbsp; {$time}
                 </div>
             </div>
         </body></html>";

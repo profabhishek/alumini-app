@@ -33,6 +33,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\Admin\AdminNewsletterController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Community\GroupController;
+use App\Http\Controllers\Community\BlockController;
 use App\Http\Controllers\ContactController;
 
 /*
@@ -386,6 +387,9 @@ Route::middleware('alumni.auth')->group(function () {
 
     Route::get('/members/{alumniUser}', [AlumniProfileController::class, 'show'])
         ->name('alumni.profile');
+
+    Route::post('/users/{userId}/block',   [BlockController::class, 'block'])  ->name('users.block');
+    Route::post('/users/{userId}/unblock', [BlockController::class, 'unblock'])->name('users.unblock');
 
     Route::get('/profile', [\App\Http\Controllers\Community\ProfileController::class, 'index'])
         ->name('profile.index');
@@ -917,6 +921,9 @@ Route::middleware('admin.auth')->group(function () {
 
     Route::get('/admin/jobs', [AdminJobController::class, 'index'])
         ->name('admin.jobs.index');
+
+    Route::get('/admin/jobs/{job}', [AdminJobController::class, 'edit'])
+        ->name('admin.jobs.fetch');
 
     Route::put('/admin/jobs/{job}', [AdminJobController::class, 'update'])
         ->name('admin.jobs.update');

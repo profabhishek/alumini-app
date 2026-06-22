@@ -44,11 +44,11 @@
                     <span class="ev-stat__label">Events</span>
                 </div>
                 <div class="ev-stat">
-                    <span class="ev-stat__num">{{ \App\Models\Event::where('status','published')->whereDate('start_date','>',$today)->count() }}</span>
+                    <span class="ev-stat__num">{{ $upcomingCount }}</span>
                     <span class="ev-stat__label">Upcoming</span>
                 </div>
                 <div class="ev-stat">
-                    <span class="ev-stat__num">{{ \App\Models\Event::where('status','published')->whereDate('start_date','<=',$today)->whereDate('end_date','>=',$today)->count() }}</span>
+                    <span class="ev-stat__num">{{ $ongoingCount }}</span>
                     <span class="ev-stat__label">Ongoing</span>
                 </div>
             </div>
@@ -197,6 +197,10 @@
                     } else {
                         $statusLabel = 'Past'; $statusClass = 'ev-badge--past';
                     }
+                    $daysUntilStart = $ed->toDateString() > $today
+                        ? (int) now()->startOfDay()->diffInDays($ed->startOfDay())
+                        : null;
+                    $startsSoon = $daysUntilStart !== null && $daysUntilStart <= 7;
                     $seatsLeft = $event->total_seats
                         ? max(0, $event->total_seats - ($event->registered_count ?? 0))
                         : null;
@@ -229,6 +233,11 @@
 
                         <span class="ev-card__status">
                             <span class="ev-badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                            @if($startsSoon)
+                                <span class="ev-badge ev-badge--urgent">
+                                    {{ $daysUntilStart === 0 ? 'Starts today' : 'Starts in ' . $daysUntilStart . ' ' . ($daysUntilStart === 1 ? 'day' : 'days') }}
+                                </span>
+                            @endif
                         </span>
 
                         @if($event->event_type === 'Free')
@@ -385,16 +394,28 @@
 (function () {
     // Batch reveal — one observer, fire-and-forget
     const els = document.querySelectorAll('.ev-reveal');
-    if (!els.length) return;
-    const obs = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-            if (e.isIntersecting) {
-                e.target.classList.add('ev-reveal--show');
-                obs.unobserve(e.target);
-            }
-        });
-    }, { threshold: 0.04, rootMargin: '0px 0px -40px 0px' });
-    els.forEach(el => obs.observe(el));
+    if (els.length) {
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach((e) => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('ev-reveal--show');
+                    obs.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.04, rootMargin: '0px 0px -40px 0px' });
+        els.forEach(el => obs.observe(el));
+    }
+
+    // Pause masthead pulse animation when scrolled out of view
+    const dot = document.querySelector('.ev-masthead__dot');
+    if (dot) {
+        const dotObs = new IntersectionObserver((entries) => {
+            entries.forEach((e) => {
+                dot.style.animationPlayState = e.isIntersecting ? 'running' : 'paused';
+            });
+        }, { threshold: 0 });
+        dotObs.observe(dot);
+    }
 })();
 </script>
 @endpush

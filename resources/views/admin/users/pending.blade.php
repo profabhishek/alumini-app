@@ -36,7 +36,8 @@
                     <tr>
                         <th>Applicant</th>
                         <th>Email</th>
-                        <th>Batch</th>
+                        <th>Type</th>
+                        <th>Batch / Nationality</th>
                         <th>Department</th>
                         <th>Passing Year</th>
                         <th>Registered</th>
@@ -51,14 +52,27 @@
                                     <div class="admin-table__avatar">{{ $user->initials }}</div>
                                     <div>
                                         <div class="admin-table__name">{{ $user->full_name }}</div>
-                                        <div class="admin-table__meta">{{ $user->roll_number }} &middot; {{ $user->phone }}</div>
+                                        <div class="admin-table__meta">
+                                            @if($user->is_iccr_alumni)
+                                                Self-declared ICCR alumni
+                                            @else
+                                                {{ $user->roll_number ?: 'No roll no.' }} &middot; {{ $user->phone ?: 'No phone' }}
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td>{{ $user->email }}</td>
-                            <td>{{ $user->batch_name }}</td>
-                            <td>{{ $user->department }}</td>
-                            <td>{{ $user->passing_year }}</td>
+                            <td>
+                                @if($user->is_iccr_alumni)
+                                    <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#e0edff;color:#1a56db;border:1px solid #b8d4f8;">ICCR</span>
+                                @else
+                                    <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">New</span>
+                                @endif
+                            </td>
+                            <td>{{ $user->is_iccr_alumni ? ($user->nationality ?: '—') : ($user->batch_name ?: '—') }}</td>
+                            <td>{{ $user->department ?: '—' }}</td>
+                            <td>{{ $user->passing_year ?: '—' }}</td>
                             <td>{{ $user->created_at->format('d M Y, H:i') }}</td>
                             <td>
                                 <div class="admin-table__actions">

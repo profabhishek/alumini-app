@@ -37,7 +37,7 @@
       <div class="msg-box"><p>{{ $message }}</p></div>
     </div>
   </div>
-  <div class="foot">Sent from iccr.hialumni.com contact form &nbsp;·&nbsp; {{ now()->format('d M Y, g:i A') }}</div>
+  <div class="foot">Sent from ICCR contact form &nbsp;·&nbsp; {{ now()->format('d M Y, g:i A') }}</div>
 </div>
 </body>
 </html>

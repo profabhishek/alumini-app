@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlumniData;
 use App\Models\AlumniUser;
 use App\Models\NewsletterSubscriber;
 use Illuminate\Http\Request;
@@ -40,6 +41,77 @@ class AdminController extends Controller
         }
     }
 
+    // ── Alumni data sync on approval ──────────────────────────────────────
+
+    /**
+     * When a YES-path ICCR alumni is approved, look up alumni_data by email
+     * and fill any null fields on alumni_users from the master record.
+     * Never overwrites values the user already provided.
+     */
+    private function syncAlumniDataOnApproval(AlumniUser $user): void
+    {
+        // Only applies to ICCR alumni (YES-path) who registered with minimal data
+        if (!$user->is_iccr_alumni) {
+            return;
+        }
+
+        $data = AlumniData::where('email', $user->email)->first();
+
+        if (!$data) {
+            return; // No matching record in alumni_data — nothing to sync
+        }
+
+        $updates = [];
+
+        // Direct 1-to-1 field mappings — only fill if currently null
+        $directMap = [
+            'phone'               => 'phone',
+            'dob'                 => 'birth_date',
+            'gender'              => 'gender',
+            'profile_image'       => 'photo',
+            'linkedin_url'        => 'linkedin_url',
+            'facebook_url'        => 'facebook_url',
+            'current_company'     => 'current_company',
+            'current_designation' => 'current_position',
+            'current_city'        => 'current_city',
+            'current_country'     => 'country',
+            'institute'           => 'institute',
+        ];
+
+        foreach ($directMap as $dataField => $userField) {
+            $dataValue = $data->$dataField;
+            if (is_null($user->$userField) && !is_null($dataValue) && $dataValue !== '') {
+                $updates[$userField] = $dataValue;
+            }
+        }
+
+        // joining_year → batch_name (integer — e.g. 2018)
+        if (is_null($user->batch_name) && !empty($data->joining_year)) {
+            $year = (int) $data->joining_year;
+            if ($year >= 1980 && $year <= (int) date('Y')) {
+                $updates['batch_name'] = $year;
+            }
+        }
+
+        // graduation_year → passing_year (integer)
+        if (is_null($user->passing_year) && !empty($data->graduation_year)) {
+            $year = (int) $data->graduation_year;
+            if ($year >= 1980 && $year <= (int) date('Y') + 5) {
+                $updates['passing_year'] = $year;
+            }
+        }
+
+        // alumni_code → roll_number (as a fallback unique identifier)
+        if (is_null($user->roll_number) && !empty($data->alumni_code)) {
+            $updates['roll_number'] = $data->alumni_code;
+        }
+
+        if (!empty($updates)) {
+            $user->fill($updates);
+            // Caller is responsible for calling $user->save() after this
+        }
+    }
+
     // ── Pending Registration Requests ─────────────────────────────────────
 
     public function pendingUsers()
@@ -59,6 +131,7 @@ class AdminController extends Controller
         }
 
         $user->is_approved = true;
+        $this->syncAlumniDataOnApproval($user);
         $user->save();
 
         return back()->with('success', "{$user->full_name}'s account has been approved.");
@@ -335,6 +408,11 @@ class AdminController extends Controller
         }
 
         $user->is_approved = !$user->is_approved;
+
+        if ($user->is_approved) {
+            $this->syncAlumniDataOnApproval($user);
+        }
+
         $user->save();
 
         $status = $user->is_approved ? 'approved' : 'suspended';

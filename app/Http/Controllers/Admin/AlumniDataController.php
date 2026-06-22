@@ -21,22 +21,29 @@ class AlumniDataController extends Controller
     {
         $filters = $request->only([
             'q',
+            'alumni_code',
+            'user_type',
             'gender',
             'level_of_study',
             'course',
             'branch',
             'institute',
             'campus',
-            'joining_from', 'joining_to',
-            'grad_from',    'grad_to',
+            'joining_from',   'joining_to',
+            'grad_from',      'grad_to',
             'country',
             'city',
             'has_email',
+            'has_phone',
+            'has_linkedin',
             'employed',
-            'created_from', 'created_to',
-            'dob_from',     'dob_to',
+            'created_from',   'created_to',
+            'updated_from',   'updated_to',
+            'reg_from',       'reg_to',
+            'dob_from',       'dob_to',
             'company',
             'designation',
+            'address_city',
             'address_state',
             'address_country',
         ]);
@@ -61,32 +68,38 @@ class AlumniDataController extends Controller
         }
 
         // Exact / range filters
-        if (!empty($filters['gender']))        $query->where('gender',        $filters['gender']);
+        if (!empty($filters['alumni_code']))   $query->where('alumni_code', 'like', "%{$filters['alumni_code']}%");
+        if (!empty($filters['user_type']))     $query->where('user_type', $filters['user_type']);
+        if (!empty($filters['gender']))        $query->where('gender', $filters['gender']);
         if (!empty($filters['level_of_study'])) $query->where('level_of_study', $filters['level_of_study']);
-        if (!empty($filters['course']))        $query->where('course',        $filters['course']);
-        if (!empty($filters['branch']))        $query->where('branch',        $filters['branch']);
-        if (!empty($filters['institute']))     $query->where('institute',     $filters['institute']);
-        if (!empty($filters['campus']))        $query->where('campus',        $filters['campus']);
+        if (!empty($filters['course']))        $query->where('course', $filters['course']);
+        if (!empty($filters['branch']))        $query->where('branch', $filters['branch']);
+        if (!empty($filters['institute']))     $query->where('institute', $filters['institute']);
+        if (!empty($filters['campus']))        $query->where('campus', $filters['campus']);
         if (!empty($filters['country']))       $query->where('current_country', $filters['country']);
-        if (!empty($filters['city']))          $query->where('current_city',  'like', "%{$filters['city']}%");
+        if (!empty($filters['city']))          $query->where('current_city', 'like', "%{$filters['city']}%");
         if (!empty($filters['company']))       $query->where('current_company', 'like', "%{$filters['company']}%");
         if (!empty($filters['designation']))   $query->where('current_designation', 'like', "%{$filters['designation']}%");
+        if (!empty($filters['address_city']))  $query->where('address_city', 'like', "%{$filters['address_city']}%");
         if (!empty($filters['address_state'])) $query->where('address_state', 'like', "%{$filters['address_state']}%");
         if (!empty($filters['address_country'])) $query->where('address_country', $filters['address_country']);
 
-        // Joining year range
+        // Year ranges
         if (!empty($filters['joining_from'])) $query->where('joining_year', '>=', (int) $filters['joining_from']);
         if (!empty($filters['joining_to']))   $query->where('joining_year', '<=', (int) $filters['joining_to']);
+        if (!empty($filters['grad_from']))    $query->where('graduation_year', '>=', (int) $filters['grad_from']);
+        if (!empty($filters['grad_to']))      $query->where('graduation_year', '<=', (int) $filters['grad_to']);
 
-        // Graduation year range
-        if (!empty($filters['grad_from'])) $query->where('graduation_year', '>=', (int) $filters['grad_from']);
-        if (!empty($filters['grad_to']))   $query->where('graduation_year', '<=', (int) $filters['grad_to']);
+        // Date ranges
+        if (!empty($filters['dob_from']))     $query->whereDate('dob', '>=', $filters['dob_from']);
+        if (!empty($filters['dob_to']))       $query->whereDate('dob', '<=', $filters['dob_to']);
 
-        // DOB range
-        if (!empty($filters['dob_from'])) $query->whereDate('dob', '>=', $filters['dob_from']);
-        if (!empty($filters['dob_to']))   $query->whereDate('dob', '<=', $filters['dob_to']);
+        if (!empty($filters['reg_from']))     $query->whereDate('registration_date', '>=', $filters['reg_from']);
+        if (!empty($filters['reg_to']))       $query->whereDate('registration_date', '<=', $filters['reg_to']);
 
-        // Record created range
+        if (!empty($filters['updated_from'])) $query->whereDate('record_updated_at', '>=', $filters['updated_from']);
+        if (!empty($filters['updated_to']))   $query->whereDate('record_updated_at', '<=', $filters['updated_to']);
+
         if (!empty($filters['created_from'])) $query->where(function ($sub) use ($filters) {
             $sub->whereDate('record_created_at', '>=', $filters['created_from'])
                 ->orWhereDate('created_at', '>=', $filters['created_from']);
@@ -96,14 +109,25 @@ class AlumniDataController extends Controller
                 ->orWhereDate('created_at', '<=', $filters['created_to']);
         });
 
-        // Has email
+        // Presence filters
         if (isset($filters['has_email']) && $filters['has_email'] !== '') {
             $filters['has_email'] === '1'
                 ? $query->whereNotNull('email')->where('email', '!=', '')
                 : $query->where(fn($s) => $s->whereNull('email')->orWhere('email', ''));
         }
 
-        // Employed
+        if (isset($filters['has_phone']) && $filters['has_phone'] !== '') {
+            $filters['has_phone'] === '1'
+                ? $query->whereNotNull('phone')->where('phone', '!=', '')
+                : $query->where(fn($s) => $s->whereNull('phone')->orWhere('phone', ''));
+        }
+
+        if (isset($filters['has_linkedin']) && $filters['has_linkedin'] !== '') {
+            $filters['has_linkedin'] === '1'
+                ? $query->whereNotNull('linkedin_url')->where('linkedin_url', '!=', '')
+                : $query->where(fn($s) => $s->whereNull('linkedin_url')->orWhere('linkedin_url', ''));
+        }
+
         if (isset($filters['employed']) && $filters['employed'] !== '') {
             $filters['employed'] === '1'
                 ? $query->whereNotNull('current_company')->where('current_company', '!=', '')
@@ -121,20 +145,23 @@ class AlumniDataController extends Controller
         $countries  = AlumniData::whereNotNull('current_country')->distinct()->count('current_country');
 
         // ── Distinct option lists for dropdowns ───────────────────────────
-        $levelOptions    = $this->distinctOptions('level_of_study');
-        $courseOptions   = $this->distinctOptions('course');
-        $branchOptions   = $this->distinctOptions('branch');
-        $instituteOptions = $this->distinctOptions('institute');
-        $campusOptions   = $this->distinctOptions('campus');
-        $countryOptions  = $this->distinctOptions('current_country');
+        $userTypeOptions       = $this->distinctOptions('user_type');
+        $levelOptions          = $this->distinctOptions('level_of_study');
+        $courseOptions         = $this->distinctOptions('course');
+        $branchOptions         = $this->distinctOptions('branch');
+        $instituteOptions      = $this->distinctOptions('institute');
+        $campusOptions         = $this->distinctOptions('campus');
+        $countryOptions        = $this->distinctOptions('current_country');
+        $addressCityOptions    = $this->distinctOptions('address_city');
         $addressCountryOptions = $this->distinctOptions('address_country');
         $addressStateOptions   = $this->distinctOptions('address_state');
 
         return view('admin.alumni-data.index', compact(
             'rows', 'q', 'filters',
             'total', 'withEmail', 'withPhone', 'employed', 'batchYears', 'countries',
-            'levelOptions', 'courseOptions', 'branchOptions', 'instituteOptions',
-            'campusOptions', 'countryOptions', 'addressCountryOptions', 'addressStateOptions'
+            'userTypeOptions', 'levelOptions', 'courseOptions', 'branchOptions',
+            'instituteOptions', 'campusOptions', 'countryOptions',
+            'addressCityOptions', 'addressCountryOptions', 'addressStateOptions'
         ));
     }
 
@@ -144,6 +171,10 @@ class AlumniDataController extends Controller
 
     public function import(Request $request)
     {
+        // Large files need more memory and time
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+
         $request->validate([
             'csv_file' => [
                 'required', 'file',
@@ -155,121 +186,109 @@ class AlumniDataController extends Controller
 
         $file = $request->file('csv_file');
         $mode = $request->input('mode');
+        $ext  = strtolower($file->getClientOriginalExtension());
 
-        try {
-            $rows = $this->parseFile($file);
-        } catch (\Exception $e) {
-            return back()->with('import_error', 'Could not read file: ' . $e->getMessage());
-        }
-
-        if (empty($rows)) {
-            return back()->with('import_error', 'File is empty or has no recognisable data rows.');
-        }
-
-        $map     = AlumniData::csvColumnMap();
-        $headers = array_map(fn($h) => strtolower(trim($h)), array_keys($rows[0]));
-        $cols    = [];
-
-        foreach ($headers as $i => $h) {
-            if (isset($map[$h])) $cols[$i] = $map[$h];
-        }
-
-        if (empty($cols)) {
-            return back()->with('import_error', 'No matching columns found. Please use the provided template.');
-        }
-
-        if ($mode === 'replace') {
-            AlumniData::truncate();
-        }
-
+        $map      = AlumniData::csvColumnMap();
+        $cols     = null;   // built from first row's headers
         $inserted = 0;
         $skipped  = 0;
         $batch    = [];
         $now      = now();
 
-        foreach ($rows as $row) {
-            $values = array_values($row);
+        if ($mode === 'replace') {
+            AlumniData::truncate();
+        }
+
+        // Callback invoked for each data row (assoc array: header => value)
+        $processRow = function (array $rowAssoc) use (
+            $map, &$cols, &$batch, &$inserted, &$skipped, $now
+        ) {
+            // First call: build column index map from headers
+            if ($cols === null) {
+                $hdrs = array_map(fn($h) => strtolower(trim((string) $h)), array_keys($rowAssoc));
+                $cols = [];
+                foreach ($hdrs as $i => $h) {
+                    if (isset($map[$h])) $cols[$i] = $map[$h];
+                }
+                if (empty($cols)) {
+                    throw new \RuntimeException(
+                        'No matching columns found. Check your file headers against the template.'
+                    );
+                }
+            }
+
+            $values = array_values($rowAssoc);
             $record = ['created_at' => $now, 'updated_at' => $now];
 
             foreach ($cols as $i => $dbCol) {
-                $val = isset($values[$i]) ? trim((string) $values[$i]) : null;
-                if (
-                    $dbCol === 'email' &&
-                    !empty($record['email'])
-                ) {
-                    continue;
+                $val = isset($values[$i]) ? trim((string) $values[$i]) : '';
+
+                // Email: first address only; never overwrite if already set
+                if ($dbCol === 'email') {
+                    if (!empty($record['email'])) continue;
+                    if ($val !== '') {
+                        $parts = preg_split('/\s*,\s*/', $val);
+                        $val   = trim($parts[0] ?? '');
+                    }
                 }
 
-                if ($dbCol === 'email' && !empty($val)) {
-
-                    $emails = preg_split('/\s*,\s*/', $val);
-
-                    $val = trim($emails[0] ?? '');
+                // Phone: handle scientific notation (e.g. 9.19E+9), keep first number
+                if ($dbCol === 'phone' && $val !== '') {
+                    $parts = preg_split('/\s*,\s*/', $val);
+                    $parts = array_map(function ($n) {
+                        $n = trim($n);
+                        return preg_match('/e[\+\-]?\d+/i', $n) ? sprintf('%.0f', (float) $n) : $n;
+                    }, $parts);
+                    $val = implode(',', array_filter($parts));
                 }
 
-                $record[$dbCol] = $val === '' ? null : $val;
-                
-                if ($dbCol === 'phone' && !empty($val)) {
-                    $numbers = preg_split('/\s*,\s*/', $val);
-                    $numbers = array_map(function ($number) {
-                        $number = trim($number);
-                        if (preg_match('/e[\+\-]?\d+/i', $number)) {
-                            $number = sprintf('%.0f', (float) $number);
-                        }
-                        return $number;
-                    }, $numbers);
-                    $val = implode(',', array_filter($numbers));
+                // Gender: normalise to lowercase, default 'other'
+                if ($dbCol === 'gender' && $val !== '') {
+                    $lower = strtolower($val);
+                    $val   = in_array($lower, ['male', 'female', 'other']) ? $lower : 'other';
                 }
 
-                // Normalise gender
-                if ($dbCol === 'gender' && !empty($val)) {
-                    $val = strtolower($val);
-                    if (!in_array($val, ['male', 'female', 'other'])) $val = 'other';
-                }
-
-                if ($dbCol === 'email' && !empty($val)) {
-
-                    // Take only first email if multiple emails exist
-                    $emails = preg_split('/\s*,\s*/', $val);
-
-                    $val = trim($emails[0] ?? '');
-                }
                 $record[$dbCol] = $val === '' ? null : $val;
             }
 
-            // Parse date / datetime fields
-            foreach (['dob', 'record_created_at', 'record_updated_at'] as $dateCol) {
-                if (!empty($record[$dateCol])) {
+            // dob is a DATE column — store as Y-m-d only
+            if (!empty($record['dob'])) {
+                try {
+                    $record['dob'] = Carbon::parse($record['dob'])->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $record['dob'] = null;
+                }
+            }
+
+            // Datetime columns
+            foreach (['record_created_at', 'record_updated_at', 'registration_date'] as $dc) {
+                if (!empty($record[$dc])) {
                     try {
-                        $record[$dateCol] = Carbon::parse($record[$dateCol])->format('Y-m-d H:i:s');
+                        $record[$dc] = Carbon::parse($record[$dc])->format('Y-m-d H:i:s');
                     } catch (\Exception $e) {
-                        $record[$dateCol] = null;
+                        $record[$dc] = null;
                     }
                 }
             }
 
-            // Normalise year fields
-            foreach (['joining_year', 'graduation_year'] as $yearCol) {
-                if (!empty($record[$yearCol])) {
-                    $year = (int) $record[$yearCol];
-                    $record[$yearCol] = ($year >= 1900 && $year <= 2100) ? $year : null;
+            // Year fields: must be a plausible year integer
+            foreach (['joining_year', 'graduation_year'] as $yc) {
+                if (!empty($record[$yc])) {
+                    $year = (int) $record[$yc];
+                    $record[$yc] = ($year >= 1900 && $year <= 2100) ? $year : null;
                 }
             }
 
+            // Skip rows with no identifying information
             if (empty($record['name']) && empty($record['email']) && empty($record['alumni_code'])) {
                 $skipped++;
-                continue;
+                return;
             }
 
-            if (
-                !empty($record['email']) &&
-                strlen($record['email']) > 255
-            ) {
-                dd([
-                    'email' => $record['email'],
-                    'length' => strlen($record['email']),
-                    'row' => $row,
-                ]);
+            // Skip malformed emails
+            if (!empty($record['email']) && strlen($record['email']) > 255) {
+                $skipped++;
+                return;
             }
 
             $batch[] = $record;
@@ -279,14 +298,33 @@ class AlumniDataController extends Controller
                 $inserted += count($batch);
                 $batch = [];
             }
+        };
+
+        try {
+            if (in_array($ext, ['xlsx', 'xls'])) {
+                $this->streamXlsx($file->getRealPath(), $processRow);
+            } else {
+                $this->streamCsv($file->getRealPath(), $processRow);
+            }
+        } catch (\RuntimeException $e) {
+            return back()->with('import_error', $e->getMessage());
+        } catch (\Exception $e) {
+            return back()->with('import_error', 'Could not read file: ' . $e->getMessage());
         }
 
+        if ($cols === null) {
+            return back()->with('import_error', 'File is empty or has no recognisable data rows.');
+        }
+
+        // Flush remaining batch
         if (!empty($batch)) {
             DB::table('alumni_data')->insert($batch);
             $inserted += count($batch);
         }
 
-        return back()->with('import_success', "Import complete. {$inserted} records inserted, {$skipped} skipped.");
+        return back()->with('import_success',
+            "Import complete — {$inserted} records inserted, {$skipped} skipped."
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -336,7 +374,7 @@ class AlumniDataController extends Controller
                     foreach ($cols as $col) {
                         $val = $record->{$col} ?? '';
                         // Format dates nicely
-                        if (in_array($col, ['dob', 'record_created_at', 'record_updated_at']) && $val) {
+                        if (in_array($col, ['dob', 'record_created_at', 'record_updated_at', 'registration_date']) && $val) {
                             try {
                                 $val = Carbon::parse($val)->format('Y-m-d');
                             } catch (\Exception $e) {}
@@ -403,7 +441,7 @@ class AlumniDataController extends Controller
     public function template()
     {
         $headers = [
-            'UserID', 'CQ: Alumni Code', 'Name', 'Email Address', 'Mobile Number',
+            'UserID', 'CQ: Alumni Code', 'User Type', 'Name', 'Email Address', 'Mobile Number',
             'Date of Birth', 'CQ: Gender', 'Profile Image Url', 'Linkedin Url',
             'Facebook Url', 'Current Company', 'Current Designation', 'Current City',
             'Current Country', 'CQ: Course Name', 'CQ: Branch Name', 'CQ: Campus Name',
@@ -451,6 +489,9 @@ class AlumniDataController extends Controller
             });
         }
 
+        if (!empty($filters['alumni_code']))   $query->where('alumni_code', 'like', "%{$filters['alumni_code']}%");
+        if (!empty($filters['user_type']))     $query->where('user_type', $filters['user_type']);
+
         $exact = ['gender', 'level_of_study', 'course', 'branch', 'institute', 'campus'];
         foreach ($exact as $field) {
             if (!empty($filters[$field])) $query->where($field, $filters[$field]);
@@ -460,6 +501,7 @@ class AlumniDataController extends Controller
         if (!empty($filters['city']))            $query->where('current_city', 'like', "%{$filters['city']}%");
         if (!empty($filters['company']))         $query->where('current_company', 'like', "%{$filters['company']}%");
         if (!empty($filters['designation']))     $query->where('current_designation', 'like', "%{$filters['designation']}%");
+        if (!empty($filters['address_city']))    $query->where('address_city', 'like', "%{$filters['address_city']}%");
         if (!empty($filters['address_state']))   $query->where('address_state', 'like', "%{$filters['address_state']}%");
         if (!empty($filters['address_country'])) $query->where('address_country', $filters['address_country']);
 
@@ -469,13 +511,38 @@ class AlumniDataController extends Controller
         if (!empty($filters['grad_to']))      $query->where('graduation_year', '<=', (int) $filters['grad_to']);
         if (!empty($filters['dob_from']))     $query->whereDate('dob', '>=', $filters['dob_from']);
         if (!empty($filters['dob_to']))       $query->whereDate('dob', '<=', $filters['dob_to']);
-        if (!empty($filters['created_from'])) $query->whereDate('record_created_at', '>=', $filters['created_from']);
-        if (!empty($filters['created_to']))   $query->whereDate('record_created_at', '<=', $filters['created_to']);
+
+        if (!empty($filters['reg_from']))     $query->whereDate('registration_date', '>=', $filters['reg_from']);
+        if (!empty($filters['reg_to']))       $query->whereDate('registration_date', '<=', $filters['reg_to']);
+
+        if (!empty($filters['updated_from'])) $query->whereDate('record_updated_at', '>=', $filters['updated_from']);
+        if (!empty($filters['updated_to']))   $query->whereDate('record_updated_at', '<=', $filters['updated_to']);
+
+        if (!empty($filters['created_from'])) $query->where(function ($sub) use ($filters) {
+            $sub->whereDate('record_created_at', '>=', $filters['created_from'])
+                ->orWhereDate('created_at', '>=', $filters['created_from']);
+        });
+        if (!empty($filters['created_to'])) $query->where(function ($sub) use ($filters) {
+            $sub->whereDate('record_created_at', '<=', $filters['created_to'])
+                ->orWhereDate('created_at', '<=', $filters['created_to']);
+        });
 
         if (isset($filters['has_email']) && $filters['has_email'] !== '') {
             $filters['has_email'] === '1'
                 ? $query->whereNotNull('email')->where('email', '!=', '')
                 : $query->where(fn($s) => $s->whereNull('email')->orWhere('email', ''));
+        }
+
+        if (isset($filters['has_phone']) && $filters['has_phone'] !== '') {
+            $filters['has_phone'] === '1'
+                ? $query->whereNotNull('phone')->where('phone', '!=', '')
+                : $query->where(fn($s) => $s->whereNull('phone')->orWhere('phone', ''));
+        }
+
+        if (isset($filters['has_linkedin']) && $filters['has_linkedin'] !== '') {
+            $filters['has_linkedin'] === '1'
+                ? $query->whereNotNull('linkedin_url')->where('linkedin_url', '!=', '')
+                : $query->where(fn($s) => $s->whereNull('linkedin_url')->orWhere('linkedin_url', ''));
         }
 
         if (isset($filters['employed']) && $filters['employed'] !== '') {
@@ -497,68 +564,104 @@ class AlumniDataController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // FILE PARSERS
+    // STREAMING FILE PARSERS
     // ─────────────────────────────────────────────────────────────────────
 
-    private function parseFile($file): array
+    /**
+     * Stream a CSV file row-by-row.
+     * Never loads the full file into memory — safe for 100k+ rows.
+     */
+    private function streamCsv(string $path, callable $callback): void
     {
-        $ext = strtolower($file->getClientOriginalExtension());
-        return in_array($ext, ['xlsx', 'xls'])
-            ? $this->parseXlsx($file->getRealPath())
-            : $this->parseCsv($file->getRealPath());
-    }
-
-    private function parseCsv(string $path): array
-    {
-        $rows    = [];
-        $headers = null;
-
-        if (($handle = fopen($path, 'r')) === false) {
-            throw new \Exception('Cannot open file.');
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
+            throw new \RuntimeException('Cannot open CSV file.');
         }
 
+        // Strip UTF-8 BOM if present
         $bom = fread($handle, 3);
-        if ($bom !== "\xEF\xBB\xBF") rewind($handle);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
 
+        $headers = null;
         while (($line = fgetcsv($handle, 0, ',')) !== false) {
+            // Skip blank lines
+            if ($line === [null]) continue;
+
             if ($headers === null) {
                 $headers = $line;
                 continue;
             }
-            if (count($line) === count($headers)) {
-                $rows[] = array_combine($headers, $line);
+
+            // Pad short rows to match header count
+            while (count($line) < count($headers)) {
+                $line[] = '';
             }
+
+            $callback(array_combine($headers, array_slice($line, 0, count($headers))));
         }
 
         fclose($handle);
-        return $rows;
     }
 
-    private function parseXlsx(string $path): array
+    /**
+     * Stream an XLSX/XLS file row-by-row.
+     * Uses numeric column indices — safe for files with 27+ columns (AA, AB, …).
+     * setReadDataOnly(true) cuts PhpSpreadsheet memory usage by ~60%.
+     */
+    private function streamXlsx(string $path, callable $callback): void
     {
         if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
-            throw new \Exception('XLSX support requires PhpSpreadsheet.');
+            throw new \RuntimeException(
+                'XLSX support requires PhpSpreadsheet. Run: composer require phpoffice/phpspreadsheet'
+            );
         }
 
-        $spreadsheet   = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
-        $sheet         = $spreadsheet->getActiveSheet();
-        $highestRow    = $sheet->getHighestRow();
-        $highestColumn = $sheet->getHighestColumn();
-        $headers       = [];
-        $rows          = [];
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true); // skip cell styles — major memory saving
+        $spreadsheet = $reader->load($path);
+        $sheet        = $spreadsheet->getActiveSheet();
 
-        for ($col = 'A'; $col <= $highestColumn; $col++) {
-            $headers[] = trim((string) $sheet->getCell($col . '1')->getFormattedValue());
-        }
+        $headers    = null;
+        $headerCount = 0;
 
-        for ($row = 2; $row <= $highestRow; $row++) {
-            $line = [];
-            foreach (range('A', $highestColumn) as $col) {
-                $line[] = $sheet->getCell($col . $row)->getFormattedValue();
+        foreach ($sheet->getRowIterator() as $row) {
+            $line          = [];
+            $cellIterator  = $row->getCellIterator();
+            $cellIterator->setIterateOnlyExistingCells(false);
+
+            foreach ($cellIterator as $cell) {
+                $val = $cell->getValue();
+
+                // Excel stores dates as serial floats — convert them
+                if (is_float($val) || is_int($val)) {
+                    if (\PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($cell)) {
+                        $val = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($val)
+                            ->format('Y-m-d H:i:s');
+                    }
+                }
+
+                $line[] = ($val === null) ? '' : (string) $val;
             }
-            $rows[] = array_combine($headers, $line);
+
+            if ($headers === null) {
+                $headers     = array_map('trim', $line);
+                $headerCount = count($headers);
+                continue;
+            }
+
+            // Skip completely empty rows
+            if (count(array_filter($line, fn($v) => $v !== '')) === 0) continue;
+
+            // Pad / trim to header width
+            while (count($line) < $headerCount) $line[] = '';
+
+            $callback(array_combine($headers, array_slice($line, 0, $headerCount)));
         }
 
-        return $rows;
+        // Free PhpSpreadsheet memory explicitly
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
     }
 }

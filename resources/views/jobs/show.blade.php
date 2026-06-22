@@ -367,6 +367,25 @@
     }, { passive: true });
 })();
 
+// Reveal related job cards (cards start opacity:0 and need .jr-card--visible)
+(function () {
+    const cards = document.querySelectorAll('.jr-card');
+    if (!cards.length) return;
+    if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver(function (entries, o) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('jr-card--visible');
+                    o.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.05 });
+        cards.forEach(function (c) { obs.observe(c); });
+    } else {
+        cards.forEach(function (c) { c.classList.add('jr-card--visible'); });
+    }
+})();
+
 // Copy link
 document.getElementById('jdCopyLink')?.addEventListener('click', function () {
     navigator.clipboard?.writeText(location.href).then(() => {

@@ -1472,14 +1472,13 @@
 ════════════════════════════════════════════════════════════ */
 .nb-reveal {
     opacity: 0;
-    transform: translateY(28px);
-    transition:
-        opacity 0.65s var(--ease),
-        transform 0.65s var(--ease);
+    transform: none;
+    transition: opacity 0.35s ease;
+    will-change: opacity;
 }
 .nb-reveal.nb-reveal--show {
     opacity: 1;
-    transform: none;
+    will-change: auto;
 }
 .nb-reveal--d1 {
     transition-delay: 0.08s;

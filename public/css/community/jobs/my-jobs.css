@@ -569,8 +569,6 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(26, 23, 20, 0.48);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
     z-index: 400;
     animation: mj-fade-in 0.2s ease;
 }
@@ -789,7 +787,6 @@ body {
     font-family: var(--ff-body);
     font-weight: 500;
     cursor: pointer;
-    backdrop-filter: blur(4px);
     transition: background 0.15s;
 }
 .mj-banner-remove:hover {

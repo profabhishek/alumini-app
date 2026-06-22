@@ -39,7 +39,7 @@ class RouteServiceProvider extends ServiceProvider
 
         // Register: max 3 submissions per 10 minutes per IP
         RateLimiter::for('register', function (Request $request) {
-            return Limit::perMinutes(10, 3)->by($request->ip())
+            return Limit::perMinutes(10, 5)->by($request->ip())
                 ->response(function () {
                     return redirect()->back()
                         ->with('error', 'Too many registration attempts. Please wait and try again.');

@@ -38,7 +38,10 @@ class JobController extends Controller
             ->when($request->filter === 'expired', fn($q) =>
                 $q->whereDate('application_deadline', '<', now())
             )
-            ->latest()
+            // Smart ordering: active jobs first, then by urgency (soonest deadline), then most recently published.
+            ->orderByRaw("CASE WHEN application_deadline IS NULL OR application_deadline >= CURDATE() THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN application_deadline IS NOT NULL AND application_deadline >= CURDATE() THEN DATEDIFF(application_deadline, CURDATE()) ELSE NULL END")
+            ->latest('published_at')
             ->paginate(9)
             ->appends($request->query());
 
@@ -82,9 +85,23 @@ class JobController extends Controller
             $alreadyApplied = (bool) $application;
         }
     
+        // Related jobs: exclude expired, prefer same job_type + work_mode, then most recent.
         $relatedJobs = Job::where('status', 'published')
             ->where('id', '!=', $job->id)
-            ->latest()
+            ->where(function ($q) {
+                $q->whereNull('application_deadline')
+                  ->orWhereDate('application_deadline', '>=', now());
+            })
+            ->orderByRaw(
+                "CASE
+                    WHEN job_type = ? AND work_mode = ? THEN 0
+                    WHEN job_type = ? THEN 1
+                    WHEN work_mode = ? THEN 2
+                    ELSE 3
+                END",
+                [$job->job_type, $job->work_mode, $job->job_type, $job->work_mode]
+            )
+            ->latest('published_at')
             ->take(3)
             ->get();
     

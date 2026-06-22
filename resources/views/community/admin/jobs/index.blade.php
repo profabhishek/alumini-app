@@ -157,6 +157,7 @@
                                 data-job-status="{{ $job->status }}"
                                 data-job-deadline="{{ optional($job->application_deadline)->format('Y-m-d') }}"
                                 data-job-banner="{{ $job->banner_image ? asset('storage/'.$job->banner_image) : '' }}"
+
                                 data-update-url="{{ route('admin.jobs.update', $job->id) }}"
                                 aria-label="Edit {{ $job->title }}">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -257,6 +258,28 @@
                     </div>
                 </div>
 
+                <div class="me-form-row">
+                    <div class="me-form-group">
+                        <label class="me-label" for="ajSalaryMin">Salary Min</label>
+                        <input type="number" id="ajSalaryMin" name="salary_min" class="me-input" min="0" step="500" placeholder="e.g. 50000">
+                    </div>
+                    <div class="me-form-group">
+                        <label class="me-label" for="ajSalaryMax">Salary Max</label>
+                        <input type="number" id="ajSalaryMax" name="salary_max" class="me-input" min="0" step="500" placeholder="e.g. 80000">
+                    </div>
+                </div>
+
+                <div class="me-form-group">
+                    <label class="me-label" for="ajDescription">Description <span class="me-required">*</span></label>
+                    <textarea id="ajDescription" name="description" class="me-input me-textarea" rows="6" required placeholder="Describe the role, responsibilities, and what you're looking for…"></textarea>
+                    <span class="me-field-error" id="ajDescriptionError"></span>
+                </div>
+
+                <div class="me-form-group">
+                    <label class="me-label" for="ajRequirements">Requirements</label>
+                    <textarea id="ajRequirements" name="requirements" class="me-input me-textarea" rows="5" placeholder="Skills, experience, qualifications (optional)…"></textarea>
+                </div>
+
                 <div class="me-form-group">
                     <label class="me-label">Company / Banner Image</label>
                     <div id="ajBannerPreviewWrap" style="display:none;margin-bottom:8px;position:relative;">
@@ -324,7 +347,16 @@
 @endsection
 
 
+@php
+$_ajJobMap = [];
+foreach ($jobs->items() as $_j) {
+    $_ajJobMap[$_j->id] = ['description' => $_j->description, 'requirements' => $_j->requirements, 'salary_min' => $_j->salary_min, 'salary_max' => $_j->salary_max];
+}
+@endphp
 @push('scripts')
+<script>
+window._ajJobData = @json($_ajJobMap);
+</script>
 <script>
 (function () {
     'use strict';
@@ -451,6 +483,13 @@
             setSelect('ajWorkMode', btn.dataset.jobMode);
             setSelect('ajStatus',   btn.dataset.jobStatus);
 
+            // Populate rich-text fields from page-embedded data (no network request)
+            const extra = (window._ajJobData || {})[btn.dataset.jobId] || {};
+            $('ajDescription').value  = extra.description  ?? '';
+            $('ajRequirements').value = extra.requirements ?? '';
+            $('ajSalaryMin').value    = extra.salary_min   ?? '';
+            $('ajSalaryMax').value    = extra.salary_max   ?? '';
+
             // Reset banner image UI; show existing if any
             const existingBanner = btn.dataset.jobBanner ?? '';
             if (existingBanner) {
@@ -498,6 +537,16 @@
             $('ajCompany').classList.remove('me-input--error');
         }
 
+        const description = $('ajDescription').value.trim();
+        if (!description) {
+            $('ajDescriptionError').textContent = 'Description is required.';
+            $('ajDescription').classList.add('me-input--error');
+            valid = false;
+        } else {
+            $('ajDescriptionError').textContent = '';
+            $('ajDescription').classList.remove('me-input--error');
+        }
+
         if (!valid) return;
 
         saveBtn.disabled = true;
@@ -514,6 +563,10 @@
             fd.append('work_mode',            $('ajWorkMode').value);
             fd.append('status',               $('ajStatus').value);
             fd.append('application_deadline', $('ajDeadline').value);
+            fd.append('description',          $('ajDescription').value.trim());
+            fd.append('requirements',         $('ajRequirements').value.trim());
+            fd.append('salary_min',           $('ajSalaryMin').value);
+            fd.append('salary_max',           $('ajSalaryMax').value);
             if (ajBannerInput.files[0]) {
                 fd.append('banner_image', ajBannerInput.files[0]);
             }
@@ -538,11 +591,19 @@
                 return;
             }
 
+            // Keep in-memory data fresh so re-opening edit shows saved values
+            const jobId = $('ajEditJobId').value;
+            if (window._ajJobData && window._ajJobData[jobId]) {
+                window._ajJobData[jobId].description  = $('ajDescription').value.trim();
+                window._ajJobData[jobId].requirements = $('ajRequirements').value.trim();
+                window._ajJobData[jobId].salary_min   = $('ajSalaryMin').value  ? parseInt($('ajSalaryMin').value)  : null;
+                window._ajJobData[jobId].salary_max   = $('ajSalaryMax').value  ? parseInt($('ajSalaryMax').value)  : null;
+            }
+
             closeModal(editModal);
             showToast('Job updated successfully!', 'success');
 
             // Update row live
-            const jobId = $('ajEditJobId').value;
             const row   = document.querySelector(`tr[data-job-id="${jobId}"]`);
             if (row) {
                 row.querySelector('.ae-event-title').textContent = $('ajTitle').value.trim();

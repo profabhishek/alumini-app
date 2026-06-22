@@ -1310,7 +1310,6 @@ body.wa-modal-open {
     padding: 20px;
     place-items: center;
     background: rgba(11, 20, 26, 0.56);
-    backdrop-filter: blur(3px);
 }
 
 .wa-modal {
@@ -2089,6 +2088,47 @@ body.wa-modal-open {
     }
 }
 
+/* ── Info panel: block button ────────────────────────────── */
+.wa-info-block-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid #e5e7eb;
+    background: #f9fafb;
+    color: #374151;
+    transition: all .15s;
+    width: 100%;
+    justify-content: center;
+}
+.wa-info-block-btn:hover { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+.wa-info-block-btn:disabled { opacity: .5; cursor: default; }
+.wa-info-block-btn--blocked { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.wa-info-block-btn--blocked:hover { background: #fecaca; }
+
+/* ── Chat: blocked conversation overlay ──────────────────── */
+.wa-blocked-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #fff8f1;
+    border-top: 1px solid #fbd0b0;
+    font-size: 13px;
+    color: #9a3412;
+    text-align: center;
+}
+.dark .wa-blocked-notice { background: #2d1a0e; border-color: #7c3412; color: #fdba74; }
+.dark .wa-info-block-btn { background: var(--wa-panel); border-color: var(--wa-border); color: var(--wa-text); }
+.dark .wa-info-block-btn:hover { background: rgba(220,38,38,.15); color: #f87171; border-color: rgba(220,38,38,.3); }
+.dark .wa-info-block-btn--blocked { background: rgba(220,38,38,.15); color: #f87171; border-color: rgba(220,38,38,.3); }
+
 /* ── Dark mode ───────────────────────────────────────────── */
 .dark .wa-info-input {
     background: var(--wa-panel);
@@ -2349,7 +2389,6 @@ body.wa-modal-open {
     position: fixed;
     inset: 0;
     background: rgba(11, 20, 26, 0.55);
-    backdrop-filter: blur(2px);
     z-index: 900;
     display: grid;
     place-items: center;
@@ -2826,7 +2865,7 @@ body.wa-modal-open {
         bottom: 0;
     }
 
-    /* ── 4. Sidebar header — no extra safe-area top padding
+    /* ── 4. Sidebar head    /* ── 4. Sidebar header — no extra safe-area top padding
        because the community header already clears the notch ── */
 
     .wa-sidebar__header {

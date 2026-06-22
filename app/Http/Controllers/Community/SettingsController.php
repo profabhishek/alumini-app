@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Community;
 use App\Http\Controllers\Controller;
 use App\Models\AlumniSession;
 use App\Models\AlumniUser;
+use App\Models\UserBlock;
 use Illuminate\Http\Request;
 
 class SettingsController extends Controller
@@ -21,7 +22,12 @@ class SettingsController extends Controller
         $currentIp = $request->ip();
         $currentUa = $request->userAgent() ?? '';
 
-        return view('community.settings.index', compact('user', 'sessions', 'currentIp', 'currentUa'));
+        $blockedUsers = UserBlock::where('blocker_id', $user->id)
+            ->with('blocked')
+            ->latest()
+            ->get();
+
+        return view('community.settings.index', compact('user', 'sessions', 'currentIp', 'currentUa', 'blockedUsers'));
     }
 
     // ── Save notification preferences ─────────────────────────────────────

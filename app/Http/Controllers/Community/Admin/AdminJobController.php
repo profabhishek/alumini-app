@@ -218,6 +218,10 @@ class AdminJobController extends Controller
             'status'               => 'required|in:pending,published,rejected',
             'application_deadline' => 'nullable|date',
             'banner_image'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'description'          => 'required|string',
+            'requirements'         => 'nullable|string',
+            'salary_min'           => 'nullable|integer|min:0',
+            'salary_max'           => 'nullable|integer|min:0',
         ]);
 
         $wasAlreadyPublished = ($job->status === 'published');
@@ -230,6 +234,10 @@ class AdminJobController extends Controller
             'work_mode'            => $request->work_mode,
             'status'               => $request->status,
             'application_deadline' => $request->application_deadline ?? null,
+            'description'          => $request->description,
+            'requirements'         => $request->requirements ?: null,
+            'salary_min'           => $request->filled('salary_min') ? (int) $request->salary_min : null,
+            'salary_max'           => $request->filled('salary_max') ? (int) $request->salary_max : null,
         ];
 
         // Stamp published_at when transitioning to published

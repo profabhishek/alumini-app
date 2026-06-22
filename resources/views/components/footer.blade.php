@@ -132,7 +132,7 @@
                         </div>
                         <div class="ci-text">
                             <span class="ci-label">About ICCR</span>
-                            <span class="ci-val"><a href="https://iccr.gov.in" target="_blank" rel="noopener">www.iccr.gov.in</a></span>
+                            <span class="ci-val"><a href="https://iccr.gov.in" target="_blank" rel="noopener">iccr.gov.in</a></span>
                         </div>
                     </div>
                 </div>

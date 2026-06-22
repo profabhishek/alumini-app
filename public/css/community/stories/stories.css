@@ -481,8 +481,6 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
     z-index: 1050;
     display: flex;
     align-items: center;

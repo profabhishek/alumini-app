@@ -9,7 +9,7 @@
 
     /* ── Page shell ──────────────────────────────────────────── */
     .ap-page {
-        max-width: 860px;
+        max-width: 1000px;
         margin: 0 auto;
         padding: 32px 24px 64px;
         display: flex;
@@ -279,6 +279,46 @@
         opacity: .7;
     }
 
+    .ap-btn--danger {
+        background: #fff1f1;
+        color: #dc2626;
+        border-color: #fca5a5;
+    }
+    .ap-btn--danger:hover {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    /* ── Blocked banner ──────────────────────────────────────── */
+    .ap-blocked-banner {
+        background: #fff8f1;
+        border: 1.5px solid #fbd0b0;
+        border-radius: 14px;
+        padding: 28px 24px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    .ap-blocked-banner__icon {
+        width: 52px; height: 52px;
+        background: #fde9d6;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: #E8640C;
+    }
+    .ap-blocked-banner__title {
+        font-size: 17px; font-weight: 700; color: #1C2331; margin: 0;
+    }
+    .ap-blocked-banner__sub {
+        font-size: 13.5px; color: #6b7280; margin: 0;
+    }
+    .dark .ap-blocked-banner { background: #1e1e2e; border-color: #2d2d42; }
+    .dark .ap-blocked-banner__title { color: #f1f5f9; }
+    .dark .ap-btn--danger { background: rgba(220,38,38,.12); color: #f87171; border-color: rgba(220,38,38,.3); }
+    .dark .ap-btn--danger:hover { background: rgba(220,38,38,.2); }
+
     /* ── Own-profile banner ──────────────────────────────────── */
     .ap-own-banner {
         background: linear-gradient(90deg, #fff7f0, #fff);
@@ -378,13 +418,35 @@
                 {{-- Action buttons --}}
                 <div class="ap-hero__actions">
                     @unless($isOwnProfile)
-                        <button class="ap-btn ap-btn--primary" onclick="startDirectChat({{ $alumniUser->id }}, this)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                            </svg>
-                            Message
-                        </button>
+                        @if(!$isBlocking && !$isBlockedBy)
+                            {{-- Normal state: Message + Block --}}
+                            <button class="ap-btn ap-btn--primary" onclick="startDirectChat({{ $alumniUser->id }}, this)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                                </svg>
+                                Message
+                            </button>
+                            <button class="ap-btn ap-btn--ghost" id="profileBlockBtn"
+                                onclick="profileBlock({{ $alumniUser->id }}, this)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                                Block
+                            </button>
+                        @elseif($isBlocking)
+                            {{-- I blocked them --}}
+                            <button class="ap-btn ap-btn--danger" id="profileBlockBtn"
+                                onclick="profileUnblock({{ $alumniUser->id }}, this)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                                Unblock
+                            </button>
+                        @endif
+                        {{-- If only $isBlockedBy: no action buttons shown --}}
                     @endunless
                 </div>
 
@@ -404,7 +466,8 @@
                 @endif
             </p>
 
-            {{-- Pill badges --}}
+            {{-- Pill badges — hidden when blocked in either direction --}}
+            @if(!$isBlocking && !$isBlockedBy)
             <div class="ap-pills">
                 @if(!empty($alumniUser->passing_year))
                     <span class="ap-pill ap-pill--year">
@@ -437,10 +500,39 @@
                     </span>
                 @endif
             </div>
+            @endif {{-- end pills block --}}
 
         </div>
     </div>
 
+    {{-- ── Blocked state banners (replaces detail cards) ──────────────────── --}}
+    @if($isBlockedBy && !$isBlocking)
+    <div class="ap-blocked-banner">
+        <div class="ap-blocked-banner__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+        </div>
+        <p class="ap-blocked-banner__title">This profile is unavailable</p>
+        <p class="ap-blocked-banner__sub">You can't view this profile right now.</p>
+    </div>
+    @elseif($isBlocking)
+    <div class="ap-blocked-banner">
+        <div class="ap-blocked-banner__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+        </div>
+        <p class="ap-blocked-banner__title">You've blocked {{ $alumniUser->full_name }}</p>
+        <p class="ap-blocked-banner__sub">Unblock to see their full profile and interact with them.</p>
+        <button class="ap-btn ap-btn--danger" id="profileBlockBanner"
+            onclick="profileUnblock({{ $alumniUser->id }}, this)">
+            Unblock
+        </button>
+    </div>
+    @else
     {{-- ── Academic Details ──────────────────────────────────────────── --}}
     <div class="ap-card">
         <div class="ap-card__header">
@@ -514,6 +606,7 @@
             </div>
         </div>
     </div>
+
 
     {{-- ── Personal Details ──────────────────────────────────────────── --}}
     <div class="ap-card">
@@ -627,9 +720,56 @@
         </div>
     </div>
 
+    @endif {{-- end @if($isBlockedBy) / @elseif($isBlocking) / @else --}}
+
 </div>
 @endsection
 
 @push('scripts')
 <script src="{{ asset('js/community/start-chat.js') }}"></script>
+@unless($isOwnProfile)
+<script>
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+async function profileBlock(userId, btn) {
+    const ok = await window.CommunityConfirm.show({
+        title: 'Block this user?',
+        body: "They won't be able to message you, see your profile, or appear in your feed.",
+        confirmText: 'Block',
+        cancelText: 'Cancel',
+        danger: true,
+    });
+    if (!ok) return;
+    btn.disabled = true;
+    fetch('/users/' + userId + '/block', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function() { location.reload(); })
+    .catch(function() { btn.disabled = false; alert('Something went wrong. Please try again.'); });
+}
+
+async function profileUnblock(userId, btn) {
+    const ok = await window.CommunityConfirm.show({
+        title: 'Unblock this user?',
+        body: "They'll be able to message you and see your profile again.",
+        confirmText: 'Unblock',
+        cancelText: 'Cancel',
+        danger: false,
+    });
+    if (!ok) return;
+    btn.disabled = true;
+    fetch('/users/' + userId + '/unblock', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function() { location.reload(); })
+    .catch(function() { btn.disabled = false; alert('Something went wrong. Please try again.'); });
+}
+</script>
+@endunless
 @endpush

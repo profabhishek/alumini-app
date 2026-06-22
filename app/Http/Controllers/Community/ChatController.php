@@ -93,7 +93,10 @@ class ChatController extends Controller
                 ->all();
         }
 
-        $data = $conversations->map(fn($c) => $this->serializeConversation($c, $myId, $participantCountMap, $pendingCountMap));
+        // Pre-compute blocked IDs once to avoid N+1 in serialization
+        $mutualBlockIds = \App\Models\UserBlock::mutualIds($myId);
+
+        $data = $conversations->map(fn($c) => $this->serializeConversation($c, $myId, $participantCountMap, $pendingCountMap, $mutualBlockIds));
 
         return response()->json(['conversations' => $data]);
     }
@@ -231,6 +234,22 @@ class ChatController extends Controller
         $myId = session('alumni_id');
 
         $conversation = $this->findConversationForUser($id, $myId);
+
+        // For direct conversations, block sending if either party has blocked the other
+        if ($conversation->isDirect()) {
+            $other = $conversation->otherParticipant($myId);
+            if ($other) {
+                $isBlocked = \App\Models\UserBlock::where(function ($q) use ($myId, $other) {
+                    $q->where('blocker_id', $myId)->where('blocked_id', $other->id);
+                })->orWhere(function ($q) use ($myId, $other) {
+                    $q->where('blocker_id', $other->id)->where('blocked_id', $myId);
+                })->exists();
+
+                if ($isBlocked) {
+                    return response()->json(['error' => 'You cannot send messages to this user.'], 403);
+                }
+            }
+        }
 
         $request->validate([
             'type'        => 'required|in:text,image,video,file,pdf',
@@ -391,6 +410,17 @@ class ChatController extends Controller
 
         if (!$other) {
             return response()->json(['error' => 'User not found.'], 404);
+        }
+
+        // Block check — prevent messaging if either side has blocked the other
+        $isBlocked = \App\Models\UserBlock::where(function ($q) use ($myId, $otherId) {
+            $q->where('blocker_id', $myId)->where('blocked_id', $otherId);
+        })->orWhere(function ($q) use ($myId, $otherId) {
+            $q->where('blocker_id', $otherId)->where('blocked_id', $myId);
+        })->exists();
+
+        if ($isBlocked) {
+            return response()->json(['error' => 'You cannot message this user.'], 403);
         }
 
         // Look for an existing direct conversation between these two users
@@ -1169,7 +1199,7 @@ class ChatController extends Controller
         };
     }
 
-    private function serializeConversation(ChatConversation $c, int $myId, ?array $participantCountMap = null, ?array $pendingCountMap = null): array
+    private function serializeConversation(ChatConversation $c, int $myId, ?array $participantCountMap = null, ?array $pendingCountMap = null, array $mutualBlockIds = []): array
     {
         $latest     = $c->latestMessage;
         $unread     = $c->unreadCountFor($myId);
@@ -1179,12 +1209,15 @@ class ChatController extends Controller
             $name     = $other?->full_name ?? 'Unknown User';
             $avatar   = $other?->photo ? asset('storage/' . $other->photo) : null;
             $initials = $other?->initials ?? '?';
- 
+
             // Online status for direct chat header
             $otherOnline        = $other?->isOnline() ?? false;
             $otherLastSeen      = $other?->last_seen_at?->toISOString();
             $otherLastSeenHuman = $other?->lastSeenHuman() ?? '';
             $otherId            = $other?->id;
+
+            // Block status — is the other participant in the mutual block set?
+            $isBlocked = $otherId && in_array($otherId, $mutualBlockIds);
         } else {
             // Group conversation
             $name     = $c->name;
@@ -1196,6 +1229,7 @@ class ChatController extends Controller
             $otherLastSeen      = null;
             $otherLastSeenHuman = '';
             $otherId            = null;
+            $isBlocked          = false; // blocks don't apply to group conversations
         }
 
         return [
@@ -1225,8 +1259,10 @@ class ChatController extends Controller
             // ── Online status (direct chats only) ──────────────────────
             'other_user_id'      => $otherId,
             'other_is_online'    => $otherOnline,
-            'other_last_seen_at' => $otherLastSeen,     
-            'other_last_seen'    => $otherLastSeenHuman,  
+            'other_last_seen_at' => $otherLastSeen,
+            'other_last_seen'    => $otherLastSeenHuman,
+            // ── Block status (direct chats only) ───────────────────────
+            'is_blocked'         => $isBlocked,
         ];
     }
 
