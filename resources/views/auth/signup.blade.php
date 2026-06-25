@@ -796,7 +796,12 @@
                 </div>
                 @error('terms')<span class="field-error" style="margin-top:-14px;margin-bottom:12px;display:block;">{{ $message }}</span>@enderror
 
-                <button type="submit" class="signup-btn" id="submitBtn">Join Community</button>
+                <div id="validationSummary" style="display:none;background:#fff5f5;border:1.5px solid #fed7d7;border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+        <p style="font-size:13px;font-weight:700;color:#c53030;margin:0 0 8px;">Please fix the following before submitting:</p>
+        <ul id="validationList" style="margin:0;padding-left:18px;font-size:13px;color:#c53030;"></ul>
+    </div>
+    <button type="submit" class="signup-btn" id="submitBtn" disabled
+            style="opacity:0.5;cursor:not-allowed;transition:opacity 0.2s,cursor 0.2s;">Join Community</button>
 
             </div>{{-- /bottomSection --}}
 
@@ -1037,28 +1042,152 @@ document.addEventListener('DOMContentLoaded', function () {
         matchErr.style.display = (this.value && this.value !== pwInput.value) ? 'block' : 'none';
     });
 
+    // ── Live validation & button enable/disable ───────────────────────────
+
+    var submitBtn        = document.getElementById('submitBtn');
+    var validationSummary = document.getElementById('validationSummary');
+    var validationList   = document.getElementById('validationList');
+
+    // Field definitions: [name/id, label, type, visibilityFn]
+    // visibilityFn returns true when this field is currently required/visible
+    function isCommonVisible()  { return commonFields.classList.contains('active'); }
+    function isNoOnlyVisible()  { return noOnlyFields.classList.contains('active'); }
+    function isBottomVisible()  { return bottomSection.classList.contains('active'); }
+
+    var MANDATORY = [
+        // Always required
+        { sel: '#iccrSelect',                label: 'Are you an ICCR Alumni?',    when: function(){ return true; } },
+        // commonFields
+        { sel: '[name="full_name"]',          label: 'Full Name',                  when: isCommonVisible },
+        { sel: '[name="email"]',              label: 'Email Address',              when: isCommonVisible },
+        { sel: '[name="nationality"]',        label: 'Nationality',                when: isCommonVisible },
+        // noOnlyFields (also shown for YES alumni in manual/lookup mode)
+        { sel: '[name="phone"]',              label: 'Phone Number',               when: isNoOnlyVisible },
+        { sel: '[name="batch_name"]',         label: 'Batch Year',                 when: isNoOnlyVisible },
+        { sel: '[name="department"]',         label: 'Department',                 when: isNoOnlyVisible },
+        { sel: '[name="passing_year"]',       label: 'Passing Year',               when: isNoOnlyVisible },
+        { sel: '[name="gender"]',             label: 'Gender',                     when: isNoOnlyVisible },
+        { sel: '[name="institute"]',          label: 'Institution',                when: isNoOnlyVisible },
+        // bottomSection
+        { sel: '#password',                   label: 'Password (min 8 characters)', when: isBottomVisible, check: function(el){ return el.value.length >= 8; } },
+        { sel: '#password_confirmation',      label: 'Confirm Password',           when: isBottomVisible, check: function(el){ return el.value.length > 0 && el.value === document.getElementById('password').value; } },
+        { sel: '[name="captcha"]',            label: 'CAPTCHA verification',       when: isBottomVisible },
+        { sel: '#terms',                      label: 'Terms & Conditions checkbox', when: isBottomVisible, check: function(el){ return el.checked; } },
+    ];
+
+    function fieldOk(def) {
+        if (!def.when()) return true; // not visible = not required
+        var el = document.querySelector(def.sel);
+        if (!el) return true;
+        if (def.check) return def.check(el);
+        return el.value.trim() !== '';
+    }
+
+    function showInlineError(el, msg) {
+        // Find or create a validation span right after the element's closest .form-group or parent
+        var parent = el.closest('.form-group') || el.parentElement;
+        var existing = parent.querySelector('.fv-error');
+        if (!existing) {
+            existing = document.createElement('span');
+            existing.className = 'fv-error field-error';
+            existing.style.display = 'block';
+            parent.appendChild(existing);
+        }
+        existing.textContent = msg;
+        existing.style.display = msg ? 'block' : 'none';
+        if (msg) el.classList.add('input-error');
+        else     el.classList.remove('input-error');
+    }
+
+    function clearInlineError(el) {
+        showInlineError(el, '');
+    }
+
+    function runValidation(showErrors) {
+        var errors = [];
+        MANDATORY.forEach(function(def) {
+            if (!def.when()) return;
+            var el = document.querySelector(def.sel);
+            if (!el) return;
+            var ok = fieldOk(def);
+            if (!ok) {
+                errors.push(def.label);
+                if (showErrors) showInlineError(el, def.label + ' is required.');
+            } else {
+                if (showErrors) clearInlineError(el);
+            }
+        });
+
+        // Password match
+        var pw   = document.getElementById('password');
+        var pwc  = document.getElementById('password_confirmation');
+        if (isBottomVisible() && pw && pwc && pwc.value && pw.value !== pwc.value) {
+            errors.push('Passwords do not match');
+            if (showErrors) {
+                matchErr.style.display = 'block';
+                pwc.classList.add('input-error');
+            }
+        } else if (showErrors && pwc) {
+            matchErr.style.display = 'none';
+        }
+
+        // Institute "Other" text field
+        var instSelect = document.querySelector('select[name="institute"]');
+        var instOther  = document.getElementById('instituteOtherInput');
+        if (isNoOnlyVisible() && instSelect && instSelect.value === 'other' && instOther && !instOther.value.trim()) {
+            errors.push('Institution name (Other)');
+            if (showErrors) showInlineError(instOther, 'Please specify your institution.');
+        }
+
+        return errors;
+    }
+
+    function refreshButton() {
+        var errors = runValidation(false);
+        var allOk  = errors.length === 0;
+        submitBtn.disabled         = !allOk;
+        submitBtn.style.opacity    = allOk ? '1'            : '0.5';
+        submitBtn.style.cursor     = allOk ? 'pointer'      : 'not-allowed';
+    }
+
+    // Attach live listeners to all mandatory fields
+    MANDATORY.forEach(function(def) {
+        var el = document.querySelector(def.sel);
+        if (!el) return;
+        var evts = (el.type === 'checkbox' || el.tagName === 'SELECT') ? ['change'] : ['input', 'blur'];
+        evts.forEach(function(ev) {
+            el.addEventListener(ev, function() {
+                clearInlineError(this);
+                refreshButton();
+            });
+        });
+    });
+
+    // Also re-check when ICCR select / radios change (visibility changes)
+    iccrSelect.addEventListener('change', function(){ setTimeout(refreshButton, 50); });
+    document.querySelectorAll('input[name="alumni_search_method"]').forEach(function(r){
+        r.addEventListener('change', function(){ setTimeout(refreshButton, 50); });
+    });
+
+    // Initial check (for old() repopulation on server errors)
+    refreshButton();
+
     // ── Form submit guard ─────────────────────────────────────────────────
-    document.getElementById('signupForm').addEventListener('submit', function (e) {
-        // Ensure ICCR selection was made
-        if (!iccrSelect.value) {
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+        var errors = runValidation(true);
+
+        if (errors.length > 0) {
             e.preventDefault();
-            iccrSelect.focus();
-            iccrSelect.classList.add('input-error');
+            validationList.innerHTML = errors.map(function(msg){ return '<li>' + msg + '</li>'; }).join('');
+            validationSummary.style.display = 'block';
+            validationSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
-        // Password match check
-        if (pwConf && pwInput && pwConf.value !== pwInput.value) {
-            matchErr.style.display = 'block';
-            e.preventDefault();
-            return;
-        }
-        if (pwInput && pwInput.value.length < 8) {
-            e.preventDefault();
-            return;
-        }
-        var btn = document.getElementById('submitBtn');
-        btn.disabled    = true;
-        btn.textContent = 'Submitting...';
+
+        validationSummary.style.display = 'none';
+        submitBtn.disabled    = true;
+        submitBtn.textContent = 'Submitting…';
+        submitBtn.style.opacity = '0.7';
     });
 
 });

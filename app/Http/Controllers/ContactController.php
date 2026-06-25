@@ -30,7 +30,7 @@ class ContactController extends Controller
         ]);
 
         $to      = config('services.contact_email');
-        $subject = '[ICCR Alumni] ' . $validated['subject'];
+        $subject = 'Contact Form: ' . $validated['subject'];
         $name    = e($validated['name']);
         $email   = e($validated['email']);
         $subj    = e($validated['subject']);

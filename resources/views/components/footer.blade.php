@@ -152,6 +152,9 @@
                 <a href="{{ route('contact') }}">Contact</a>
             </div>
         </div>
+        <div style="text-align:center;padding:10px 0 4px;font-size:12px;color:rgba(255,255,255,0.4);">
+            Designed and Developed by <a href="https://ardhas.com" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none;font-weight:600;">Ardhas Technology Pvt. Ltd.</a>
+        </div>
     </div>
 </footer>
 
