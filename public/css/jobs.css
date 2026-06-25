@@ -219,7 +219,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 28px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
 }
 
@@ -284,6 +284,55 @@
 .jr-meta__term {
     font-style: italic;
     color: var(--jr-ink-3);
+}
+
+/* ── Date range filter row ───────────────────────────────────────────── */
+.jr-date-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.jr-date-filter__label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--jr-ink-3);
+    white-space: nowrap;
+}
+.jr-date-filter__sep {
+    font-size: 12px;
+    color: var(--jr-ink-4);
+}
+.jr-date-input {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--jr-border);
+    font-size: 12.5px;
+    font-family: var(--jr-ff-body);
+    color: var(--jr-ink);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.18s;
+    background: var(--jr-surface);
+}
+.jr-date-input:focus {
+    border-color: var(--jr-saffron);
+}
+.jr-date-filter__btn {
+    padding: 7px 16px;
+    background: var(--jr-saffron);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--jr-ff-body);
+    cursor: pointer;
+    transition: background 0.18s;
+}
+.jr-date-filter__btn:hover {
+    background: var(--jr-saffron-dk);
 }
 
 /* Section head */

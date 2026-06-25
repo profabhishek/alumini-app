@@ -70,6 +70,54 @@
     margin: 0;
 }
 
+/* ── Home gallery bento hover overlay ── */
+.hg-cell {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+.hg-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.45s ease;
+}
+.hg-cell:hover img { transform: scale(1.06); }
+.hg-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: flex-end;
+    pointer-events: none;
+}
+.hg-cell:hover .hg-overlay { opacity: 1; }
+.hg-overlay__inner {
+    padding: 12px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.hg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #fff;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 50px;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
 .alumni-avatar img {
     width: 100%;
     height: 100%;
@@ -128,8 +176,8 @@
                         </div>
                         <div class="hero-stat-sep"></div>
                         <div class="hero-stat">
-                            <span class="hero-stat-num">30<span>+</span></span>
-                            <span class="hero-stat-label">Departments</span>
+                            <span class="hero-stat-num">134<span>+</span></span>
+                            <span class="hero-stat-label">Universities</span>
                         </div>
                         <div class="hero-stat-sep"></div>
                         <div class="hero-stat">
@@ -150,7 +198,7 @@
                             <div class="hcb-world">
                                 <div class="hcb-world-globe"></div>
                                 <div class="hcb-world-label">Spanning</div>
-                                <div class="hcb-world-val">120+ Nations</div>
+                                <div class="hcb-world-val">140+ Nations</div>
                                 <div class="hcb-world-sub">
                                     Alumni united by culture, driven by purpose
                                 </div>
@@ -175,7 +223,7 @@
                                             <line x1="3" y1="10" x2="21" y2="10" />
                                         </svg>
                                     </div>
-                                    <div class="hcb-mini-num">25K+</div>
+                                    <div class="hcb-mini-num">19K+</div>
                                     <div class="hcb-mini-label">Alumni</div>
                                 </div>
                             </div>
@@ -297,7 +345,7 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </div>
-                    <h3 class="why-title">Connect with Your Batchmates</h3>
+                    <h3 class="why-title">Past Research Paper of Alumni's</h3>
                     <p class="why-desc">Find the people you studied alongside — no matter where life took them. Reconnect, catch up, and pick up right where you left off with batchmates from across the world.</p>
                 </div>
                 <div class="why-card reveal reveal-delay-3">
@@ -403,7 +451,7 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="afc-num">25,000+</div>
+                            <div class="afc-num">19,000+</div>
                             <div class="afc-label">Alumni &amp; Growing</div>
                         </div>
                     </div>
@@ -452,7 +500,7 @@
         <div class="container">
             <div class="stats-inner">
                 <div class="stat-item reveal">
-                    <div class="stat-num">{{ $statAlumni > 0 ? number_format($statAlumni) : '25,000' }}<span>+</span></div>
+                    <div class="stat-num">{{ $statAlumni > 0 ? number_format($statAlumni) : '19,000' }}<span>+</span></div>
                     <div class="stat-label">Alumni Members</div>
                 </div>
                 <div class="stat-item reveal reveal-delay-1">
@@ -513,20 +561,34 @@
 
                 {{-- Featured: spans 2 cols × 2 rows --}}
                 <div style="grid-column:1/3;grid-row:1/3;position:relative;overflow:hidden;cursor:pointer;"
-                     onclick="homeLbOpen(0)">
+                     onclick="homeLbOpen(0)"
+                     onmouseenter="hgIn(this)" onmouseleave="hgOut(this)">
                     <img loading="lazy" src="{{ asset('storage/' . $featuredPhoto->image) }}"
                          alt="{{ $featuredPhoto->title ?? 'Gallery' }}"
-                         loading="lazy"
-                         style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.5s ease;"
-                         onmouseover="this.style.transform='scale(1.04)'"
-                         onmouseout="this.style.transform='scale(1)'">
-                    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 55%);pointer-events:none;"></div>
-                    @if($featuredPhoto->title)
-                    <div style="position:absolute;bottom:18px;left:18px;right:18px;">
-                        <span style="font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.8);line-height:1.4;">{{ $featuredPhoto->title }}</span>
+                         style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.5s ease;">
+                    <div class="hg-overlay" style="opacity:0;transition:opacity 0.3s ease;">
+                        <div class="hg-overlay__inner">
+                            @if($featuredPhoto->event_name)
+                            <span class="hg-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                {{ $featuredPhoto->event_name }}
+                            </span>
+                            @endif
+                            @if($featuredPhoto->event_date)
+                            <span class="hg-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                {{ \Carbon\Carbon::parse($featuredPhoto->event_date)->format('d M Y') }}
+                            </span>
+                            @endif
+                            @if($featuredPhoto->country)
+                            <span class="hg-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                {{ $featuredPhoto->country }}
+                            </span>
+                            @endif
+                        </div>
                     </div>
-                    @endif
-                    <div style="position:absolute;top:14px;left:14px;background:var(--gold);color:#000;font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:50px;">
+                    <div style="position:absolute;top:14px;left:14px;background:var(--gold);color:#000;font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:50px;pointer-events:none;">
                         Latest
                     </div>
                 </div>
@@ -534,19 +596,36 @@
                 {{-- 6 thumbnails filling the remaining 2 cols × 2 rows (3 per column) --}}
                 @foreach($thumbPhotos as $idx => $photo)
                 <div style="position:relative;overflow:hidden;cursor:pointer;"
-                     onclick="homeLbOpen({{ $idx + 1 }})">
+                     onclick="homeLbOpen({{ $idx + 1 }})"
+                     onmouseenter="hgIn(this)" onmouseleave="hgOut(this)">
                     <img loading="lazy" src="{{ asset('storage/' . $photo->image) }}"
                          alt="{{ $photo->title ?? 'Gallery' }}"
-                         loading="lazy"
-                         style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease;"
-                         onmouseover="this.style.transform='scale(1.06)'"
-                         onmouseout="this.style.transform='scale(1)'">
-                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.3s;"
-                         onmouseover="this.style.background='rgba(0,0,0,0.3)'"
-                         onmouseout="this.style.background='rgba(0,0,0,0)'"></div>
+                         style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease;">
+                    <div class="hg-overlay" style="opacity:0;transition:opacity 0.3s ease;">
+                        <div class="hg-overlay__inner">
+                            @if($photo->event_name)
+                            <span class="hg-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                {{ $photo->event_name }}
+                            </span>
+                            @endif
+                            @if($photo->event_date)
+                            <span class="hg-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                {{ \Carbon\Carbon::parse($photo->event_date)->format('d M Y') }}
+                            </span>
+                            @endif
+                            @if($photo->country)
+                            <span class="hg-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                {{ $photo->country }}
+                            </span>
+                            @endif
+                        </div>
+                    </div>
                     {{-- last thumb: "View All" overlay --}}
                     @if($idx === 5 && $statGallery > 7)
-                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none;">
                         <span style="font-size:22px;font-weight:800;color:#fff;">+{{ $statGallery - 7 }}</span>
                         <span style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.05em;">more photos</span>
                     </div>
@@ -563,6 +642,18 @@
                 <button onclick="homeLbNav(1)" style="position:absolute;right:20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;">›</button>
             </div>
             <script>
+            function hgIn(el) {
+                var img = el.querySelector('img');
+                var ov  = el.querySelector('.hg-overlay');
+                if (img) img.style.transform = 'scale(1.06)';
+                if (ov)  ov.style.opacity    = '1';
+            }
+            function hgOut(el) {
+                var img = el.querySelector('img');
+                var ov  = el.querySelector('.hg-overlay');
+                if (img) img.style.transform = 'scale(1)';
+                if (ov)  ov.style.opacity    = '0';
+            }
             const _hlPhotos = [
                 @foreach($recentPhotos as $p)
                 "{{ asset('storage/' . $p->image) }}",

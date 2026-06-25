@@ -1,5 +1,5 @@
 <footer>
-    <div class="footer-newsletter">
+    {{-- <div class="footer-newsletter">
         <div class="nl-inner">
             <div>
                 <div class="nl-label">Stay Connected</div>
@@ -13,7 +13,6 @@
                 <form class="nl-form" id="newsletterForm" novalidate>
                     @csrf
 
-                    {{-- Honeypot — hidden from real users, bots tend to fill every field --}}
                     <div style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
                         <label for="nl_website">Leave this field empty</label>
                         <input type="text" id="nl_website" name="website" tabindex="-1" autocomplete="off">
@@ -38,7 +37,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <div class="footer-main">
         <div class="footer-grid">

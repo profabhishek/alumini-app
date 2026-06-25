@@ -35,6 +35,8 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Community\GroupController;
 use App\Http\Controllers\Community\BlockController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\MentorController;
+use App\Http\Controllers\Admin\MentorAdminController;
 
 /*
 |==========================================================================
@@ -149,6 +151,10 @@ Route::get('/signup', [AuthController::class, 'showRegister'])
 Route::post('/signup', [AuthController::class, 'register'])
     ->middleware('throttle:register')
     ->name('register.store');
+
+Route::get('/alumni/lookup', [AuthController::class, 'lookupAlumniCode'])
+    ->middleware('throttle:10,1')
+    ->name('alumni.lookup');
 
 Route::get('/login', [AuthController::class, 'showLogin'])
     ->name('login');
@@ -940,6 +946,36 @@ Route::middleware('admin.auth')->group(function () {
 */
 
 Route::get('/jobs/{job:slug}', [JobController::class, 'show'])->name('jobs.show');
+
+/*
+|==========================================================================
+| MENTOR / MENTEE
+|==========================================================================
+*/
+
+// Public browse (auth required)
+Route::middleware('alumni.auth')->group(function () {
+    Route::get('/mentors',                       [MentorController::class, 'index'])          ->name('mentors.index');
+    Route::get('/mentors/apply',                 [MentorController::class, 'applyForm'])      ->name('mentors.apply');
+    Route::post('/mentors/apply',                [MentorController::class, 'applyStore'])     ->name('mentors.apply.store');
+    Route::get('/mentors/connections',           [MentorController::class, 'myConnections'])  ->name('mentors.connections');
+    Route::get('/mentors/{mentor}',              [MentorController::class, 'show'])           ->name('mentors.show');
+    Route::post('/mentors/{mentor}/connect',     [MentorController::class, 'connect'])        ->name('mentors.connect');
+    Route::patch('/mentors/connections/{connection}/respond', [MentorController::class, 'respond'])->name('mentors.connections.respond');
+    Route::delete('/mentors/connections/{connection}',        [MentorController::class, 'cancelConnection'])->name('mentors.connections.cancel');
+});
+
+// Admin mentor management
+Route::middleware('admin.auth')->group(function () {
+    Route::get('/admin/mentors',                             [MentorAdminController::class, 'requests'])       ->name('admin.mentors.requests');
+    Route::patch('/admin/mentors/{mentor}/approve',          [MentorAdminController::class, 'approve'])        ->name('admin.mentors.approve');
+    Route::patch('/admin/mentors/{mentor}/reject',           [MentorAdminController::class, 'reject'])         ->name('admin.mentors.reject');
+    Route::get('/admin/mentor-categories',                   [MentorAdminController::class, 'categories'])     ->name('admin.mentor-categories.index');
+    Route::post('/admin/mentor-categories',                  [MentorAdminController::class, 'storeCategory'])  ->name('admin.mentor-categories.store');
+    Route::put('/admin/mentor-categories/{category}',        [MentorAdminController::class, 'updateCategory']) ->name('admin.mentor-categories.update');
+    Route::delete('/admin/mentor-categories/{category}',     [MentorAdminController::class, 'destroyCategory'])->name('admin.mentor-categories.destroy');
+    Route::patch('/admin/mentor-categories/{category}/toggle',[MentorAdminController::class, 'toggleCategory'])->name('admin.mentor-categories.toggle');
+});
 
 /*
 |==========================================================================

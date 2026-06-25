@@ -78,11 +78,11 @@ class Job extends Model
     public function salaryRange(): string
     {
         if ($this->salary_min && $this->salary_max) {
-            return '$' . number_format($this->salary_min) . ' – $' . number_format($this->salary_max);
+            return 'USD ' . number_format($this->salary_min) . ' – USD ' . number_format($this->salary_max) . ' / yr';
         }
 
         if ($this->salary_min) {
-            return '$' . number_format($this->salary_min) . '+';
+            return 'USD ' . number_format($this->salary_min) . '+ / yr';
         }
 
         return 'Not disclosed';

@@ -198,6 +198,45 @@ class AuthController extends Controller
         'Vietnamese','Yemenite','Zambian','Zimbabwean',
     ];
 
+    // ── Alumni code lookup (Application ID) ──────────────────────────────
+    // Returns basic pre-fill data for the registration form. Throttled.
+
+    public function lookupAlumniCode(Request $request)
+    {
+        $request->validate(['alumni_code' => 'required|string|max:50']);
+        $code = trim($request->alumni_code);
+
+        $record = \DB::table('alumni_data')
+            ->where('alumni_code', $code)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['found' => false, 'message' => 'No alumni record found for this Application ID.'], 404);
+        }
+
+        // Check if already registered
+        $alreadyRegistered = AlumniUser::where('roll_number', $code)
+            ->orWhere('email', $record->email ?? '')
+            ->exists();
+
+        if ($alreadyRegistered) {
+            return response()->json(['found' => false, 'message' => 'This Application ID is already registered. Please login instead.'], 409);
+        }
+
+        return response()->json([
+            'found'       => true,
+            'full_name'   => $record->name,
+            'email'       => $record->email,
+            'phone'       => $record->phone,
+            'institute'   => $record->institute,
+            'batch_name'  => $record->joining_year,
+            'passing_year'=> $record->graduation_year,
+            'gender'      => $record->gender,
+            'birth_date'  => $record->dob,
+            'alumni_code' => $code,
+        ]);
+    }
+
     // ── Login ─────────────────────────────────────────────────────────────
 
     public function showLogin()

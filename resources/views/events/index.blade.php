@@ -58,7 +58,7 @@
     {{-- ── TOOLBAR ─────────────────────────────────────────────── --}}
     <div class="ev-toolbar">
         <div class="ev-toolbar__inner">
-            <form class="ev-search" method="GET" action="{{ route('events.index') }}">
+            <form class="ev-search" method="GET" action="{{ route('events.index') }}" id="evFilterForm">
                 @if(request('filter'))
                     <input type="hidden" name="filter" value="{{ request('filter') }}">
                 @endif
@@ -66,6 +66,21 @@
                 <input class="ev-search__input" type="text" name="search"
                        value="{{ request('search') }}" placeholder="Search events, locations…" autocomplete="off">
                 <button class="ev-search__btn" type="submit">Search</button>
+            </form>
+
+                    {{-- Date range filter --}}
+            <form method="GET" action="{{ route('events.index') }}" class="ev-date-filter" id="evDateForm">
+                @if(request('filter')) <input type="hidden" name="filter" value="{{ request('filter') }}"> @endif
+                @if(request('search')) <input type="hidden" name="search" value="{{ request('search') }}"> @endif
+                <span style="font-size:12px;font-weight:700;color:#718096;white-space:nowrap;">Date range:</span>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="ev-date-input" title="From date">
+                <span style="font-size:12px;color:#a0aec0;">–</span>
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="ev-date-input" title="To date">
+                <button type="submit" class="ev-search__btn" style="padding:7px 14px;font-size:12px;">Apply</button>
+                @if(request()->hasAny(['date_from','date_to']))
+                    <a href="{{ route('events.index', array_filter(['filter' => request('filter'), 'search' => request('search')])) }}"
+                    style="font-size:12px;color:#e8640c;font-weight:700;text-decoration:none;white-space:nowrap;">✕ Clear</a>
+                @endif
             </form>
 
             <div class="ev-filters">
@@ -87,6 +102,8 @@
                 </a>
             </div>
         </div>
+
+
     </div>
 
     <div class="ev-body">

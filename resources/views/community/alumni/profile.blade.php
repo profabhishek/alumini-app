@@ -405,8 +405,12 @@
             <div class="ap-hero__top">
 
                 {{-- Avatar --}}
+                @php
+                    $isAdminViewer = in_array(session('alumni_role'), ['admin', 'super_admin', 'zonal_hq', 'mission']);
+                    $photoHidden   = $alumniUser->hide_photo && !$isOwnProfile && !$isAdminViewer;
+                @endphp
                 <div class="ap-avatar">
-                    @if(!empty($alumniUser->photo))
+                    @if(!empty($alumniUser->photo) && !$photoHidden)
                         <img src="{{ asset('storage/' . $alumniUser->photo) }}"
                              alt="{{ $alumniUser->full_name }}"
                              loading="lazy">

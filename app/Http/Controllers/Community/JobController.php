@@ -29,6 +29,12 @@ class JobController extends Controller
             ->when($request->filled('work_mode'), fn($q) =>
                 $q->where('work_mode', $request->work_mode)
             )
+            ->when($request->filled('date_from'), fn($q) =>
+                $q->whereDate('published_at', '>=', $request->date_from)
+            )
+            ->when($request->filled('date_to'), fn($q) =>
+                $q->whereDate('published_at', '<=', $request->date_to)
+            )
             ->when($request->filter === 'active', fn($q) =>
                 $q->where(function ($q) {
                     $q->whereNull('application_deadline')

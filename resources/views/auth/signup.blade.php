@@ -92,8 +92,8 @@
         <h1>Connect with Alumni Across the Globe</h1>
         <p>Join a professional network of ICCR alumni, discover opportunities, participate in events, and build meaningful global connections.</p>
         <div class="stats-grid">
-            <div class="stat-card"><h3>120+</h3><span>Countries</span></div>
-            <div class="stat-card"><h3>25K+</h3><span>Alumni</span></div>
+            <div class="stat-card"><h3>140+</h3><span>Countries</span></div>
+            <div class="stat-card"><h3>19K+</h3><span>Alumni</span></div>
             <div class="stat-card"><h3>500+</h3><span>Events</span></div>
             <div class="stat-card"><h3>1000+</h3><span>Success Stories</span></div>
         </div>
@@ -141,6 +141,50 @@
                     <i class="fa-solid fa-circle-info" style="color:#3b82f6;"></i>
                     Please answer the question above to see the registration form.
                 </p>
+            </div>
+
+            {{-- ════════════════════════════════════════════════════════
+                 STEP 1B — Search method (YES path only)
+                 ════════════════════════════════════════════════════════ --}}
+            <div id="alumniSearchMethod" style="display:none;margin-bottom:20px;">
+                <p class="section-label" style="margin-bottom:10px;">How would you like to proceed?</p>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:border-color .2s;" id="radioLabelId">
+                        <input type="radio" name="alumni_search_method" value="application_id" id="radioById"
+                               style="accent-color:#e8640c;width:16px;height:16px;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#1c2331;">Search by Application ID</div>
+                            <div style="font-size:12px;color:#718096;margin-top:2px;">Enter your ICCR Application / Alumni Code to auto-fill your details</div>
+                        </div>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:border-color .2s;" id="radioLabelManual">
+                        <input type="radio" name="alumni_search_method" value="manual" id="radioManual"
+                               style="accent-color:#e8640c;width:16px;height:16px;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#1c2331;">I don't have my Application ID</div>
+                            <div style="font-size:12px;color:#718096;margin-top:2px;">Fill in all your details manually</div>
+                        </div>
+                    </label>
+                </div>
+
+                {{-- Application ID lookup box --}}
+                <div id="appIdLookupBox" style="display:none;margin-top:16px;padding:16px 20px;background:#f7fafc;border:1.5px solid #e2e8f0;border-radius:12px;">
+                    <label style="display:block;font-size:13px;font-weight:700;color:#4a5568;margin-bottom:8px;">
+                        Application ID / Alumni Code <span class="req">*</span>
+                    </label>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <input type="text" id="alumniCodeInput" placeholder="e.g. ICCR-2019-0042"
+                               style="flex:1;min-width:200px;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e8f0;font-size:14px;outline:none;">
+                        <button type="button" id="alumniLookupBtn"
+                                style="padding:10px 20px;background:#e8640c;color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap;">
+                            Search
+                        </button>
+                    </div>
+                    <div id="alumniLookupMsg" style="margin-top:8px;font-size:13px;display:none;"></div>
+                    <div id="alumniLookupSuccess" style="display:none;margin-top:12px;padding:10px 14px;background:#f0fff4;border:1.5px solid #9ae6b4;border-radius:10px;font-size:13px;color:#276749;">
+                        <strong>✓ Record found!</strong> Your details have been pre-filled below. Please verify and complete the form.
+                    </div>
+                </div>
             </div>
 
             {{-- ════════════════════════════════════════════════════════
@@ -391,7 +435,7 @@
                         <label>Batch Year <span class="req">*</span></label>
                         <select name="batch_name" class="{{ $errors->has('batch_name') ? 'input-error' : '' }}">
                             <option value="">Select Batch Year</option>
-                            @for($y = date('Y'); $y >= 1980; $y--)
+                            @for($y = date('Y'); $y >= 1985; $y--)
                                 <option value="{{ $y }}" {{ old('batch_name') == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
                         </select>
@@ -426,7 +470,7 @@
                         <label>Passing Year <span class="req">*</span></label>
                         <select name="passing_year" class="{{ $errors->has('passing_year') ? 'input-error' : '' }}">
                             <option value="">Select Passing Year</option>
-                            @for($y = date('Y'); $y >= 1980; $y--)
+                            @for($y = date('Y'); $y >= 1985; $y--)
                                 <option value="{{ $y }}" {{ old('passing_year') == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
                         </select>
@@ -771,24 +815,50 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     // ── ICCR toggle logic ─────────────────────────────────────────────────
-    var iccrSelect    = document.getElementById('iccrSelect');
-    var commonFields  = document.getElementById('commonFields');
-    var noOnlyFields  = document.getElementById('noOnlyFields');
-    var bottomSection = document.getElementById('bottomSection');
-    var iccrHint      = document.getElementById('iccrHint');
+    var iccrSelect       = document.getElementById('iccrSelect');
+    var commonFields     = document.getElementById('commonFields');
+    var noOnlyFields     = document.getElementById('noOnlyFields');
+    var bottomSection    = document.getElementById('bottomSection');
+    var iccrHint         = document.getElementById('iccrHint');
+    var alumniSearchMethod = document.getElementById('alumniSearchMethod');
+
+    function showFullForm() {
+        commonFields.classList.add('active');
+        noOnlyFields.classList.add('active');
+        bottomSection.classList.add('active');
+    }
+    function hideFullForm() {
+        commonFields.classList.remove('active');
+        noOnlyFields.classList.remove('active');
+        bottomSection.classList.remove('active');
+    }
 
     function applyIccrState(val) {
         if (val === 'yes') {
-            commonFields.classList.add('active');
-            noOnlyFields.classList.remove('active');
-            bottomSection.classList.add('active');
+            alumniSearchMethod.style.display = 'block';
             iccrHint.classList.add('hidden');
+            var chosen = document.querySelector('input[name="alumni_search_method"]:checked');
+            if (chosen && chosen.value === 'manual') {
+                showFullForm();
+            } else if (chosen && chosen.value === 'application_id') {
+                // Only show form if lookup was already completed (pre-filled on old() restore)
+                var successEl = document.getElementById('alumniLookupSuccess');
+                if (successEl && successEl.style.display !== 'none') {
+                    showFullForm();
+                } else {
+                    hideFullForm();
+                }
+            } else {
+                hideFullForm();
+            }
         } else if (val === 'no') {
+            alumniSearchMethod.style.display = 'none';
             commonFields.classList.add('active');
             noOnlyFields.classList.add('active');
             bottomSection.classList.add('active');
             iccrHint.classList.add('hidden');
         } else {
+            alumniSearchMethod.style.display = 'none';
             commonFields.classList.remove('active');
             noOnlyFields.classList.remove('active');
             bottomSection.classList.remove('active');
@@ -799,6 +869,97 @@ document.addEventListener('DOMContentLoaded', function () {
     iccrSelect.addEventListener('change', function () {
         applyIccrState(this.value);
     });
+
+    // Radio buttons for search method
+    document.querySelectorAll('input[name="alumni_search_method"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var appIdBox = document.getElementById('appIdLookupBox');
+            if (this.value === 'application_id') {
+                appIdBox.style.display = 'block';
+                hideFullForm(); // wait for successful lookup
+            } else {
+                // "I don't have my Application ID" — same full form as non-alumni
+                appIdBox.style.display = 'none';
+                showFullForm();
+            }
+            // Style the selected label
+            document.getElementById('radioLabelId').style.borderColor = '';
+            document.getElementById('radioLabelManual').style.borderColor = '';
+            var selectedLabel = this.closest('label');
+            if (selectedLabel) selectedLabel.style.borderColor = '#e8640c';
+        });
+    });
+
+    // Application ID lookup
+    document.getElementById('alumniLookupBtn')?.addEventListener('click', function() {
+        var code = document.getElementById('alumniCodeInput').value.trim();
+        var msgEl = document.getElementById('alumniLookupMsg');
+        var successEl = document.getElementById('alumniLookupSuccess');
+        if (!code) { msgEl.textContent = 'Please enter your Application ID.'; msgEl.style.color = '#c53030'; msgEl.style.display = 'block'; return; }
+
+        this.textContent = 'Searching…';
+        this.disabled = true;
+        msgEl.style.display = 'none';
+        successEl.style.display = 'none';
+
+        fetch('{{ route("alumni.lookup") }}?alumni_code=' + encodeURIComponent(code), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+        .then(({ ok, data }) => {
+            if (!ok || !data.found) {
+                msgEl.textContent = data.message || 'Record not found.';
+                msgEl.style.color = '#c53030';
+                msgEl.style.display = 'block';
+            } else {
+                // Pre-fill fields
+                var f = data;
+                setField('full_name', f.full_name);
+                setField('email', f.email);
+                setField('phone', f.phone);
+                setField('roll_number', f.alumni_code);
+                setField('birth_date', f.birth_date);
+                setSelect('gender', f.gender);
+                setSelect('batch_name', f.batch_name);
+                setSelect('passing_year', f.passing_year);
+                // Try to match institute
+                var instSelect = document.querySelector('select[name="institute"]');
+                if (instSelect && f.institute) {
+                    for (var i = 0; i < instSelect.options.length; i++) {
+                        if (instSelect.options[i].text.toLowerCase().includes(f.institute.toLowerCase()) ||
+                            instSelect.options[i].value.toLowerCase().includes(f.institute.toLowerCase())) {
+                            instSelect.value = instSelect.options[i].value;
+                            break;
+                        }
+                    }
+                }
+                successEl.style.display = 'block';
+                showFullForm();
+            }
+        })
+        .catch(() => {
+            msgEl.textContent = 'Network error. Please try again.';
+            msgEl.style.color = '#c53030';
+            msgEl.style.display = 'block';
+        })
+        .finally(() => {
+            document.getElementById('alumniLookupBtn').textContent = 'Search';
+            document.getElementById('alumniLookupBtn').disabled = false;
+        });
+    });
+
+    function setField(name, val) {
+        var el = document.querySelector('[name="' + name + '"]');
+        if (el && val) el.value = val;
+    }
+    function setSelect(name, val) {
+        var el = document.querySelector('select[name="' + name + '"]');
+        if (el && val) {
+            for (var i = 0; i < el.options.length; i++) {
+                if (el.options[i].value == val) { el.value = val; break; }
+            }
+        }
+    }
 
     // Restore state on page load (handles server-side validation errors)
     applyIccrState('{{ old("is_iccr_alumni", "") }}');

@@ -544,7 +544,7 @@
                     <span class="nav-label">Messages</span>
                     <span class="nav-msg-badge" id="sidebarMsgBadge" style="display:none;"></span>
                 </a>
-                <a href="/groups" class="sidebar-nav__item {{ request()->is('groups*') ? 'active' : '' }}">
+                <a href="{{ route('groups.index') }}" class="sidebar-nav__item {{ request()->is('groups*') ? 'active' : '' }}">
                     <span class="nav-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -556,6 +556,44 @@
                     <span class="nav-label">Community Groups</span>
                     <span id="sb-badge-groups" class="sidebar-child-badge sidebar-child-badge--notif" style="margin-left:6px;display:none;"></span>
                 </a>
+
+                {{-- MENTORS --}}
+                <div class="sidebar-expandable">
+                    <div class="sidebar-nav__item sidebar-nav__item--expandable" onclick="toggleSidebarMenu('mentor')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2z"/>
+                                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                                <path d="M17 8l2 2 4-4"/>
+                            </svg>
+                        </span>
+                        <span class="nav-label">Mentors</span>
+                        <svg class="nav-chevron" id="chev-mentor" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="9,18 15,12 9,6"/>
+                        </svg>
+                    </div>
+                    <div class="sidebar-children" id="kids-mentor">
+                        <a href="{{ route('mentors.index') }}" class="sidebar-child {{ request()->routeIs('mentors.index') ? 'active' : '' }}">
+                            <span class="sidebar-child-dot"></span>Browse Mentors
+                        </a>
+                        <a href="{{ route('mentors.apply') }}" class="sidebar-child {{ request()->routeIs('mentors.apply') ? 'active' : '' }}">
+                            <span class="sidebar-child-dot"></span>Become a Mentor
+                        </a>
+                        <a href="{{ route('mentors.connections') }}" class="sidebar-child {{ request()->routeIs('mentors.connections') ? 'active' : '' }}">
+                            <span class="sidebar-child-dot"></span>My Connections
+                        </a>
+                        @if(in_array(session('alumni_role'), ['admin', 'super_admin']))
+                            <a href="{{ route('admin.mentors.requests') }}" class="sidebar-child sidebar-child--admin {{ request()->routeIs('admin.mentors.*') ? 'active' : '' }}">
+                                <span class="sidebar-child-dot"></span>Mentor Requests
+                                <span class="sidebar-child-badge">Admin</span>
+                            </a>
+                            <a href="{{ route('admin.mentor-categories.index') }}" class="sidebar-child sidebar-child--admin {{ request()->routeIs('admin.mentor-categories.*') ? 'active' : '' }}">
+                                <span class="sidebar-child-dot"></span>Categories
+                                <span class="sidebar-child-badge">Admin</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
 
                 <a href="{{ route('profile.index') }}" class="sidebar-nav__item">
                     <span class="nav-icon">
@@ -873,6 +911,9 @@
 
        @if(session('alumni_id'))
         <script>
+        window.APP_BASE_URL = '{{ rtrim(url('/'), '/') }}';
+        </script>
+        <script>
         (function () {
             const URL_SIDEBAR = "{{ route('notifications.sidebar-badges') }}";
             const POLL_MS     = 10000;
@@ -923,7 +964,7 @@
             });
 
             // ── Group unread badge (separate poll) ──────────────────────
-            const URL_GROUP_COUNTS = '/groups/unread-counts';
+            const URL_GROUP_COUNTS = '{{ route('groups.unread-counts') }}';
             window.updateGroupSidebarBadge = function(total) {
                 setSidebarBadge('sb-badge-groups', total);
             };

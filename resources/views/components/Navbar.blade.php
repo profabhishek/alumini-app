@@ -96,31 +96,19 @@
                             >Notice</a
                         >
                     </li>
-                    <li class="nav-item nav-dropdown {{ request()->routeIs('community.*') ? 'active' : '' }}">
-
-                        <a href="javascript:void(0)" class="nav-link-item">
-                            Community
-
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </a>
-
-                        <div class="dropdown-menu">
-
-                            <a href="{{ route('jobs.index') }}"
-                                class="dropdown-link">
-                                Find Jobs
-                            </a>
-
-                            <a href="{{ route('stories.index') }}"
-                                class="dropdown-link">
-                                Stories
-                            </a>
-
-                        </div>
-
+                    <li
+                        class="nav-item {{ request()->routeIs('jobs') ? 'active' : '' }}"
+                    >
+                        <a href="{{ route('jobs.index') }}" class="nav-link-item"
+                            >Find Jobs</a
+                        >
+                    </li>
+                    <li
+                        class="nav-item {{ request()->routeIs('jobs') ? 'active' : '' }}"
+                    >
+                        <a href="{{ route('stories.index') }}" class="nav-link-item"
+                            >Stories</a
+                        >
                     </li>
                     <li
                         class="nav-item {{ request()->routeIs('contact') ? 'active' : '' }}"

@@ -9,7 +9,11 @@ class GalleryItem extends Model
     protected $table = 'gallery_items';
 
     protected $fillable = [
-        'title', 'image', 'status', 'sort_order', 'author_id',
+        'title', 'country', 'event_name', 'event_date', 'image', 'status', 'sort_order', 'author_id',
+    ];
+
+    protected $casts = [
+        'event_date' => 'date',
     ];
 
     public function author()

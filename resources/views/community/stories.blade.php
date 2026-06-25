@@ -70,6 +70,23 @@
                 @endforeach
             </div>
             @endif
+
+            {{-- Date range filter --}}
+            <form method="GET" action="{{ route('stories.index') }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0 0;">
+                @if(request('q')) <input type="hidden" name="q" value="{{ request('q') }}"> @endif
+                @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
+                <span style="font-size:12px;font-weight:700;color:#718096;white-space:nowrap;">Published:</span>
+                <input type="date" name="date_from" value="{{ request('date_from') }}"
+                       style="padding:6px 10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:12.5px;outline:none;cursor:pointer;">
+                <span style="font-size:12px;color:#a0aec0;">–</span>
+                <input type="date" name="date_to" value="{{ request('date_to') }}"
+                       style="padding:6px 10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:12.5px;outline:none;cursor:pointer;">
+                <button type="submit" style="padding:7px 14px;background:#e8640c;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Apply</button>
+                @if(request()->hasAny(['date_from','date_to']))
+                    <a href="{{ route('stories.index', array_filter(['q' => request('q'), 'category' => request('category')])) }}"
+                       style="font-size:12px;color:#e8640c;font-weight:700;text-decoration:none;">✕ Clear</a>
+                @endif
+            </form>
         </div>
     </div>
 

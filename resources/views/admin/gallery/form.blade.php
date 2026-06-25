@@ -30,11 +30,36 @@
             @if($isEdit) @method('PUT') @endif
 
             <div class="admin-form-group">
-                <label>Title <span class="admin-form-hint">(optional, for your reference)</span></label>
+                <label>Title <span class="admin-form-hint"></span></label>
                 <input type="text" name="title" value="{{ old('title', $item->title) }}"
                        placeholder="e.g. Convocation Ceremony 2026"
                        class="admin-input @error('title') is-error @enderror">
                 @error('title')<span class="admin-form-error">{{ $message }}</span>@enderror
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+                <div class="admin-form-group">
+                    <label>Event Name <span class="admin-form-hint"></span></label>
+                    <input type="text" name="event_name" value="{{ old('event_name', $item->event_name) }}"
+                           placeholder="e.g. Annual Alumni Meet"
+                           class="admin-input @error('event_name') is-error @enderror">
+                    @error('event_name')<span class="admin-form-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-form-group">
+                    <label>Event Date <span class="admin-form-hint"></span></label>
+                    <input type="date" name="event_date"
+                           value="{{ old('event_date', $item->event_date?->format('Y-m-d')) }}"
+                           class="admin-input @error('event_date') is-error @enderror">
+                    @error('event_date')<span class="admin-form-error">{{ $message }}</span>@enderror
+                </div>
+            </div>
+
+            <div class="admin-form-group" style="margin-top:4px;">
+                <label>Country <span class="admin-form-hint"></span></label>
+                <input type="text" name="country" value="{{ old('country', $item->country) }}"
+                       placeholder="e.g. India"
+                       class="admin-input @error('country') is-error @enderror">
+                @error('country')<span class="admin-form-error">{{ $message }}</span>@enderror
             </div>
 
             <div class="admin-form-group" style="margin-top:16px;">

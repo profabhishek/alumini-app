@@ -79,10 +79,10 @@
                    class="jr-pill {{ request('filter') === 'expired' ? 'jr-pill--active' : '' }}">Expired</a>
 
                 {{-- Clear --}}
-                @if(request()->hasAny(['search','job_type','work_mode','filter']))
+                @if(request()->hasAny(['search','job_type','work_mode','filter','date_from','date_to']))
                     <a href="{{ route('jobs.index') }}" class="jr-pill jr-pill--clear">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        Clear
+                        Clear All
                     </a>
                 @endif
 
@@ -96,6 +96,18 @@
                 @endif
             </div>
         </div>
+
+        {{-- ── Date range filter ────────────────────────────────────────── --}}
+        <form method="GET" action="{{ route('jobs.index') }}" class="jr-date-filter">
+            @foreach(['search','job_type','work_mode','filter'] as $k)
+                @if(request($k)) <input type="hidden" name="{{ $k }}" value="{{ request($k) }}"> @endif
+            @endforeach
+            <span class="jr-date-filter__label">Posted:</span>
+            <input type="date" name="date_from" value="{{ request('date_from') }}" class="jr-date-input" title="From">
+            <span class="jr-date-filter__sep">–</span>
+            <input type="date" name="date_to" value="{{ request('date_to') }}" class="jr-date-input" title="To">
+            <button type="submit" class="jr-date-filter__btn">Apply</button>
+        </form>
 
         {{-- ── Section head ─────────────────────────────────────────── --}}
         @if($jobs->isNotEmpty())

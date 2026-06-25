@@ -8,7 +8,8 @@ async function startDirectChat(alumniId, btn) {
     }
 
     try {
-        const res = await fetch("/chat/direct", {
+        const base = (window.APP_BASE_URL || '').replace(/\/$/, '');
+        const res = await fetch(base + "/chat/direct", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -29,10 +30,10 @@ async function startDirectChat(alumniId, btn) {
         const conversationId = data.conversation?.id ?? null;
 
         window.location.href = conversationId
-            ? `/chat?conversation=${conversationId}`
-            : "/chat";
+            ? `${base}/chat?conversation=${conversationId}`
+            : `${base}/chat`;
     } catch (err) {
-        window.location.href = "/chat";
+        window.location.href = `${base}/chat`;
     } finally {
         if (btn && originalHtml !== null) {
             btn.disabled = false;

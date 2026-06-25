@@ -27,6 +27,12 @@ class StoryController extends Controller
             ->when($request->filled('category'), fn($q) =>
                 $q->where('category', $request->category)
             )
+            ->when($request->filled('date_from'), fn($q) =>
+                $q->whereDate('published_at', '>=', $request->date_from)
+            )
+            ->when($request->filled('date_to'), fn($q) =>
+                $q->whereDate('published_at', '<=', $request->date_to)
+            )
             ->latest()
             ->paginate(9)
             ->withQueryString();

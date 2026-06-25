@@ -96,7 +96,7 @@
 
                     <div class="cj-form-row">
                         <div class="cj-form-group">
-                            <label class="cj-label" for="salary_min">Minimum ($/year)</label>
+                            <label class="cj-label" for="salary_min">Minimum (USD/year)</label>
                             <input type="number" id="salary_min" name="salary_min" value="{{ old('salary_min') }}"
                                    class="cj-input @error('salary_min') cj-input--error @enderror"
                                    placeholder="e.g. 500000" min="0">
@@ -104,7 +104,7 @@
                         </div>
 
                         <div class="cj-form-group">
-                            <label class="cj-label" for="salary_max">Maximum ($/year)</label>
+                            <label class="cj-label" for="salary_max">Maximum (USD/year)</label>
                             <input type="number" id="salary_max" name="salary_max" value="{{ old('salary_max') }}"
                                    class="cj-input @error('salary_max') cj-input--error @enderror"
                                    placeholder="e.g. 1200000" min="0">

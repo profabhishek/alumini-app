@@ -638,10 +638,24 @@ body {
     .navbar-main {
         padding: 0 18px;
     }
-    .topbar-left .topbar-link:last-of-type,
     .topbar-sep {
         display: none;
     }
+
+    .topbar-divider {
+        display: none;
+    }
+    .topbar-left .topbar-link:last-of-type {
+        display: flex;
+    }
+
+    .topbar-left {
+        flex-direction: column;
+        gap: 0px;
+        align-items: start;
+        font-size: 10px;
+    }
+
     .topbar-btn {
         padding: 4px 10px;
         font-size: 11px;

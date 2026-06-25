@@ -28,6 +28,12 @@ class EventController extends Controller
                     ->orWhere('category', 'like', "%{$request->search}%");
                 })
             )
+            ->when($request->filled('date_from'), fn($q) =>
+                $q->whereDate('start_date', '>=', $request->date_from)
+            )
+            ->when($request->filled('date_to'), fn($q) =>
+                $q->whereDate('start_date', '<=', $request->date_to)
+            )
             ->when($request->filter === 'upcoming', fn($q) =>
                 $q->whereDate('start_date', '>', $today)
             )

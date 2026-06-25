@@ -180,12 +180,53 @@
     padding: 18px;
 }
 .gal-card:hover .gal-card-overlay { opacity: 1; }
+.gal-card-overlay {
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0) 100%);
+}
 .gal-card-title {
     color: #fff;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.4;
     text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    margin-bottom: 3px;
+}
+.gal-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+.gal-card-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    background: rgba(244,168,37,0.22);
+    border: 1px solid rgba(244,168,37,0.35);
+    border-radius: 50px;
+    padding: 2px 9px;
+    backdrop-filter: blur(4px);
+}
+.gal-card-meta-chip svg { flex-shrink: 0; }
+/* Lightbox meta */
+.gal-lb-meta {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+.gal-lb-meta-chip {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    background: rgba(244,168,37,0.18);
+    border: 1px solid rgba(244,168,37,0.3);
+    border-radius: 50px;
+    padding: 3px 12px;
 }
 .gal-card-zoom {
     position: absolute;
@@ -333,17 +374,39 @@
         <div class="gal-masonry" id="galGrid">
             @foreach($allPhotos as $i => $photo)
             <div class="gal-card"
-                 data-title="{{ strtolower($photo->title ?? '') }}"
+                 data-title="{{ strtolower(($photo->title ?? '') . ' ' . ($photo->event_name ?? '') . ' ' . ($photo->country ?? '')) }}"
                  data-date="{{ $photo->created_at->timestamp }}"
                  data-index="{{ $i }}"
                  onclick="openLightbox({{ $i }})">
                 <img loading="lazy" src="{{ asset('storage/' . $photo->image) }}"
-                     alt="{{ $photo->title ?? 'Gallery photo' }}"
-                     loading="lazy">
+                     alt="{{ $photo->title ?? $photo->event_name ?? 'Gallery photo' }}">
                 <div class="gal-card-overlay">
-                    @if($photo->title)
-                    <div class="gal-card-title">{{ $photo->title }}</div>
-                    @endif
+                    <div>
+                        @if($photo->title)
+                        <div class="gal-card-title">{{ $photo->title }}</div>
+                        @endif
+                        @if($photo->event_name || $photo->country || $photo->event_date)
+                        <div class="gal-card-meta">
+                            @if($photo->event_name)
+                            <span class="gal-card-meta-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                {{ $photo->event_name }}
+                            </span>
+                            @endif
+                            @if($photo->event_date)
+                            <span class="gal-card-meta-chip">
+                                {{ $photo->event_date->format('d M Y') }}
+                            </span>
+                            @endif
+                            @if($photo->country)
+                            <span class="gal-card-meta-chip">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                {{ $photo->country }}
+                            </span>
+                            @endif
+                        </div>
+                        @endif
+                    </div>
                 </div>
                 <div class="gal-card-zoom">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
@@ -368,6 +431,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
             </button>
             <div class="gal-lb-title" id="lbTitle"></div>
+            <div class="gal-lb-meta" id="lbMeta"></div>
         </div>
     </div>
 
@@ -387,7 +451,13 @@
 // ── Photo data for lightbox ──────────────────────────────────────────────────
 const GAL_PHOTOS = [
     @foreach($allPhotos as $photo)
-    { src: "{{ asset('storage/' . $photo->image) }}", title: "{{ addslashes($photo->title ?? '') }}" },
+    {
+        src: "{{ asset('storage/' . $photo->image) }}",
+        title: "{{ addslashes($photo->title ?? '') }}",
+        event_name: "{{ addslashes($photo->event_name ?? '') }}",
+        event_date: "{{ $photo->event_date ? $photo->event_date->format('d M Y') : '' }}",
+        country: "{{ addslashes($photo->country ?? '') }}"
+    },
     @endforeach
 ];
 
@@ -417,8 +487,16 @@ function lbNav(dir) {
 function renderLb() {
     const p = GAL_PHOTOS[lbIndex];
     document.getElementById('lbImg').src = p.src;
-    document.getElementById('lbImg').alt = p.title;
+    document.getElementById('lbImg').alt = p.title || p.event_name || '';
     document.getElementById('lbTitle').textContent = p.title || '';
+
+    const metaEl = document.getElementById('lbMeta');
+    const chips = [];
+    if (p.event_name) chips.push(`<span class="gal-lb-meta-chip">📅 ${p.event_name}</span>`);
+    if (p.event_date) chips.push(`<span class="gal-lb-meta-chip">${p.event_date}</span>`);
+    if (p.country)    chips.push(`<span class="gal-lb-meta-chip">🌍 ${p.country}</span>`);
+    metaEl.innerHTML = chips.join('');
+    metaEl.style.display = chips.length ? 'flex' : 'none';
 }
 
 // ── Keyboard navigation ──────────────────────────────────────────────────────

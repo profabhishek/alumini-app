@@ -26,9 +26,12 @@ class GalleryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'  => 'nullable|string|max:255',
-            'image'  => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'status' => 'required|in:draft,published',
+            'title'      => 'nullable|string|max:255',
+            'country'    => 'nullable|string|max:100',
+            'event_name' => 'nullable|string|max:255',
+            'event_date' => 'nullable|date',
+            'image'      => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'status'     => 'required|in:draft,published',
         ]);
 
         $validated['image'] = $request->file('image')->store('gallery', 'public');
@@ -49,9 +52,12 @@ class GalleryController extends Controller
     public function update(Request $request, GalleryItem $galleryItem)
     {
         $validated = $request->validate([
-            'title'  => 'nullable|string|max:255',
-            'image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'status' => 'required|in:draft,published',
+            'title'      => 'nullable|string|max:255',
+            'country'    => 'nullable|string|max:100',
+            'event_name' => 'nullable|string|max:255',
+            'event_date' => 'nullable|date',
+            'image'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'status'     => 'required|in:draft,published',
         ]);
 
         if ($request->hasFile('image')) {

@@ -234,6 +234,7 @@
 <script>
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const BASE = (window.APP_BASE_URL || '').replace(/\/$/, '');
 
     document.getElementById('invitationList')?.addEventListener('click', async function (e) {
         const btn = e.target.closest('[data-action]');
@@ -250,7 +251,7 @@
         try {
             if (action === 'accept') {
                 const token = btn.dataset.token;
-                const res = await fetch(`/chat/join/${token}/accept`, {
+                const res = await fetch(`${BASE}/chat/join/${token}/accept`, {
                     method:  'POST',
                     headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
                     credentials: 'same-origin',
@@ -259,11 +260,11 @@
                 if (!res.ok) throw new Error(data.error || 'Failed to accept.');
 
                 // Redirect to the group chat
-                window.location.href = '/chat' + (data.conversation_id ? '?conversation=' + data.conversation_id : '');
+                window.location.href = BASE + '/chat' + (data.conversation_id ? '?conversation=' + data.conversation_id : '');
 
             } else if (action === 'decline') {
                 const invId = btn.dataset.invId;
-                const res = await fetch(`/chat/invitations/${invId}/decline`, {
+                const res = await fetch(`${BASE}/chat/invitations/${invId}/decline`, {
                     method:  'POST',
                     headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
                     credentials: 'same-origin',

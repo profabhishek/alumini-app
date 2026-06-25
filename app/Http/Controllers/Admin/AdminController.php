@@ -154,8 +154,8 @@ class AdminController extends Controller
 
     public function index()
     {
-        $admins = AlumniUser::whereIn('role', ['admin', 'super_admin'])
-            ->orderByRaw("FIELD(role, 'super_admin', 'admin')")
+        $admins = AlumniUser::whereIn('role', ['admin', 'super_admin', 'zonal_hq', 'mission'])
+            ->orderByRaw("FIELD(role, 'super_admin', 'admin', 'zonal_hq', 'mission')")
             ->orderBy('full_name')
             ->get();
 
@@ -173,7 +173,7 @@ class AdminController extends Controller
             'full_name' => 'required|string|max:255',
             'email'     => 'required|email|unique:alumni_users,email',
             'password'  => 'required|confirmed|min:8',
-            'role'      => 'required|in:admin,super_admin',
+            'role'      => 'required|in:admin,super_admin,zonal_hq,mission',
         ]);
 
         AlumniUser::create([
@@ -200,7 +200,7 @@ class AdminController extends Controller
 
     public function editAdmin(AlumniUser $user)
     {
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'User is not an admin account.');
         }
@@ -215,7 +215,7 @@ class AdminController extends Controller
 
     public function updateAdmin(Request $request, AlumniUser $user)
     {
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'User is not an admin account.');
         }
@@ -227,7 +227,7 @@ class AdminController extends Controller
         $rules = [
             'full_name' => 'required|string|max:255',
             'email'     => ['required', 'email', Rule::unique('alumni_users')->ignore($user->id)],
-            'role'      => 'required|in:admin,super_admin',
+            'role'      => 'required|in:admin,super_admin,zonal_hq,mission',
             'password'  => 'nullable|confirmed|min:8',
         ];
 
@@ -254,7 +254,7 @@ class AdminController extends Controller
 
     public function destroyAdmin(AlumniUser $user)
     {
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return back()->with('error', 'User is not an admin account.');
         }
 
@@ -283,7 +283,7 @@ class AdminController extends Controller
             return back()->with('error', 'Super admin accounts cannot be revoked from here.');
         }
 
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return back()->with('error', 'User is not an admin.');
         }
 
@@ -425,7 +425,7 @@ class AdminController extends Controller
     public function adminBadgeCounts(): JsonResponse
     {
         $role = session('alumni_role');
-        if (!in_array($role, ['admin', 'super_admin'])) {
+        if (!in_array($role, ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return response()->json(['pending_users' => 0, 'newsletter_new' => 0]);
         }
 
@@ -447,7 +447,7 @@ class AdminController extends Controller
 
     public function markPendingUsersSeen(): JsonResponse
     {
-        if (!in_array(session('alumni_role'), ['admin', 'super_admin'])) {
+        if (!in_array(session('alumni_role'), ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return response()->json(['ok' => false], 403);
         }
         AlumniUser::where('id', session('alumni_id'))
@@ -457,7 +457,7 @@ class AdminController extends Controller
 
     public function markNewsletterSeen(): JsonResponse
     {
-        if (!in_array(session('alumni_role'), ['admin', 'super_admin'])) {
+        if (!in_array(session('alumni_role'), ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             return response()->json(['ok' => false], 403);
         }
         AlumniUser::where('id', session('alumni_id'))

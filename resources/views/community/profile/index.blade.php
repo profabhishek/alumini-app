@@ -64,7 +64,7 @@
                         <span class="profile-tag">🌍 {{ $user->nationality }}</span>
                     @endif
                     @if($user->passing_year)
-                        <span class="profile-tag">🎓 Class of {{ $user->passing_year }}</span>
+                        <span class="profile-tag">🎓 Year {{ $user->passing_year }}</span>
                     @endif
                     @if($user->institute)
                         <span class="profile-tag">🏛 {{ $user->institute }}</span>
@@ -138,8 +138,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Nationality</label>
-                        <input type="text" name="nationality"
+                        <label>Nationality <span class="req" style="color:#e74c3c">*</span></label>
+                        <input type="text" name="nationality" required
                             value="{{ old('nationality', $user->nationality) }}"
                             class="form-input @error('nationality') is-error @enderror">
                         @error('nationality')<span class="form-error">{{ $message }}</span>@enderror
@@ -202,6 +202,15 @@
                                   class="form-input form-textarea @error('bio') is-error @enderror">{{ old('bio', $user->bio) }}</textarea>
                         @error('bio')<span class="form-error">{{ $message }}</span>@enderror
                         <span class="form-char-count"><span id="bioCount">{{ strlen($user->bio ?? '') }}</span>/1000</span>
+                    </div>
+
+                    <div class="form-group form-group--full">
+                        <label>Remarks <span class="form-hint-inline">(internal notes, visible to admins only — max 1000 characters)</span></label>
+                        <textarea name="remarks" rows="3"
+                                  maxlength="1000"
+                                  placeholder="Any additional information or notes..."
+                                  class="form-input form-textarea @error('remarks') is-error @enderror">{{ old('remarks', $user->remarks) }}</textarea>
+                        @error('remarks')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
 
                 </div>
@@ -378,6 +387,18 @@
                         <label class="toggle-switch">
                             <input type="checkbox" name="hide_phone" value="1"
                                    {{ $user->hide_phone ? 'checked' : '' }}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="privacy-toggle-item">
+                        <div class="privacy-toggle-info">
+                            <span class="privacy-toggle-label">Hide Profile Photo</span>
+                            <span class="privacy-toggle-desc">Other alumni won't see your profile photo. Admins can always see it.</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="hide_photo" value="1"
+                                   {{ $user->hide_photo ? 'checked' : '' }}>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>

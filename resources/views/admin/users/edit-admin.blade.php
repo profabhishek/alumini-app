@@ -49,6 +49,8 @@
                             {{ $user->id === (int) session('alumni_id') ? 'disabled' : '' }}>
                         <option value="admin"       {{ old('role', $user->role) === 'admin'       ? 'selected' : '' }}>Admin</option>
                         <option value="super_admin" {{ old('role', $user->role) === 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                        <option value="zonal_hq"   {{ old('role', $user->role) === 'zonal_hq'   ? 'selected' : '' }}>Zonal Headquarters</option>
+                        <option value="mission"    {{ old('role', $user->role) === 'mission'    ? 'selected' : '' }}>Mission</option>
                     </select>
                     {{-- Preserve value when field is disabled --}}
                     @if($user->id === (int) session('alumni_id'))

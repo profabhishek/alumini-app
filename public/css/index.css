@@ -853,8 +853,8 @@ ul {
     color: var(--gold);
 }
 .ap-text {
-    font-size: 13.5px;
-    color: var(--txt2);
+    font-size: 14.5px;
+    color: rgb(47, 47, 47);
     line-height: 1.7;
 }
 

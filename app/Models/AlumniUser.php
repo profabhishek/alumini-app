@@ -47,6 +47,8 @@ class AlumniUser extends Authenticatable
         'nationality',
         'is_iccr_alumni',
         'current_position',
+        'remarks',
+        'hide_photo',
     ];
 
     // Sensitive fields explicitly excluded from mass-assignment.
@@ -64,6 +66,7 @@ class AlumniUser extends Authenticatable
         'is_approved'         => 'boolean',
         'hide_email'          => 'boolean',
         'hide_phone'          => 'boolean',
+        'hide_photo'          => 'boolean',
         'email_notifications' => 'array',
         'last_seen_at'          => 'datetime',
         'notifications_read_at' => 'datetime',
@@ -82,15 +85,17 @@ class AlumniUser extends Authenticatable
     public function isModerator(): bool     { return $this->role === 'moderator'; }
     public function isAdmin(): bool         { return $this->role === 'admin'; }
     public function isSuperAdmin(): bool    { return $this->role === 'super_admin'; }
+    public function isZonalHq(): bool       { return $this->role === 'zonal_hq'; }
+    public function isMission(): bool       { return $this->role === 'mission'; }
 
     public function isAdminOrAbove(): bool
     {
-        return in_array($this->role, ['admin', 'super_admin']);
+        return in_array($this->role, ['admin', 'super_admin', 'zonal_hq', 'mission']);
     }
 
     public function isStaff(): bool
     {
-        return in_array($this->role, ['moderator', 'admin', 'super_admin']);
+        return in_array($this->role, ['moderator', 'admin', 'super_admin', 'zonal_hq', 'mission']);
     }
 
     // ── Permission checks ─────────────────────────────────────────────────

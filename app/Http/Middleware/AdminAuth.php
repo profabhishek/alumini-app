@@ -20,7 +20,7 @@ class AdminAuth
 
         $user = AlumniUser::find($alumniId);
 
-        if (!$user || !in_array($user->role, ['admin', 'super_admin'])) {
+        if (!$user || !in_array($user->role, ['admin', 'super_admin', 'zonal_hq', 'mission'])) {
             abort(403, 'Access denied.');
         }
 

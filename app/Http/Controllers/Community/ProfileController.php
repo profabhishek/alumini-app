@@ -32,19 +32,22 @@ class ProfileController extends Controller
             'current_job_title' => 'nullable|max:255',
             'current_company'   => 'nullable|max:255',
             'current_city'      => 'nullable|max:255',
-            'nationality'       => 'nullable|max:255',
+            'nationality'       => 'required|max:255',
+            'remarks'           => 'nullable|max:1000',
             'linkedin_url'      => 'nullable|url|max:255',
             'twitter_url'       => 'nullable|url|max:255',
             'facebook_url'      => 'nullable|url|max:255',
             'website_url'       => 'nullable|url|max:255',
             'hide_email'        => 'nullable|boolean',
             'hide_phone'        => 'nullable|boolean',
+            'hide_photo'        => 'nullable|boolean',
         ]);
 
         $user->update([
             'full_name'         => $request->full_name,
             'phone'             => $request->phone,
             'bio'               => $request->bio,
+            'remarks'           => $request->remarks,
             'current_job_title' => $request->current_job_title,
             'current_company'   => $request->current_company,
             'current_city'      => $request->current_city,
@@ -55,6 +58,7 @@ class ProfileController extends Controller
             'website_url'       => $request->website_url,
             'hide_email'        => $request->boolean('hide_email'),
             'hide_phone'        => $request->boolean('hide_phone'),
+            'hide_photo'        => $request->boolean('hide_photo'),
         ]);
 
         // Update session name in case it changed

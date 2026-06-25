@@ -45,8 +45,10 @@
                 <div class="admin-form-group">
                     <label>Role <span class="req">*</span></label>
                     <select name="role" class="admin-input @error('role') is-error @enderror">
-                        <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="admin"       {{ old('role') == 'admin'       ? 'selected' : '' }}>Admin</option>
                         <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                        <option value="zonal_hq"   {{ old('role') == 'zonal_hq'   ? 'selected' : '' }}>Zonal Headquarters</option>
+                        <option value="mission"    {{ old('role') == 'mission'    ? 'selected' : '' }}>Mission</option>
                     </select>
                     @error('role')<span class="admin-form-error">{{ $message }}</span>@enderror
                 </div>
