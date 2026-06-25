@@ -345,8 +345,8 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </div>
-                    <h3 class="why-title">Past Research Paper of Alumni's</h3>
-                    <p class="why-desc">Find the people you studied alongside — no matter where life took them. Reconnect, catch up, and pick up right where you left off with batchmates from across the world.</p>
+                    <h3 class="why-title">Post your Research Papers</h3>
+                    <p class="why-desc">Showcase your research and academic contributions to a global community of ICCR alumni. Publish your papers, increase their visibility, connect with fellow researchers, and inspire meaningful collaboration across disciplines.</p>
                 </div>
                 <div class="why-card reveal reveal-delay-3">
                     <span class="why-num">03</span>
